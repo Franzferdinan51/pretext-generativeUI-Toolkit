@@ -7,15 +7,18 @@ import React, { useState, useEffect, useRef } from 'react'
 const PROVIDERS = {
   lmstudio: { name: 'LM Studio', endpoint: '/api/lm-studio', icon: '🖥️', color: '#10b981' },
   minimax: { name: 'MiniMax', endpoint: 'https://api.minimax.io/v1', icon: '🚀', color: '#f59e0b' },
+  kimi: { name: 'Kimi', endpoint: 'https://api.moonshot.cn/v1', icon: '🌙', color: '#6366f1' },
   openai: { name: 'OpenAI', endpoint: 'https://api.openai.com/v1', icon: '🤖', color: '#10a54a' },
   anthropic: { name: 'Claude', endpoint: 'https://api.anthropic.com/v1', icon: '🧠', color: '#d946ef' },
-  moonshot: { name: 'Kimi', endpoint: 'https://api.moonshot.cn/v1', icon: '🌙', color: '#6366f1' },
   google: { name: 'Gemini', endpoint: 'https://generativelanguage.googleapis.com/v1', icon: '🔵', color: '#4285f4' },
   groq: { name: 'Groq', endpoint: 'https://api.groq.com/openai/v1', icon: '⚡', color: '#f97316' },
   deepseek: { name: 'DeepSeek', endpoint: 'https://api.deepseek.com/v1', icon: '🔮', color: '#06b6d4' },
   ollama: { name: 'Ollama', endpoint: 'http://localhost:11434/v1', icon: '🦙', color: '#84cc16' },
   together: { name: 'Together', endpoint: 'https://api.together.xyz/v1', icon: '☁️', color: '#8b5cf6' }
 }
+
+// Kimi API key
+const KIMI_API_KEY = 'sk-kimi-JuC8v84dqO2VbJbDRt1Z8lbQgHqTOLrPbeSEae9FhWVQE9HUAwomE6Xmv7JwChIg'
 
 type Provider = keyof typeof PROVIDERS
 
@@ -61,43 +64,65 @@ function CanvasRenderer({ components }: { components: UIComponent[] }) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     
+    // Find max Y to set canvas height
+    const maxY = Math.max(...components.map(c => c.y + c.height), 800) + 100
     canvas.width = 1200
-    canvas.height = 1400
+    canvas.height = maxY
     
+    // Background
     ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, 1200, 1400)
+    ctx.fillRect(0, 0, 1200, maxY)
     
-    for (const comp of components) {
+    // Sort by Y for proper layering
+    const sorted = [...components].sort((a, b) => a.y - b.y)
+    
+    for (const comp of sorted) {
       if (!comp.visible) continue
       const isHovered = hoveredId === comp.id
       
       switch (comp.type) {
         case 'header':
-          ctx.fillStyle = 'rgba(0,0,0,0.8)'
+          ctx.fillStyle = 'rgba(0,0,0,0.9)'
           ctx.fillRect(comp.x, comp.y, comp.width, comp.height || 60)
           ctx.fillStyle = '#fff'
-          ctx.font = 'bold 20px Inter'
+          ctx.font = 'bold 20px Inter, sans-serif'
           ctx.fillText(comp.content, comp.x + 20, comp.y + 38)
           break
         case 'text':
-          const fontSize = parseInt(comp.style.fontSize || '16')
-          ctx.font = `${fontSize}px Inter`
-          ctx.fillStyle = comp.style.color || '#fff'
+          const fontSize = parseInt(comp.style.fontSize || '18')
+          ctx.font = `bold ${fontSize}px Inter, sans-serif`
           if (comp.style.background?.includes('gradient')) {
             const gradient = ctx.createLinearGradient(comp.x, comp.y, comp.x + 400, comp.y)
             gradient.addColorStop(0, '#8b5cf6')
             gradient.addColorStop(1, '#ec4899')
             ctx.fillStyle = gradient
+          } else {
+            ctx.fillStyle = comp.style.color || '#fff'
           }
-          ctx.fillText(comp.content, comp.x, comp.y + fontSize)
+          // Word wrap
+          const words = comp.content.split(' ')
+          let line = ''
+          let lineY = comp.y + fontSize
+          for (const word of words) {
+            const test = line + word + ' '
+            if (ctx.measureText(test).width > comp.width && line !== '') {
+              ctx.fillText(line, comp.x, lineY)
+              line = word + ' '
+              lineY += fontSize + 4
+            } else {
+              line = test
+            }
+          }
+          ctx.fillText(line, comp.x, lineY)
           break
         case 'button':
-          ctx.fillStyle = isHovered ? '#7c3aed' : '#8b5cf6'
+          const btnColor = isHovered ? '#7c3aed' : '#8b5cf6'
+          ctx.fillStyle = btnColor
           ctx.beginPath()
           ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
           ctx.fill()
           ctx.fillStyle = '#fff'
-          ctx.font = 'bold 14px Inter'
+          ctx.font = 'bold 14px Inter, sans-serif'
           ctx.textAlign = 'center'
           ctx.fillText(comp.content, comp.x + comp.width / 2, comp.y + comp.height / 2 + 5)
           ctx.textAlign = 'left'
@@ -107,13 +132,15 @@ function CanvasRenderer({ components }: { components: UIComponent[] }) {
           ctx.beginPath()
           ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 150, 12)
           ctx.fill()
-          ctx.strokeStyle = isHovered ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'
+          ctx.strokeStyle = isHovered ? '#8b5cf6' : 'rgba(255,255,255,0.2)'
+          ctx.lineWidth = isHovered ? 2 : 1
           ctx.stroke()
+          // Card text
           ctx.fillStyle = '#fff'
-          ctx.font = 'bold 18px Inter'
-          const lines = comp.content.match(/.{1,30}/g) || [comp.content]
-          lines.forEach((line, i) => {
-            ctx.fillText(line, comp.x + 16, comp.y + 35 + i * 24)
+          ctx.font = 'bold 16px Inter, sans-serif'
+          const cardLines = comp.content.split('\\n')
+          cardLines.forEach((line, i) => {
+            ctx.fillText(line, comp.x + 16, comp.y + 30 + i * 22)
           })
           break
       }
@@ -139,47 +166,69 @@ function CanvasRenderer({ components }: { components: UIComponent[] }) {
     canvas.style.cursor = found ? 'pointer' : 'default'
   }
   
+  if (components.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">
+        No components generated yet
+      </div>
+    )
+  }
+  
   return <canvas ref={canvasRef} className="w-full rounded-xl" onMouseMove={handleMove} />
 }
 
 function HTMLPreview({ components }: { components: UIComponent[] }) {
   const visible = components.filter(c => c.visible)
+  const headers = visible.filter(c => c.type === 'header')
   const texts = visible.filter(c => c.type === 'text')
   const cards = visible.filter(c => c.type === 'card')
   const buttons = visible.filter(c => c.type === 'button')
+  
+  const sortedTexts = [...texts].sort((a, b) => a.y - b.y)
   
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Generated</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>AI Generated Website</title>
   <style>
-    body { background: #0a0a0f; color: white; font-family: Inter, system-ui, sans-serif; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0f; color: white; font-family: Inter, -apple-system, sans-serif; min-height: 100vh; }
     .gradient-text { background: linear-gradient(to right, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .gradient-bg { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+    .gradient-bg { background: linear-gradient(135deg, #8b5cf6, #ec4899); border: none; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; }
+    .card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; }
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; margin: 32px 0; }
+    .btn-container { text-align: center; margin: 32px 0; }
+    .header { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); padding: 16px 32px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 80px 20px 20px; }
+    .text-hero { font-size: 48px; font-weight: 900; }
+    .text-subtitle { font-size: 18px; color: #aaa; margin-top: 8px; }
+    .text-section { margin-bottom: 32px; }
   </style>
 </head>
-<body class="min-h-screen">
-  <section class="pt-32 pb-16 px-4 text-center">
-    ${texts.map(t => `<h2 class="text-4xl font-black mb-4" style="color: ${t.style.color || '#fff'}">${t.content}</h2>`).join('')}
-  </section>
-  ${cards.length > 0 ? `<section class="py-16 px-4">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-${Math.min(cards.length, 3)} gap-6">
-      ${cards.map(c => `<div class="p-6 rounded-xl border border-white/10" style="background: ${c.style.background || 'rgba(255,255,255,0.05)'}">
-        <h3 class="text-lg font-bold mb-2">${c.content}</h3>
-        <p class="text-gray-400">Generated by AI Swarm</p>
-      </div>`).join('')}
-    </div>
-  </section>` : ''}
-  ${buttons.length > 0 ? `<section class="py-12 text-center">
-    ${buttons.map(b => `<button class="px-6 py-3 rounded-lg font-bold gradient-bg hover:opacity-90 transition mx-2">${b.content}</button>`).join('')}
-  </section>` : ''}
+<body>
+  ${headers.length > 0 ? `<div class="header"><span style="font-size: 18px; font-weight: bold;" class="gradient-text">${headers[0].content}</span></div>` : ''}
+  <div class="container">
+    ${sortedTexts.map(t => {
+      const fs = parseInt(t.style.fontSize || '18')
+      const isHero = fs >= 36
+      return `<div class="text-section">
+        <h1 class="${isHero ? 'text-hero gradient-text' : ''}" style="color: ${isHero ? 'transparent' : t.style.color || '#fff'}; font-size: ${fs}px; font-weight: ${isHero ? 900 : 'bold'}">${t.content}</h1>
+        ${isHero ? '<p class="text-subtitle">Generated by AI Swarm</p>' : ''}
+      </div>`
+    }).join('')}
+    ${cards.length > 0 ? `<div class="cards-grid">${cards.map(c => {
+      const lines = c.content.split('\\n')
+      return `<div class="card"><h3 style="font-size: 20px; font-weight: bold;">${lines[0] || ''}</h3><p style="color: #888; margin-top: 8px;">${lines[1] || 'Generated by AI'}</p></div>`
+    }).join('')}</div>` : ''}
+    ${buttons.length > 0 ? `<div class="btn-container">${buttons.map(b => `<button class="gradient-bg">${b.content}</button>`).join('')}</div>` : ''}
+  </div>
 </body>
 </html>`
   
-  return <iframe className="w-full h-full border-0" srcDoc={html} title="Preview" sandbox="allow-scripts" />
+  if (components.length === 0) return <div className="flex items-center justify-center h-64 text-gray-500">No components to preview</div>
+  return <iframe className="w-full h-full border-0 bg-white" srcDoc={html} title="Preview" sandbox="allow-scripts" />
 }
 
 function SettingsModal({ isOpen, onClose, settings, onSave, swarmAgents, onSwarmChange }: { 
@@ -299,10 +348,10 @@ export default function App() {
   const [view, setView] = useState<'canvas' | 'html'>('canvas')
   const [showSettings, setShowSettings] = useState(false)
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([
-    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
-    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
+    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'lmstudio', model: 'qwen3.5-9b', status: 'waiting', retryCount: 0 },
+    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'lmstudio', model: 'qwen3.5-9b', status: 'waiting', retryCount: 0 },
     { id: '3', name: 'Frontend', role: 'content', icon: '💻', sections: ['Toolkit', 'How It Works'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
-    { id: '4', name: 'QA', role: 'enforcer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 }
+    { id: '4', name: 'QA', role: 'enforcer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'kimi', model: 'moonshot-v1-128k', status: 'waiting', retryCount: 0 }
   ])
   const [supervisorLogs, setSupervisorLogs] = useState<SupervisorLog[]>([])
   const [supervisorStatus, setSupervisorStatus] = useState('idle')
@@ -324,11 +373,19 @@ export default function App() {
     const p = PROVIDERS[provider]
     const actualModel = model || p.name.toLowerCase().replace(' ', '-')
     
+    // Use correct API key for each provider
+    let authKey = apiKey
+    if (provider === 'kimi') {
+      authKey = KIMI_API_KEY // Use Kimi's key
+    } else if (provider === 'lmstudio') {
+      authKey = 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW' // LM Studio key
+    }
+    
     const response = await fetch(`${p.endpoint}/chat/completions`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${authKey}`
       },
       body: JSON.stringify({
         model: actualModel,
@@ -337,9 +394,13 @@ export default function App() {
           { role: 'user', content: userPrompt }
         ],
         stream: true,
-        max_tokens: 2048
+        max_tokens: 1024 // Reduced for speed
       })
     })
+    
+    if (!response.ok) {
+      throw new Error(`${provider} API error: ${response.status}`)
+    }
     
     const reader = response.body?.getReader()
     const decoder = new TextDecoder()
