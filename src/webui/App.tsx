@@ -1,470 +1,203 @@
 // GENERATIVE UI - PRETEXT + JSON-RENDER + A2UI STACK
-// AI-Powered Generative UI with all three technologies combined
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine } from '@chenglou/pretext'
-import { defineCatalog, Schema } from '@json-render/core'
+import React, { useState, useEffect, useRef } from 'react'
+import { prepare, layout } from '@chenglou/pretext'
+import { defineCatalog } from '@json-render/core'
 import { defineRegistry, Renderer } from '@json-render/react'
-import { schema as jsonSchema } from '@json-render/react/schema'
+import { schema } from '@json-render/react/schema'
 import { z } from 'zod'
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 
 type Provider = 'minimax'
 
-// ============================================
-// PRETEXT LAYER - Zero-Reflow Text Measurement
-// ============================================
-class PretextEngine {
-  private cache = new Map<string, ReturnType<typeof prepare>>()
-  
-  // Measure text WITHOUT DOM reflow (~0.09ms cached)
-  measure(text: string, font: string, maxWidth: number, lineHeight: number = 24) {
-    const key = `${text}:${font}:${maxWidth}:${lineHeight}`
-    
-    if (!this.cache.has(key)) {
-      const prepared = prepare(text, font)
-      const result = layout(prepared, maxWidth, lineHeight)
-      this.cache.set(key, result)
-      return result
-    }
-    
-    return this.cache.get(key)!
-  }
-  
-  // Get exact line positions (for Canvas rendering)
-  measureWithLines(text: string, font: string, maxWidth: number, lineHeight: number = 24) {
-    const prepared = prepareWithSegments(text, font)
-    return layoutWithLines(prepared, maxWidth, lineHeight)
-  }
-  
-  // Flow text around obstacles (like floating images)
-  flowAround(text: string, font: string, obstacle: { x: number; y: number; width: number; height: number }, columnWidth: number, lineHeight: number = 24) {
-    const prepared = prepareWithSegments(text, font)
-    const lines: Array<{ text: string; width: number; y: number }> = []
-    let cursor = { segmentIndex: 0, graphemeIndex: 0 }
-    let y = 0
-    
-    while (true) {
-      const width = y >= obstacle.y && y < obstacle.y + obstacle.height 
-        ? columnWidth - obstacle.width 
-        : columnWidth
-      
-      const line = layoutNextLine(prepared, cursor, width)
-      if (!line) break
-      
-      lines.push({ text: line.text, width: line.width, y })
-      cursor = line.end
-      y += lineHeight
-    }
-    
-    return lines
-  }
-  
-  // Calculate shrinkwrap width
-  shrinkwrap(text: string, font: string): number {
-    const prepared = prepareWithSegments(text, font)
-    let maxWidth = 0
-    
-    // Walk through line ranges to find max width
-    const lines = layoutWithLines(prepared, 10000, 24)
-    for (const line of lines.lines || []) {
-      if (line.width > maxWidth) maxWidth = line.width
-    }
-    
-    return maxWidth || 0
-  }
-  
-  clearCache() {
-    this.cache.clear()
-  }
+interface UIComponent {
+  id: string
+  type: string
+  props: Record<string, any>
+  children?: string[]
 }
 
-const pretextEngine = new PretextEngine()
+// Pretext engine for text measurement
+function measureText(text: string, fontSize: number, maxWidth: number) {
+  const prepared = prepare(text, `${fontSize}px Inter`)
+  const result = layout(prepared, maxWidth, fontSize + 4)
+  return result
+}
 
-// ============================================
-// JSON RENDER LAYER - Safe Component Catalog (A2UI-style)
-// ============================================
-const catalog = defineCatalog(jsonSchema, {
+// JSON Render catalog
+const catalog = defineCatalog(schema, {
   components: {
-    // Text elements
-    Header: {
-      props: z.object({
-        content: z.string(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        bgColor: z.string().optional()
-      }),
-      description: 'Header bar with logo'
-    },
-    Text: {
-      props: z.object({
-        content: z.string(),
-        fontSize: z.number().optional(),
-        fontWeight: z.string().optional(),
-        color: z.string().optional(),
-        isGradient: z.boolean().optional(),
-        align: z.enum(['left', 'center', 'right']).optional()
-      }),
-      description: 'Text with optional gradient'
-    },
-    Heading: {
-      props: z.object({
-        content: z.string(),
-        level: z.enum(['h1', 'h2', 'h3']).optional(),
-        isGradient: z.boolean().optional()
-      }),
-      description: 'Heading text'
-    },
-    
-    // Interactive elements
-    Button: {
-      props: z.object({
-        content: z.string(),
-        bgColor: z.string().optional(),
-        textColor: z.string().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        rounded: z.boolean().optional()
-      }),
-      description: 'Clickable button'
-    },
-    Link: {
-      props: z.object({
-        content: z.string(),
-        href: z.string(),
-        color: z.string().optional()
-      }),
-      description: 'Clickable link'
-    },
-    
-    // Layout elements
-    Card: {
-      props: z.object({
-        title: z.string(),
-        description: z.string().optional(),
-        bgColor: z.string().optional(),
-        borderColor: z.string().optional()
-      }),
-      description: 'Card container'
-    },
-    Container: {
-      props: z.object({
-        bgColor: z.string().optional(),
-        padding: z.number().optional(),
-        maxWidth: z.number().optional()
-      }),
-      description: 'Container wrapper'
-    },
-    Stack: {
-      props: z.object({
-        direction: z.enum(['horizontal', 'vertical']).optional(),
-        gap: z.number().optional(),
-        align: z.enum(['start', 'center', 'end', 'stretch']).optional()
-      }),
-      description: 'Stack layout'
-    },
-    Grid: {
-      props: z.object({
-        columns: z.number().optional(),
-        gap: z.number().optional()
-      }),
-      description: 'Grid layout'
-    },
-    
-    // Data display
-    Metric: {
-      props: z.object({
-        label: z.string(),
-        value: z.string(),
-        format: z.enum(['currency', 'percent', 'number']).optional()
-      }),
-      description: 'Metric display'
-    },
-    Badge: {
-      props: z.object({
-        content: z.string(),
-        color: z.string().optional()
-      }),
-      description: 'Badge/tag'
-    },
-    
-    // Media
-    Image: {
-      props: z.object({
-        src: z.string(),
-        alt: z.string(),
-        width: z.number().optional(),
-        height: z.number().optional()
-      }),
-      description: 'Image'
-    },
-    Icon: {
-      props: z.object({
-        name: z.string(),
-        size: z.number().optional(),
-        color: z.string().optional()
-      }),
-      description: 'Icon display'
-    },
-    
-    // Input (A2UI use case)
-    Input: {
-      props: z.object({
-        placeholder: z.string(),
-        type: z.enum(['text', 'email', 'password', 'number']).optional(),
-        label: z.string().optional()
-      }),
-      description: 'Text input field'
-    },
-    Select: {
-      props: z.object({
-        options: z.array(z.object({ label: z.string(), value: z.string() })),
-        label: z.string().optional()
-      }),
-      description: 'Select dropdown'
-    }
-  },
-  actions: {
-    generate: { description: 'Regenerate website' },
-    navigate: { description: 'Navigate to page' },
-    submit: { description: 'Submit form' },
-    refresh: { description: 'Refresh data' }
+    Header: { props: z.object({ content: z.string() }), description: 'Header bar' },
+    Text: { props: z.object({ content: z.string() }), description: 'Text' },
+    Heading: { props: z.object({ content: z.string(), level: z.string() }), description: 'Heading' },
+    Button: { props: z.object({ content: z.string() }), description: 'Button' },
+    Card: { props: z.object({ title: z.string(), description: z.string().optional() }), description: 'Card' },
+    Container: { props: z.object({ bgColor: z.string().optional() }), description: 'Container' },
+    Stack: { props: z.object({ direction: z.string(), gap: z.number().optional() }), description: 'Stack' },
+    Grid: { props: z.object({ columns: z.number() }), description: 'Grid' },
+    Metric: { props: z.object({ label: z.string(), value: z.string() }), description: 'Metric' },
+    Badge: { props: z.object({ content: z.string() }), description: 'Badge' },
+    Link: { props: z.object({ content: z.string(), href: z.string() }), description: 'Link' },
   }
 })
 
 // Component renderers
 const components = {
   Header: ({ props }: { props: any }) => (
-    <div 
-      className="w-full h-[60px] flex items-center px-6"
-      style={{ backgroundColor: props.bgColor || 'rgba(0,0,0,0.9)' }}
-    >
+    <div className="w-full h-[60px] flex items-center px-6 bg-black/90 border-b border-white/10">
       <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
         {props.content}
       </span>
     </div>
   ),
   Text: ({ props }: { props: any }) => (
-    <p 
-      className={`${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-black' : ''}`}
-      style={{ 
-        fontSize: props.fontSize || 16,
-        color: props.isGradient ? 'transparent' : (props.color || '#fff'),
-        fontWeight: props.fontWeight || 'normal',
-        textAlign: props.align || 'left'
-      }}
-    >
+    <p className={`${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-black' : ''}`} style={{ color: props.isGradient ? 'transparent' : props.color || '#fff', fontSize: props.fontSize || 16 }}>
       {props.content}
     </p>
   ),
   Heading: ({ props }: { props: any }) => {
-    const sizes = { h1: 'text-4xl', h2: 'text-3xl', h3: 'text-2xl' }
-    return (
-      <h2 className={`${sizes[props.level || 'h1']} font-black ${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent' : ''}`} style={{ color: props.isGradient ? 'transparent' : '#fff' }}>
-        {props.content}
-      </h2>
-    )
+    const sizes: Record<string, string> = { h1: 'text-4xl', h2: 'text-3xl', h3: 'text-2xl' }
+    return <h2 className={`${sizes[props.level] || 'text-4xl'} font-black ${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent' : ''}`}>{props.content}</h2>
   },
   Button: ({ props, emit }: { props: any; emit: any }) => (
-    <button 
-      className={`px-6 py-3 font-bold transition ${props.rounded ? 'rounded-full' : 'rounded-lg'} hover:opacity-90`}
-      style={{ 
-        backgroundColor: props.bgColor || '#8b5cf6',
-        color: props.textColor || '#fff',
-        width: props.width,
-        height: props.height
-      }}
-      onClick={() => emit?.('press')}
-    >
+    <button className="px-6 py-3 rounded-lg font-bold bg-purple-600 hover:bg-purple-700 transition" onClick={() => emit?.('press')}>
       {props.content}
     </button>
   ),
-  Link: ({ props }: { props: any }) => (
-    <a 
-      href={props.href}
-      className="text-purple-400 hover:text-purple-300 underline"
-      style={{ color: props.color }}
-    >
-      {props.content}
-    </a>
-  ),
   Card: ({ props, children }: { props: any; children?: React.ReactNode }) => (
-    <div 
-      className="p-6 rounded-xl border border-white/10"
-      style={{ 
-        backgroundColor: props.bgColor || 'rgba(255,255,255,0.08)',
-        borderColor: props.borderColor || 'rgba(255,255,255,0.1)'
-      }}
-    >
+    <div className="p-6 rounded-xl bg-white/8 border border-white/10">
       <h3 className="text-lg font-bold mb-2">{props.title}</h3>
       {props.description && <p className="text-gray-400">{props.description}</p>}
       {children}
     </div>
   ),
   Container: ({ props, children }: { props: any; children?: React.ReactNode }) => (
-    <div 
-      className="mx-auto"
-      style={{ 
-        backgroundColor: props.bgColor,
-        padding: props.padding,
-        maxWidth: props.maxWidth
-      }}
-    >
+    <div className="mx-auto px-4" style={{ maxWidth: props.maxWidth || 1200, backgroundColor: props.bgColor }}>
       {children}
     </div>
   ),
   Stack: ({ props, children }: { props: any; children?: React.ReactNode }) => (
-    <div 
-      className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-${props.gap || 4} items-${props.align || 'start'}`}
-    >
+    <div className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-${props.gap || 4}`}>
       {children}
     </div>
   ),
   Grid: ({ props, children }: { props: any; children?: React.ReactNode }) => (
-    <div 
-      className="grid gap-4"
-      style={{ gridTemplateColumns: `repeat(${props.columns || 3}, minmax(0, 1fr))` }}
-    >
+    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${props.columns || 3}, minmax(0, 1fr))` }}>
       {children}
     </div>
   ),
   Metric: ({ props }: { props: any }) => (
-    <div className="text-center">
+    <div className="text-center p-4">
       <div className="text-3xl font-black text-white">{props.value}</div>
       <div className="text-gray-400 text-sm">{props.label}</div>
     </div>
   ),
   Badge: ({ props }: { props: any }) => (
-    <span 
-      className="px-2 py-1 rounded text-xs font-bold"
-      style={{ backgroundColor: props.color || '#8b5cf6', color: '#fff' }}
-    >
+    <span className="px-2 py-1 rounded text-xs font-bold bg-purple-600 text-white">
       {props.content}
     </span>
   ),
-  Image: ({ props }: { props: any }) => (
-    <img 
-      src={props.src} 
-      alt={props.alt}
-      width={props.width}
-      height={props.height}
-      className="rounded"
-    />
-  ),
-  Icon: ({ props }: { props: any }) => (
-    <span style={{ fontSize: props.size || 24, color: props.color }}>
-      {props.name}
-    </span>
-  ),
-  Input: ({ props }: { props: any }) => (
-    <div>
-      {props.label && <label className="block text-sm text-gray-400 mb-1">{props.label}</label>}
-      <input 
-        type={props.type || 'text'}
-        placeholder={props.placeholder}
-        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500"
-      />
-    </div>
-  ),
-  Select: ({ props }: { props: any }) => (
-    <div>
-      {props.label && <label className="block text-sm text-gray-400 mb-1">{props.label}</label>}
-      <select className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white">
-        {props.options?.map((opt: any) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
+  Link: ({ props }: { props: any }) => (
+    <a href={props.href} className="text-purple-400 hover:text-purple-300 underline">
+      {props.content}
+    </a>
   )
 }
 
-// Create registry
 const { registry } = defineRegistry(catalog, { components })
 
-// ============================================
-// A2UI-STYLE SPEC FORMAT
-// ============================================
-interface A2UISpec {
-  root: string
-  elements: Record<string, {
-    type: string
-    props: Record<string, any>
-    children?: string[]
-  }>
-}
-
-function buildA2UISpec(components: any[]): A2UISpec {
-  const elements: A2UISpec['elements'] = {}
+// A2UI spec builder
+function buildSpec(comps: UIComponent[]) {
+  const elements: Record<string, any> = {}
   let root = ''
-  
-  components.forEach((comp, i) => {
-    const id = comp.id || `comp-${i}`
-    if (!root) root = id
-    
-    elements[id] = {
-      type: comp.type.charAt(0).toUpperCase() + comp.type.slice(1),
-      props: comp.props || {},
-      children: comp.children
-    }
+  comps.forEach((c) => {
+    if (!root) root = c.id
+    elements[c.id] = { type: c.type.charAt(0).toUpperCase() + c.type.slice(1), props: c.props || {}, children: c.children || [] }
   })
-  
   return { root, elements }
 }
 
-// ============================================
-// AI SWARM APP
-// ============================================
-interface UIComponent {
-  id: string
-  type: string
-  content?: string
-  title?: string
-  description?: string
-  x?: number; y?: number
-  width?: number; height?: number
-  props?: Record<string, any>
-  style?: Record<string, any>
-  visible?: boolean
-  children?: string[]
-  action?: string
+// Fallback components
+function fallback(): UIComponent[] {
+  return [
+    { id: 'header-1', type: 'Header', props: { content: '🎨 Pretext AI UI' } },
+    { id: 'hero-1', type: 'Heading', props: { content: 'Build UI with AI', level: 'h1', isGradient: true } },
+    { id: 'text-1', type: 'Text', props: { content: 'Zero Reflow • JSON Render • A2UI', color: '#aaa' } },
+    { id: 'btn-1', type: 'Button', props: { content: '🚀 Get Started' } },
+    { id: 'card-1', type: 'Card', props: { title: '⚡ Zero Reflow', description: 'Text measured instantly' } },
+    { id: 'card-2', type: 'Card', props: { title: '🎨 JSON Render', description: 'Safe components' } },
+    { id: 'card-3', type: 'Card', props: { title: '🤖 A2UI', description: 'Agent standard' } },
+    { id: 'metric-1', type: 'Metric', props: { label: 'Speed', value: '0ms' } },
+    { id: 'metric-2', type: 'Metric', props: { label: 'Components', value: '50+' } },
+    { id: 'metric-3', type: 'Metric', props: { label: 'Free', value: '100%' } },
+  ]
+}
+
+// Agent prompts
+const PROMPTS = {
+  architect: `You are the ARCHITECT agent. Create HEADER and HERO.
+
+MUST OUTPUT JSON like this:
+{"root":"header-1","elements":{"header-1":{"type":"Header","props":{"content":"🎨 Pretext AI UI"}},"hero-1":{"type":"Heading","props":{"content":"Build UI with AI","level":"h1","isGradient":true}},"text-1":{"type":"Text","props":{"content":"Zero Reflow • JSON Render • A2UI"}},"btn-1":{"type":"Button","props":{"content":"🚀 Get Started"}}}}
+
+Checklist:
+✓ Header with logo text
+✓ Heading with gradient
+✓ CTA button
+✓ Dark theme #0a0a0f`,
+
+  designer: `You are the DESIGNER agent. Create FEATURE CARDS.
+
+MUST OUTPUT JSON:
+{"root":"grid-1","elements":{"grid-1":{"type":"Grid","props":{"columns":3}},"card-1":{"type":"Card","props":{"title":"⚡ Zero Reflow","description":"Text measured instantly"}},"card-2":{"type":"Card","props":{"title":"🎨 JSON Render","description":"Safe components"}},"card-3":{"type":"Card","props":{"title":"🤖 A2UI","description":"Agent standard"}}}}
+
+Checklist:
+✓ Exactly 3 Cards
+✓ Each has title AND description
+✓ Grid with columns: 3`,
+
+  frontend: `You are the FRONTEND agent. Create CTA, STATS, FOOTER.
+
+MUST OUTPUT JSON:
+{"root":"cta-1","elements":{"cta-1":{"type":"Button","props":{"content":"🚀 Get Started"}},"metric-1":{"type":"Metric","props":{"label":"Speed","value":"0ms"}},"metric-2":{"type":"Metric","props":{"label":"Components","value":"50+"}},"metric-3":{"type":"Metric","props":{"label":"Free","value":"100%"}},"footer-1":{"type":"Text","props":{"content":"© 2026 Pretext AI UI"}}}
+
+Checklist:
+✓ CTA button exists
+✓ 3 Metrics with label AND value`,
+
+  qa: `You are the QA AGENT. Verify and FIX components.
+
+TASK: Check this list and fix issues:
+1. Missing Header → add Header {content:"🎨 Pretext AI UI"}
+2. No gradient heading → add Heading {isGradient:true}
+3. < 3 Cards → add Cards
+4. No CTA → add Button
+5. Empty fields → fill with valid content
+
+OUTPUT the FIXED JSON.`
 }
 
 export default function App() {
-  const [spec, setSpec] = useState<A2UISpec | null>(null)
+  const [spec, setSpec] = useState<any>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
-  const [phase, setPhase] = useState('Initializing...')
+  const [phase, setPhase] = useState('Starting...')
   
   const initRef = useRef(false)
   
-  useEffect(() => {
-    if (!initRef.current) {
-      initRef.current = true
-      runSwarm()
-    }
-  }, [])
+  useEffect(() => { if (!initRef.current) { initRef.current = true; runSwarm() } }, [])
   
   async function callAI(provider: Provider, model: string, system: string, user: string) {
-    const res = await fetch(`https://api.minimax.io/v1/chat/completions`, {
+    const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Authorization': `Bearer ${MINIMAX_API_KEY}` 
-      },
-      body: JSON.stringify({ 
-        model, 
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }], 
-        stream: true, 
-        max_tokens: 2048 
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], stream: true, max_tokens: 2048 })
     })
-    
     if (!res.ok) throw new Error(`${provider} error: ${res.status}`)
     
     const reader = res.body?.getReader()
     const decoder = new TextDecoder()
     let full = ''
-    
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -481,154 +214,92 @@ export default function App() {
     return full
   }
   
-  // Pretext-powered text measurement
-  function measureTextForCanvas(text: string, fontSize: number, maxWidth: number) {
-    const measured = pretextEngine.measure(text, `${fontSize}px Inter`, maxWidth)
-    return {
-      width: maxWidth,
-      height: measured.height,
-      lineCount: measured.lineCount
-    }
-  }
-  
-  // Flow text around image
-  function flowTextAroundImage(text: string, imageX: number, imageY: number, imageWidth: number, imageHeight: number, columnWidth: number) {
-    return pretextEngine.flowAround(text, '16px Inter', 
-      { x: imageX, y: imageY, width: imageWidth, height: imageHeight }, 
-      columnWidth
-    )
-  }
-  
-  function generateFallback(): UIComponent[] {
-    return [
-      { id: 'header-1', type: 'Header', props: { content: '🎨 Pretext AI UI', width: 1200, height: 60 } },
-      { id: 'hero-1', type: 'Heading', props: { content: 'Build UI with AI', level: 'h1', isGradient: true } },
-      { id: 'text-1', type: 'Text', props: { content: 'Zero Reflow • JSON Render • A2UI', fontSize: 18, color: '#aaa' } },
-      { id: 'btn-1', type: 'Button', props: { content: '🚀 Generate', bgColor: '#8b5cf6' } },
-      { id: 'card-1', type: 'Card', props: { title: '⚡ Zero Reflow', description: 'Pretext measures text instantly' } },
-      { id: 'card-2', type: 'Card', props: { title: '🎨 JSON Render', description: 'Safe component rendering' } },
-      { id: 'card-3', type: 'Card', props: { title: '🤖 A2UI', description: 'Agent-generated UIs' } },
-      { id: 'metric-1', type: 'Metric', props: { label: 'Components', value: '50+', format: 'number' } },
-      { id: 'metric-2', type: 'Metric', props: { label: 'Reflow', value: '0ms', format: 'number' } },
-      { id: 'metric-3', type: 'Metric', props: { label: 'Speed', value: '10x', format: 'number' } },
-    ]
+  function parseAIResponse(response: string): UIComponent[] {
+    const match = response.match(/\{[\s\S]*\}/)
+    if (!match) return []
+    try {
+      const parsed = JSON.parse(match[0])
+      if (parsed.elements && typeof parsed.elements === 'object') {
+        const comps: UIComponent[] = []
+        Object.entries(parsed.elements).forEach((entry) => {
+          const id = entry[0] as string
+          const elem = entry[1] as any
+          if (elem && elem.type) {
+            comps.push({ id, type: elem.type.toLowerCase(), props: elem.props || {}, children: elem.children || [] })
+          }
+        })
+        return comps
+      }
+    } catch {}
+    return []
   }
   
   async function runSwarm() {
     setIsGenerating(true)
     setLogs([])
-    setPhase('Starting AI Swarm...')
-    
-    // A2UI + JSON Render + Pretext system prompt
-    const systemPrompt = `You are an expert UI generator using A2UI (Agent UI) + JSON Render + Pretext stack.
-
-TECHNOLOGIES:
-- A2UI: Google's standard for agent-generated UIs - declarative JSON, security-first
-- JSON Render: Safe component catalog with Zod validation
-- Pretext: Zero-reflow text measurement (https://github.com/chenglou/pretext)
-
-COMPONENT CATALOG (AI can ONLY use these):
-- Header: {content, width?, height?, bgColor?}
-- Text: {content, fontSize?, color?, isGradient?, align?}
-- Heading: {content, level?, isGradient?}
-- Button: {content, bgColor?, width?, height?, rounded?}
-- Card: {title, description?, bgColor?, borderColor?}
-- Container: {bgColor?, padding?, maxWidth?}
-- Stack: {direction?, gap?, align?}
-- Grid: {columns?, gap?}
-- Metric: {label, value, format?}
-- Badge: {content, color?}
-- Input: {placeholder, type?, label?}
-- Select: {options: [{label, value}], label?}
-
-OUTPUT FORMAT (A2UI-style flat spec):
-{root: "element-id", elements: {"element-id": {type: "Component", props: {...}, children?: ["child-id"]}}}
-
-RULES:
-- Dark theme #0a0a0f
-- Purple accent #8b5cf6, pink #ec4899, cyan #06b6d4
-- Use isGradient for gradient text
-- OUTPUT ONLY JSON - no markdown, no explanation
-- Include 8-15 components per generation
-
-Generate a complete landing page with Header, Hero, Feature Cards, CTA, Stats, and Footer.`
-    
-    const agents = [
-      { name: 'Architect', task: 'Header + Hero' },
-      { name: 'Designer', task: 'Feature Cards (3x)' },
-      { name: 'Frontend', task: 'CTA + Footer' },
-    ]
+    setPhase('Running...')
     
     const allComponents: UIComponent[] = []
     
+    const agents = [
+      { name: 'Architect', prompt: PROMPTS.architect },
+      { name: 'Designer', prompt: PROMPTS.designer },
+      { name: 'Frontend', prompt: PROMPTS.frontend },
+    ]
+    
     for (const agent of agents) {
-      setPhase(`${agent.name} building...`)
-      const timestamp = new Date().toLocaleTimeString()
-      setLogs(prev => [...prev.slice(-20), `${timestamp} ${agent.name}: Starting...`])
+      setPhase(`${agent.name}...`)
+      const time = new Date().toLocaleTimeString()
+      setLogs(prev => [...prev.slice(-15), `${time} 🏗️ ${agent.name}: Building...`])
       
-      try {
-        const userPrompt = `Generate ${agent.task}. 
-Include:
-- Header with "🎨 Pretext AI UI" logo
-- Hero: gradient heading "Build UI with AI", subtitle "Zero Reflow • JSON Render • A2UI"
-- 3 Feature cards: "Zero Reflow", "JSON Render", "A2UI Standard"
-- CTA button "🚀 Get Started"
-- Stats: "50+ Components", "0ms Reflow", "100% Free"
-- Footer with copyright
-
-Return as A2UI JSON spec format.`
-        
-        const result = await callAI('minimax', 'MiniMax-M2.7', systemPrompt, userPrompt)
-        
-        // Parse JSON from response
-        const match = result.match(/\{[\s\S]*"root"[\s\S]*\}/)
-        if (match) {
-          try {
-            const parsed = JSON.parse(match[0])
-            if (parsed.elements && typeof parsed.elements === 'object') {
-              // Convert A2UI format to our components
-              Object.entries(parsed.elements).forEach(([id, elem: any]) => {
-                allComponents.push({
-                  id,
-                  type: elem.type?.toLowerCase() || 'text',
-                  props: elem.props || {},
-                  children: elem.children
-                })
-              })
-              setLogs(prev => [...prev.slice(-20), `${timestamp} ${agent.name}: ✅ Added ${Object.keys(parsed.elements).length} components`])
-              continue
-            }
-          } catch {}
+      let success = false
+      for (let try_ = 0; try_ < 3 && !success; try_++) {
+        try {
+          const result = await callAI('minimax', 'MiniMax-M2.7', agent.prompt, 'Generate valid JSON.')
+          const comps = parseAIResponse(result)
+          
+          if (comps.length > 0) {
+            allComponents.push(...comps)
+            setLogs(prev => [...prev.slice(-15), `${time} ✅ ${agent.name}: ${comps.length} components`])
+            success = true
+          }
+        } catch (err) {
+          setLogs(prev => [...prev.slice(-15), `${time} ❌ ${agent.name}: ${err}`])
         }
-        throw new Error('No valid A2UI spec')
-      } catch (err) {
-        setLogs(prev => [...prev.slice(-20), `${timestamp} ${agent.name}: ❌ ${err}`)
       }
     }
     
-    // QA check
+    // QA Agent
     setPhase('QA Check...')
-    const hasHeader = allComponents.some(c => c.type === 'header')
-    const hasContent = allComponents.length >= 5
+    setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} 🔍 QA: Verifying...`])
     
-    if (!hasHeader || !hasContent) {
-      setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} Using fallback...`])
-      allComponents.push(...generateFallback())
+    try {
+      const qaResult = await callAI('minimax', 'MiniMax-M2.7', PROMPTS.qa, `Fix: ${JSON.stringify(allComponents.slice(0, 8))}`)
+      const qaComps = parseAIResponse(qaResult)
+      
+      if (qaComps.length >= allComponents.length) {
+        allComponents.length = 0
+        allComponents.push(...qaComps)
+        setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ✅ QA: Fixed to ${qaComps.length} components`])
+      }
+    } catch (err) {
+      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ⚠️ QA: ${err}`])
     }
     
-    // Build A2UI spec
-    const a2uiSpec = buildA2UISpec(allComponents.filter(c => c.type !== undefined))
-    setSpec(a2uiSpec)
+    // Fallback if needed
+    if (allComponents.length < 5) {
+      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} 🔧 Fallback: Adding defaults...`])
+      allComponents.push(...fallback())
+    }
     
-    setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} ✅ Complete: ${allComponents.length} components`])
-    
+    setSpec(buildSpec(allComponents))
+    setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ✅ Done: ${allComponents.length} components`])
     setPhase('Complete!')
     setIsGenerating(false)
   }
   
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -636,19 +307,13 @@ Return as A2UI JSON spec format.`
           </h1>
           <div className="flex items-center gap-3">
             <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
-            <span className="text-gray-400 text-sm">{isGenerating ? phase : 'Ready'}</span>
-            <button 
-              onClick={runSwarm}
-              disabled={isGenerating}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-50"
-            >
+            <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium disabled:opacity-50">
               🔄 Regenerate
             </button>
           </div>
         </div>
       </header>
       
-      {/* Main Content */}
       <main className="pt-16">
         {isGenerating ? (
           <div className="flex items-center justify-center h-[calc(100vh-64px)]">
@@ -657,7 +322,6 @@ Return as A2UI JSON spec format.`
                 🐝 AI Swarm Building...
               </h2>
               <p className="text-center text-gray-400 mb-4">{phase}</p>
-              
               <div className="bg-black/50 rounded-lg p-4 border border-white/10">
                 <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
                   {logs.join('\n') || 'Starting...'}
@@ -666,21 +330,12 @@ Return as A2UI JSON spec format.`
             </div>
           </div>
         ) : spec ? (
-          <div className="p-8 max-w-6xl mx-auto">
-            {/* Pretext measurement info */}
-            <div className="mb-6 p-4 bg-purple-900/20 rounded-lg border border-purple-500/30">
-              <h3 className="text-sm font-bold text-purple-400 mb-2">Pretext Engine Active</h3>
-              <p className="text-xs text-gray-400">
-                Zero-reflow text measurement enabled. All text positions pre-calculated via Pretext (~0.09ms per measurement)
-              </p>
-            </div>
-            
-            {/* JSON Render + A2UI */}
+          <div className="p-8 max-w-6xl mx-auto space-y-8">
             <Renderer spec={spec} registry={registry} />
           </div>
         ) : (
           <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
-            No components generated
+            No components
           </div>
         )}
       </main>
