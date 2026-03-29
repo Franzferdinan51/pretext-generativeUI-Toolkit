@@ -2,13 +2,13 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Pretext-Canvas-blue?style=flat-square" alt="Pretext Canvas">
-  <img src="https://img.shields.io/badge/React-18-black?style=flat-square" alt="React 18">
-  <img src="https://img.shields.io/badge/LM_Studio-Fast_AI-green?style=flat-square" alt="LM Studio">
+  <img src="https://img.shields.io/badge/AI-Swarm-purple?style=flat-square" alt="AI Swarm">
+  <img src="https://img.shields.io/badge/Multi-Provider-green?style=flat-square" alt="Multi-Provider">
 </p>
 
 <p align="center">
-  <strong>🎨 AI-Powered Generative UI with Pretext</strong><br>
-  AI builds complete websites in real-time. Zero DOM reflow. Canvas rendering.
+  <strong>🎨 AI Swarm-Built Generative UI</strong><br>
+  Multiple AI agents collaborate to build websites. Zero DOM reflow. Canvas rendering.
 </p>
 
 ---
@@ -17,49 +17,77 @@
 
 **Try it:** http://localhost:3456
 
-AI generates a complete website on every visit using Pretext for zero-reflow text rendering!
+🐝 **5 AI Agents** build a complete website in 4 phases using **MiniMax + LM Studio**!
+
+---
+
+## 🐝 AI Swarm System
+
+### Agents
+
+| Agent | Icon | Provider | Model | Task |
+|-------|------|----------|-------|------|
+| 🏗️ **Architect** | 🏗️ | LM Studio | qwen3.5-9B | Header + Hero |
+| 🎨 **Designer** | 🎨 | LM Studio | qwen3.5-9B | Features + Stats |
+| ✍️ **Content** | ✍️ | MiniMax | M2.7 | Toolkit + How It Works |
+| 💻 **Frontend** | 💻 | MiniMax | M2.7 | CTA + Footer |
+| ✨ **Enhancer** | ✨ | MiniMax | M2.7 | Polish + Effects |
+
+### 4-Phase Pipeline
+
+```
+📦 PHASE 1: Fast Generation (LM Studio 9B)
+   ├─ 🏗️ Architect builds Header + Hero
+   └─ 🎨 Designer builds Features + Stats
+   
+🎯 PHASE 2: Quality Build (MiniMax M2.7)
+   ├─ ✍️ Content builds Toolkit + How It Works
+   └─ 💻 Frontend builds CTA + Footer
+   
+✨ PHASE 3: Enhancement (MiniMax M2.7)
+   └─ ✨ Enhancer adds polish + glow effects
+   
+✅ PHASE 4: QA Enforcement
+   └─ Auto-fixes missing components
+```
 
 ---
 
 ## ✨ Features
 
-### 🤖 AI-Controlled Generation
-- **Dual Model System**: Fast 9B for quick generation + 27B for quality enhancement
-- AI generates complete websites in real-time
-- Components stream as AI thinks
+### 🤖 Multi-Agent Swarm
+- **5 Specialized AI Agents** working together
+- **4-Phase Pipeline**: Fast → Quality → Enhance → QA
+- **Auto-Retry**: Fallback generation if agent fails
+- **Supervisor**: Monitors all agents
+
+### 🌐 Multi-Provider Support
+
+| Provider | Status | Use |
+|----------|--------|-----|
+| **LM Studio** | ✅ | Fast generation (free, local) |
+| **MiniMax** | ✅ | Quality + Enhancement |
+| **OpenAI** | ✅ | Configurable |
+| **Anthropic** | ✅ | Configurable |
+| **Google** | ✅ | Configurable |
+| **Groq** | ✅ | Configurable |
+| **DeepSeek** | ✅ | Configurable |
+| **Ollama** | ✅ | Configurable |
 
 ### 📐 Pretext Integration
-- **Zero DOM Reflow**: Character-level text measurement without touching the DOM
+- **Zero DOM Reflow**: Character-level text measurement
 - Pre-calculated heights for smooth animations
 - Canvas rendering for everything
 
 ### 🎨 Canvas Rendering
 - All UI drawn on canvas (not DOM elements)
 - Smooth hover effects and interactions
-- Real-time mouse tracking
+- Dynamic height based on content
 
 ### 🌐 Live Preview
 - **Canvas View**: AI-controlled canvas rendering
-- **HTML View**: Live iframe preview
+- **HTML View**: Standalone HTML preview (no CDN dependencies)
 - **Download**: Export as HTML file
-
----
-
-## 🏗️ Architecture
-
-```
-User visits page
-    ↓
-🚀 qwen3.5-9B (fast) generates initial UI
-    ↓
-🎨 Pretext measures text positions
-    ↓
-🎯 qwen3.5-27B (quality) enhances UI
-    ↓
-📦 Canvas renders components
-    ↓
-✅ Complete website displayed
-```
 
 ---
 
@@ -70,10 +98,9 @@ User visits page
 | **Pretext** | Zero-reflow text measurement |
 | **React** | UI framework |
 | **Canvas API** | Rendering engine |
-| **LM Studio** | Local AI inference |
-| **qwen3.5-9B** | Fast initial generation |
-| **qwen3.5-27B** | Quality enhancement |
-| **Tailwind** | Styling |
+| **LM Studio** | Local AI inference (fast, free) |
+| **MiniMax M2.7** | Cloud AI (quality, enhancement) |
+| **qwen3.5-9B** | Fast local generation |
 
 ---
 
@@ -87,7 +114,7 @@ src/
 ├── streaming/          # Streaming components
 ├── shadcn/            # UI primitives
 └── webui/
-    └── App.tsx        # Main generative UI app
+    └── App.tsx        # Main swarm generative UI app
 ```
 
 ---
@@ -106,27 +133,16 @@ Every generation includes:
 
 ---
 
-## 🤖 Usage
+## 🔧 API Keys
 
-```typescript
-// AI generates website
-generateWebsite('Build a landing page')
+The app uses these API keys (embedded):
 
-// Preview modes
-- Canvas: AI-controlled rendering
-- HTML: Live preview in iframe
-- Download: Save as HTML file
-```
+| Provider | Key |
+|----------|-----|
+| **MiniMax** | `sk-cp-...` |
+| **LM Studio** | `sk-lm-...` |
 
----
-
-## 📦 Components
-
-- **50+ Pre-built components**
-- **Visual effects** (particles, gradients, glows)
-- **AI Integration** (LM Studio, OpenAI, Claude)
-- **Streaming** components
-- **Data visualization**
+To use different providers, update the keys in `App.tsx` or via settings.
 
 ---
 
@@ -144,5 +160,5 @@ MIT License
 ---
 
 <p align="center">
-  Built with ❤️ using Pretext, React, Canvas, and LM Studio
+  Built with ❤️ using Pretext, React, Canvas, and AI Swarm
 </p>
