@@ -222,9 +222,13 @@ export default function App() {
   const [view, setView] = useState<'canvas' | 'html'>('canvas')
   const [errors, setErrors] = useState<string[]>([])
   
-  // Generate website on mount
+  // Generate website on mount (only once)
+  const initRef = useRef(false)
   useEffect(() => {
-    generateWebsite('Generate a DEMO PAGE for Pretext AI UI Toolkit with: header, hero section with gradient headline, features section with 4 cards, demo section, pricing section with 3 tiers, CTA, and footer')
+    if (!initRef.current) {
+      initRef.current = true
+      generateWebsite('Generate a DEMO PAGE for Pretext AI UI Toolkit with: header, hero section with gradient headline, features section with 4 cards, demo section, pricing section with 3 tiers, CTA, and footer')
+    }
   }, [])
   
   async function generateWebsite(prompt: string) {
