@@ -32,9 +32,11 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3",
+    "@json-render/core": "^0.16.0",
+    "@json-render/react": "^0.16.0",
     "mathjs": "^12.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

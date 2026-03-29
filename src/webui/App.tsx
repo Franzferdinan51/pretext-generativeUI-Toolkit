@@ -1,87 +1,141 @@
-// GENERATIVE UI - FULLY AI-POWERED WITH PRETEXT
-// EVERY component rendered via Pretext - tabs, buttons, text, everything!
-import React, { useState, useEffect, useRef } from 'react'
+// GENERATIVE UI - PRETEXT + JSON-RENDER + AI SWARM
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { prepare, layout } from '@chenglou/pretext'
+import { defineCatalog, Schema, Spec, SpecStream } from '@json-render/core'
+import { defineRegistry, Renderer } from '@json-render/react'
+import { schema as jsonSchema } from '@json-render/react/schema'
+import { z } from 'zod'
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
-const KIMI_API_KEY = 'sk-kimi-JuC8v84dqO2VbJbDRt1Z8lbQgHqTOLrPbeSEae9FhWVQE9HUAwomE6Xmv7JwChIg'
-const LM_STUDIO_KEY = 'sk-lm-xWvfQHZF:L8P76SQakhEA95U8DDNf'
 
-type Provider = 'lmstudio' | 'minimax' | 'kimi'
+type Provider = 'minimax'
 
 interface UIComponent {
-  id: string; type: 'text' | 'button' | 'card' | 'header'; content: string
-  x: number; y: number; width: number; height: number
-  style: Record<string, string>; visible: boolean; action?: string
+  id: string
+  type: string
+  content: string
+  x?: number; y?: number; width?: number; height?: number
+  style?: Record<string, string>
+  visible?: boolean
+  action?: string
 }
 
-// PRETEXT POWERED APP UI
-function PretextApp({ children }: { children: React.ReactNode }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 })
-  
-  useEffect(() => {
-    const update = () => setDimensions({ width: window.innerWidth, height: window.innerHeight })
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-  
-  return (
-    <canvas 
-      ref={canvasRef} 
-      width={dimensions.width} 
-      height={dimensions.height}
-      className="fixed inset-0"
-      style={{ background: '#0a0a0f' }}
-    />
+// Pretext text measurement helper
+function measureText(text: string, fontSize: number, maxWidth: number) {
+  const prepared = prepare(text, `${fontSize}px Inter`)
+  const result = layout(prepared, maxWidth, fontSize + 4)
+  return result
+}
+
+// Define component catalog for JSON Render
+const catalog = defineCatalog(jsonSchema, {
+  components: {
+    Header: {
+      props: z.object({
+        content: z.string(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        bgColor: z.string().optional()
+      }),
+      description: 'Header bar component'
+    },
+    Text: {
+      props: z.object({
+        content: z.string(),
+        fontSize: z.number().optional(),
+        color: z.string().optional(),
+        isGradient: z.boolean().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional()
+      }),
+      description: 'Text element with optional styling'
+    },
+    Button: {
+      props: z.object({
+        content: z.string(),
+        bgColor: z.string().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional()
+      }),
+      description: 'Clickable button'
+    },
+    Card: {
+      props: z.object({
+        title: z.string(),
+        description: z.string().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        bgColor: z.string().optional()
+      }),
+      description: 'Card container'
+    }
+  },
+  actions: {
+    generate: { description: 'Regenerate website' },
+    click: { description: 'Handle click' }
+  }
+})
+
+// Component renderers
+const components = {
+  Header: ({ props }: { props: any }) => (
+    <div 
+      className="w-full h-[60px] flex items-center px-6"
+      style={{ backgroundColor: props.bgColor || 'rgba(0,0,0,0.9)' }}
+    >
+      <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        {props.content}
+      </span>
+    </div>
+  ),
+  Text: ({ props }: { props: any }) => (
+    <div 
+      className={props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-black' : ''}
+      style={{ 
+        fontSize: props.fontSize || 18,
+        color: props.isGradient ? 'transparent' : (props.color || '#fff'),
+        fontWeight: props.fontSize && props.fontSize > 24 ? 900 : 'bold'
+      }}
+    >
+      {props.content}
+    </div>
+  ),
+  Button: ({ props, emit }: { props: any; emit: any }) => (
+    <button 
+      className="px-6 py-3 rounded-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 transition"
+      onClick={() => emit?.('click')}
+    >
+      {props.content}
+    </button>
+  ),
+  Card: ({ props, children }: { props: any; children?: React.ReactNode }) => (
+    <div 
+      className="p-6 rounded-xl border border-white/10"
+      style={{ backgroundColor: props.bgColor || 'rgba(255,255,255,0.08)' }}
+    >
+      <h3 className="text-lg font-bold mb-2">{props.title}</h3>
+      <p className="text-gray-400">{props.description || 'AI Generated'}</p>
+      {children}
+    </div>
   )
 }
 
-// PRETEXT TEXT RENDERER - Core of everything
-function renderPretextText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, fontSize: number, color: string, isGradient = false) {
-  const prepared = prepare(text, `${fontSize}px Inter`)
-  const result = layout(prepared, maxWidth, fontSize + 4)
-  
-  if (isGradient) {
-    const gradient = ctx.createLinearGradient(x, y, x + maxWidth, y)
-    gradient.addColorStop(0, '#8b5cf6')
-    gradient.addColorStop(1, '#ec4899')
-    ctx.fillStyle = gradient
-  } else {
-    ctx.fillStyle = color
-  }
-  
-  for (const line of result.lines || []) {
-    ctx.fillText(line.text || '', x, y + line.y + fontSize)
-  }
-  
-  return result.height
-}
+// Create registry
+const { registry } = defineRegistry(catalog, { components })
 
-// MAIN SWARM APP
 export default function App() {
-  const [components, setComponents] = useState<UIComponent[]>([])
+  const [spec, setSpec] = useState<any>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
   const [phase, setPhase] = useState('Initializing...')
-  const [agentStatuses, setAgentStatuses] = useState<Record<string, string>>({})
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [clickedId, setClickedId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const initRef = useRef(false)
-  
-  // All text content managed by AI
-  const appContent = useRef({
-    title: '🎨 Pretext AI UI',
-    subtitle: 'Fully AI-Powered Generative UI',
-    tabs: ['Home', 'Generate', 'Components', 'Settings'],
-    activeTab: 'Generate',
-    statusText: 'Ready',
-    buttonText: '🚀 Generate New',
-    footerText: 'Built with Pretext + AI Swarm'
-  })
   
   useEffect(() => {
     if (!initRef.current) {
@@ -90,169 +144,19 @@ export default function App() {
     }
   }, [])
   
-  // Render entire UI via Pretext
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    
-    // Background
-    ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    
-    // Header via Pretext
-    ctx.font = 'bold 24px Inter'
-    renderPretextText(ctx, appContent.current.title, 20, 30, 400, 24, '#fff')
-    
-    // Render all generated components
-    const sorted = [...components].sort((a, b) => a.y - b.y)
-    for (const comp of sorted) {
-      if (!comp.visible) continue
-      const isHovered = hoveredId === comp.id
-      const isClicked = clickedId === comp.id
-      
-      switch (comp.type) {
-        case 'header':
-          ctx.fillStyle = 'rgba(0,0,0,0.9)'
-          ctx.fillRect(comp.x, comp.y, comp.width, comp.height || 60)
-          ctx.font = 'bold 20px Inter'
-          ctx.fillStyle = '#fff'
-          ctx.fillText(comp.content, comp.x + 20, comp.y + 38)
-          break
-          
-        case 'text':
-          const fontSize = parseInt(comp.style.fontSize || '18')
-          const isGradient = comp.style.background?.includes('gradient')
-          ctx.font = `bold ${fontSize}px Inter`
-          renderPretextText(ctx, comp.content, comp.x, comp.y + fontSize, comp.width, fontSize, '#fff', isGradient)
-          break
-          
-        case 'button':
-          ctx.fillStyle = isClicked ? '#6d28d9' : isHovered ? '#7c3aed' : '#8b5cf6'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
-          ctx.fill()
-          ctx.font = 'bold 14px Inter'
-          ctx.fillStyle = '#fff'
-          ctx.textAlign = 'center'
-          ctx.fillText(comp.content, comp.x + comp.width / 2, comp.y + comp.height / 2 + 5)
-          ctx.textAlign = 'left'
-          break
-          
-        case 'card':
-          ctx.fillStyle = comp.style.background || 'rgba(255,255,255,0.08)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 150, 12)
-          ctx.fill()
-          ctx.strokeStyle = isHovered ? '#8b5cf6' : 'rgba(255,255,255,0.2)'
-          ctx.lineWidth = isHovered ? 2 : 1
-          ctx.stroke()
-          ctx.fillStyle = '#fff'
-          ctx.font = 'bold 16px Inter'
-          const lines = comp.content.split('\\n')
-          lines.forEach((line, i) => {
-            ctx.fillText(line, comp.x + 16, comp.y + 30 + i * 22)
-          })
-          break
-      }
-    }
-    
-    // Loading overlay via Pretext
-    if (isGenerating) {
-      ctx.fillStyle = 'rgba(10, 10, 15, 0.95)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      
-      ctx.font = 'bold 32px Inter'
-      renderPretextText(ctx, '🐝 AI Swarm Building...', canvas.width / 2 - 200, 150, 400, 32, '#fff')
-      
-      ctx.font = 'bold 20px Inter'
-      renderPretextText(ctx, phase, canvas.width / 2 - 150, 200, 300, 20, '#8b5cf6')
-      
-      // Agent statuses via Pretext
-      let yPos = 280
-      const agents = ['Architect', 'Designer', 'Content', 'Frontend', 'Enhancer']
-      const icons = ['🏗️', '🎨', '✍️', '💻', '✨']
-      const statuses = [agentStatuses['Architect'], agentStatuses['Designer'], agentStatuses['Content'], agentStatuses['Frontend'], agentStatuses['Enhancer']]
-      
-      for (let i = 0; i < agents.length; i++) {
-        const status = statuses[i] || 'waiting'
-        const color = status === 'done' ? '#10b981' : status === 'error' ? '#ef4444' : '#6b7280'
-        ctx.font = '16px Inter'
-        ctx.fillStyle = color
-        ctx.fillText(`${icons[i]} ${agents[i]}: ${status}`, 50, yPos)
-        yPos += 30
-      }
-      
-      // Logs via Pretext
-      yPos = 480
-      ctx.font = '12px monospace'
-      ctx.fillStyle = '#a855f7'
-      for (const log of logs.slice(-15)) {
-        ctx.fillText(log.slice(-80), 50, yPos)
-        yPos += 18
-      }
-    }
-    
-  }, [components, hoveredId, clickedId, isGenerating, phase, agentStatuses, logs])
-  
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    let found: string | null = null
-    for (const comp of components) {
-      if (!comp.visible) continue
-      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
-        found = comp.id
-        break
-      }
-    }
-    setHoveredId(found)
-    if (canvas) canvas.style.cursor = found ? 'pointer' : 'default'
-  }
-  
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    for (const comp of components) {
-      if (!comp.visible) continue
-      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
-        setClickedId(comp.id)
-        if (comp.action === 'generate') {
-          runSwarm()
-        }
-        setTimeout(() => setClickedId(null), 100)
-        break
-      }
-    }
-  }
-  
-  async function callAI(provider: Provider, apiKey: string, model: string, system: string, user: string) {
-    const endpoints: Record<Provider, string> = {
-      lmstudio: '/api/lm-studio',
-      minimax: 'https://api.minimax.io/v1',
-      kimi: 'https://api.moonshot.cn/v1'
-    }
-    
-    let authKey = apiKey
-    if (provider === 'minimax') authKey = MINIMAX_API_KEY
-    if (provider === 'kimi') authKey = KIMI_API_KEY
-    if (provider === 'lmstudio') authKey = LM_STUDIO_KEY
-    
-    const res = await fetch(`${endpoints[provider]}/chat/completions`, {
+  async function callAI(provider: Provider, model: string, system: string, user: string) {
+    const res = await fetch(`https://api.minimax.io/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authKey}` },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], stream: true, max_tokens: 1024 })
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${MINIMAX_API_KEY}` 
+      },
+      body: JSON.stringify({ 
+        model, 
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }], 
+        stream: true, 
+        max_tokens: 2048 
+      })
     })
     
     if (!res.ok) throw new Error(`${provider} error: ${res.status}`)
@@ -260,6 +164,7 @@ export default function App() {
     const reader = res.body?.getReader()
     const decoder = new TextDecoder()
     let full = ''
+    
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -273,149 +178,192 @@ export default function App() {
         }
       }
     }
-    const match = full.match(/\[[\s\S]*\]/)
-    return match ? JSON.parse(match[0]) : []
+    return full
   }
   
-  function generateFallback(sections: string[], agentName: string): UIComponent[] {
-    const fallback: UIComponent[] = []
-    let yPos = 100
-    if (sections.includes('Header')) {
-      fallback.push({ id: `${agentName}-header`, type: 'header', content: '🎨 Pretext AI UI', x: 0, y: 0, width: 1200, height: 60, style: {}, visible: true })
-      yPos = 100
-    }
-    if (sections.includes('Hero')) {
-      fallback.push({ id: `${agentName}-hero`, type: 'text', content: 'Build UI with AI', x: 50, y: yPos, width: 1100, height: 60, style: { fontSize: '48', background: 'gradient' }, visible: true })
-      yPos += 80
-    }
-    if (sections.includes('Features') || sections.includes('Stats')) {
-      ['⚡ Zero Reflow', '🎨 Canvas', '🤖 AI Controlled'].forEach((title, i) => {
-        fallback.push({ id: `${agentName}-card-${i}`, type: 'card', content: `${title}\nAI Generated`, x: 50 + i * 320, y: yPos, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true })
-      })
-      yPos += 200
-    }
-    if (sections.includes('CTA') || sections.includes('Footer')) {
-      fallback.push({ id: `${agentName}-cta`, type: 'button', content: '🚀 Get Started', x: 500, y: yPos, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true, action: 'generate' })
-    }
-    return fallback
+  function buildSpec(components: UIComponent[]) {
+    const elements: Record<string, any> = {}
+    let rootId = 'header-1'
+    
+    components.forEach((comp, i) => {
+      const id = comp.id || `comp-${i}`
+      
+      if (comp.type === 'header') {
+        elements[id] = { type: 'Header', props: { content: comp.content, width: comp.width || 1200, height: comp.height || 60 } }
+        if (!rootId) rootId = id
+      } else if (comp.type === 'text') {
+        elements[id] = { 
+          type: 'Text', 
+          props: { 
+            content: comp.content, 
+            fontSize: parseInt(comp.style?.fontSize || '18'),
+            isGradient: comp.style?.background?.includes('gradient') || false
+          } 
+        }
+      } else if (comp.type === 'button') {
+        elements[id] = { type: 'Button', props: { content: comp.content } }
+      } else if (comp.type === 'card') {
+        const lines = comp.content.split('\n')
+        elements[id] = { 
+          type: 'Card', 
+          props: { title: lines[0] || '', description: lines[1] || '' } 
+        }
+      }
+    })
+    
+    return { root: rootId, elements }
+  }
+  
+  function generateFallback(): UIComponent[] {
+    return [
+      { id: 'header-1', type: 'header', content: '🎨 Pretext AI UI', x: 0, y: 0, width: 1200, height: 60, style: {}, visible: true },
+      { id: 'hero-1', type: 'text', content: 'Build UI with AI', x: 50, y: 100, width: 1100, height: 60, style: { fontSize: '48', background: 'gradient' }, visible: true },
+      { id: 'subtitle-1', type: 'text', content: 'Powered by Pretext + JSON Render', x: 50, y: 160, width: 1100, height: 30, style: { fontSize: '18', color: '#aaa' }, visible: true },
+      { id: 'btn-1', type: 'button', content: '🚀 Generate', x: 500, y: 220, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true, action: 'generate' },
+      { id: 'card-1', type: 'card', content: '⚡ Zero Reflow\nPretext measures text instantly', x: 50, y: 300, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true },
+      { id: 'card-2', type: 'card', content: '🎨 JSON Render\nAI generates component JSON', x: 350, y: 300, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true },
+      { id: 'card-3', type: 'card', content: '🤖 AI Swarm\n5 agents working together', x: 650, y: 300, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true },
+    ]
   }
   
   async function runSwarm() {
     setIsGenerating(true)
     setLogs([])
     setPhase('Starting AI Swarm...')
-    setAgentStatuses({})
-    appContent.current.statusText = 'Building...'
+    setError(null)
+    
+    const systemPrompt = `You are an expert UI generator using PRETEXT (https://github.com/chenglou/pretext) for zero-reflow text measurement and JSON-RENDER for safe component rendering.
+
+Generate website components as JSON array with this exact format:
+[{"id":"header-1","type":"header","content":"🎨 Title","x":0,"y":0,"width":1200,"height":60},{"id":"hero-1","type":"text","content":"Headline","x":50,"y":100,"width":1100,"height":60,"style":{"fontSize":"48","background":"gradient"}},{"id":"btn-1","type":"button","content":"Click Me","x":500,"y":200,"width":200,"height":50,"style":{"background":"#8b5cf6"}},{"id":"card-1","type":"card","content":"Title\\nDescription","x":50,"y":300,"width":280,"height":180,"style":{"background":"rgba(255,255,255,0.08)"}}]
+
+Include: Header, Hero text, Subtitle, CTA button, 3 Feature cards.
+Dark theme #0a0a0f, accents purple #8b5cf6, pink #ec4899.
+Output ONLY JSON array, no markdown.`
     
     const agents = [
-      { name: 'Architect', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Header', 'Hero'] },
-      { name: 'Designer', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Features', 'Stats'] },
-      { name: 'Content', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Toolkit', 'How It Works'] },
-      { name: 'Frontend', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['CTA', 'Footer'] },
-      { name: 'Enhancer', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Polish'] },
+      { name: 'Architect', sections: 'Header + Hero section' },
+      { name: 'Designer', sections: 'Feature cards (3x)' },
+      { name: 'Frontend', sections: 'CTA button + Footer' },
     ]
     
-    const allResults: UIComponent[] = []
+    const allComponents: UIComponent[] = []
     
     for (const agent of agents) {
       setPhase(`${agent.name} building...`)
-      setAgentStatuses(prev => ({ ...prev, [agent.name]: 'building' }))
       const timestamp = new Date().toLocaleTimeString()
-      setLogs(prev => [...prev.slice(-20), `${timestamp} ${agent.name}: Starting...`])
+      setLogs(prev => [...prev.slice(-15), `${timestamp} ${agent.name}: Starting...`])
       
-      let result: UIComponent[] = []
-      let attempts = 0
-      
-      while (result.length === 0 && attempts < 3) {
-        try {
-          const systemPrompt = attempts === 0
-            ? `You are expert UI builder using PRETEXT for zero-reflow text rendering.
-
-IMPORTANT - PRETEXT INTEGRATION:
-- Use Pretext (https://github.com/chenglou/pretext) for ALL text measurement
-- Pretext measures text WITHOUT DOM reflow
-- All positions are pre-calculated before render
-- Canvas renders at exact x,y coordinates
-
-COMPONENT TYPES:
-- header: {type:"header", content:"Title", x:0, y:0, width:1200, height:60}
-- text: {type:"text", content:"...", x:0, y:80, width:1200, height:40, style:{fontSize:"32",color:"#fff",background:"gradient"}}
-- button: {type:"button", content:"...", x:500, y:300, width:200, height:50, style:{background:"#8b5cf6"}}
-- card: {type:"card", content:"Title\\nDesc", x:50, y:400, width:280, height:180, style:{background:"rgba(255,255,255,0.08)"}}
-
-RULES:
-- Dark theme: #0a0a0f
-- Accents: #8b5cf6 (purple), #ec4899 (pink), #06b6d4 (cyan)
-- Use gradient text for headlines: style:{background:"gradient"}
-- OUTPUT ONLY VALID JSON ARRAY - no markdown, no explanation`
-            : `Create valid UI components using Pretext. Output JSON array only.`
-          
-          const userPrompt = `Generate ${agent.sections.join(' + ')}. ${agent.sections.map(s => {
-            if (s === 'Header') return 'Header with logo "🎨 Pretext AI UI"'
-            if (s === 'Hero') return 'Gradient headline "Build UI with AI", subtitle, CTA button'
-            if (s === 'Features') return '4 cards: Zero Reflow, Canvas, AI Controlled, Streaming'
-            if (s === 'Stats') return '4 stat boxes'
-            if (s === 'Toolkit') return '3 cards: Components, Effects, AI'
-            if (s === 'How It Works') return '3 step cards'
-            if (s === 'CTA') return 'Call to action button'
-            if (s === 'Footer') return 'Footer with links'
-            return s
-          }).join('. ')}`
-          
-          const aiResult = await callAI(agent.provider, '', agent.model, systemPrompt, userPrompt)
-          if (Array.isArray(aiResult) && aiResult.length > 0) result = aiResult
-        } catch (err) {
-          setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} ${agent.name}: ${err}`])
-        }
-        attempts++
+      try {
+        const userPrompt = `Generate ${agent.sections} for a landing page. Include: logo header with "🎨 Pretext AI UI", hero with gradient headline "Build UI with AI" and subtitle "Zero Reflow • JSON Render • AI Swarm", 3 feature cards (Zero Reflow, Canvas, AI Controlled), CTA button "🚀 Get Started". Return as JSON array.`
         
-        if (result.length === 0 && attempts >= 3) {
-          result = generateFallback(agent.sections, agent.name)
-          setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} ${agent.name}: Used fallback`])
+        const result = await callAI('minimax', 'MiniMax-M2.7', systemPrompt, userPrompt)
+        
+        // Extract JSON
+        const match = result.match(/\[[\s\S]*\]/)
+        if (match) {
+          const parsed = JSON.parse(match[0])
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            allComponents.push(...parsed)
+            setLogs(prev => [...prev.slice(-15), `${timestamp} ${agent.name}: ✅ ${parsed.length} components`])
+            continue
+          }
         }
-      }
-      
-      if (result.length > 0) {
-        allResults.push(...result)
-        setAgentStatuses(prev => ({ ...prev, [agent.name]: 'done' }))
-        setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} ${agent.name}: ✅ ${result.length} components`])
-      } else {
-        setAgentStatuses(prev => ({ ...prev, [agent.name]: 'error' }))
+        throw new Error('No valid JSON')
+      } catch (err) {
+        setLogs(prev => [...prev.slice(-15), `${timestamp} ${agent.name}: ❌ ${err}`])
       }
     }
     
     // QA check
     setPhase('QA Check...')
-    const hasHeader = allResults.some(c => c.type === 'header')
-    const hasHero = allResults.some(c => c.type === 'text' && c.y < 200)
-    const hasCards = allResults.filter(c => c.type === 'card').length >= 3
-    const hasButtons = allResults.some(c => c.type === 'button')
+    const hasHeader = allComponents.some(c => c.type === 'header')
+    const hasText = allComponents.some(c => c.type === 'text')
+    const hasCards = allComponents.filter(c => c.type === 'card').length >= 2
+    const hasButton = allComponents.some(c => c.type === 'button')
     
-    if (!hasHeader) allResults.unshift({ id: 'qa-header', type: 'header', content: '🎨 Pretext AI UI', x: 0, y: 0, width: 1200, height: 60, style: {}, visible: true })
-    if (!hasHero) allResults.push({ id: 'qa-hero', type: 'text', content: 'Build UI with AI', x: 50, y: 100, width: 1100, height: 60, style: { fontSize: '48', background: 'gradient' }, visible: true })
+    if (!hasHeader) allComponents.unshift({ id: 'qa-header', type: 'header', content: '🎨 Pretext AI UI', visible: true })
+    if (!hasText) allComponents.push({ id: 'qa-hero', type: 'text', content: 'Build UI with AI', style: { fontSize: '48', background: 'gradient' }, visible: true })
     if (!hasCards) {
-      ['⚡ Zero Reflow', '🎨 Canvas', '🤖 AI Controlled'].forEach((t, i) => {
-        allResults.push({ id: `qa-card-${i}`, type: 'card', content: `${t}\nPretext Powered`, x: 50 + i * 320, y: 400, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true })
-      })
+      allComponents.push(
+        { id: 'qa-card-1', type: 'card', content: '⚡ Zero Reflow\nText measured instantly', visible: true },
+        { id: 'qa-card-2', type: 'card', content: '🎨 JSON Render\nSafe component rendering', visible: true },
+        { id: 'qa-card-3', type: 'card', content: '🤖 AI Swarm\n5 agents working', visible: true }
+      )
     }
-    if (!hasButtons) allResults.push({ id: 'qa-cta', type: 'button', content: '🚀 Generate New', x: 500, y: 1200, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true, action: 'generate' })
+    if (!hasButton) allComponents.push({ id: 'qa-btn', type: 'button', content: '🚀 Get Started', visible: true })
     
-    setComponents(allResults)
+    setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} QA: ✅ ${allComponents.length} components`])
+    
+    if (allComponents.length === 0) {
+      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} Using fallback...`])
+      allComponents.push(...generateFallback())
+    }
+    
+    // Build spec for JSON Render
+    const builtSpec = buildSpec(allComponents.filter(c => c.visible !== false))
+    setSpec(builtSpec)
+    
     setPhase('Complete!')
-    setAgentStatuses(prev => ({ ...prev, ['QA']: 'done' }))
-    setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} QA: ✅ ${allResults.length} total components`])
     setIsGenerating(false)
-    appContent.current.statusText = `${allResults.length} components`
   }
   
   return (
-    <div className="fixed inset-0 bg-[#0a0a0f]">
-      <canvas 
-        ref={canvasRef}
-        className="w-full h-full"
-        onMouseMove={handleMouseMove}
-        onClick={handleClick}
-      />
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            🎨 Pretext AI UI
+          </h1>
+          <div className="flex items-center gap-3">
+            <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-gray-400 text-sm">{isGenerating ? phase : 'Ready'}</span>
+            <button 
+              onClick={runSwarm}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              🔄 Regenerate
+            </button>
+          </div>
+        </div>
+      </header>
+      
+      {/* Main Content */}
+      <main className="pt-16">
+        {isGenerating ? (
+          <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+            <div className="max-w-2xl w-full px-4">
+              <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🐝 AI Swarm Building...
+              </h2>
+              <p className="text-center text-gray-400 mb-4">{phase}</p>
+              
+              <div className="bg-black/50 rounded-lg p-4 border border-white/10">
+                <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
+                  {logs.join('\n') || 'Starting...'}
+                </pre>
+              </div>
+            </div>
+          </div>
+        ) : spec ? (
+          <div className="p-8 max-w-6xl mx-auto">
+            <Renderer spec={spec} registry={registry} />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
+            No components generated
+          </div>
+        )}
+      </main>
+      
+      {/* Error display */}
+      {error && (
+        <div className="fixed bottom-4 left-4 right-4 bg-red-900/50 border border-red-500 rounded-lg p-4">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
     </div>
   )
 }
