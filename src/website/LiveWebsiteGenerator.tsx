@@ -1,7 +1,6 @@
 // Live Website Generator - AI generates websites in real-time
 import { useState, useRef } from 'react'
 import { WebsitePreview } from './WebsitePreview'
-import { StreamingCode } from '../streaming/StreamableText'
 
 interface WebsiteSection {
   id: string
@@ -212,7 +211,7 @@ export function LiveWebsiteGenerator() {
             {streamedContent ? (
               <div className="w-full max-w-2xl">
                 <p className="text-sm text-gray-500 mb-2">Streaming JSON...</p>
-                <StreamingCode code={streamedContent} />
+                <pre className="bg-black/50 p-4 rounded-lg text-xs overflow-auto max-h-60 text-purple-400">{streamedContent.slice(-500)}</pre>
               </div>
             ) : (
               <div className="text-center">

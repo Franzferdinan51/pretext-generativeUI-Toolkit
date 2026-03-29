@@ -32,8 +32,9 @@ export function useLMStudioAgent(config: LMStudioConfig): UseLMStudioAgentReturn
   const [streamingContent, setStreamingContent] = useState('')
   const [currentModel, setCurrentModel] = useState(config.model || 'qwen3.5-27b')
 
-  const baseUrl = config.baseUrl || 'http://100.116.54.125:1234'
-  const apiKey = config.apiKey || 'lm-studio'
+  // Use proxy in dev, direct URL in prod
+  const baseUrl = config.baseUrl || '/api/lm-studio'
+  const apiKey = config.apiKey || 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW'
 
   // Send message and get streaming response
   const sendMessage = useCallback(async (content: string): Promise<string> => {
@@ -227,7 +228,8 @@ export function useLMStudioAgent(config: LMStudioConfig): UseLMStudioAgentReturn
 
 // Default config
 const defaultConfig: LMStudioConfig = {
-  baseUrl: 'http://100.116.54.125:1234',
+  baseUrl: '/api/lm-studio',
+  apiKey: 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW',
   model: 'qwen3.5-27b'
 }
 

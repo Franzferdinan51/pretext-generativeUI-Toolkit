@@ -49,6 +49,16 @@ export default defineConfig({
   // Development server for webui
   server: {
     port: 5173,
-    open: true
+    open: false,
+    proxy: {
+      '/api/lm-studio': {
+        target: 'http://100.116.54.125:1234',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/lm-studio/, ''),
+        headers: {
+          'Authorization': 'Bearer sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW'
+        }
+      }
+    }
   }
 })

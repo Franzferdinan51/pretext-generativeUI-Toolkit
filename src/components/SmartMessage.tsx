@@ -4,6 +4,13 @@
 
 import React, { useMemo, useCallback } from 'react'
 import { detectContentType, ContentType, getContentTypeColor, getContentTypeIcon } from '../ai/ContentDetector'
+import { VoteCard } from './VoteCard'
+import { CodeBlock } from './CodeBlock'
+import { DataTable } from './DataTable'
+import { DataChart } from './DataChart'
+import { ListCard } from './ListCard'
+import { SummaryCard } from './SummaryCard'
+import { QuestionBubble } from './QuestionBubble'
 
 // Types
 export interface SmartMessageProps {
@@ -118,15 +125,13 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
   const icon = showIcon ? getContentTypeIcon(type) : null
   const color = getContentTypeColor(type)
   
-  // Lazy load specific components
+  // Render specific components
   const renderContent = useCallback(() => {
     switch (type) {
       case 'vote':
-        const { VoteCard } = require('./VoteCard')
         return <VoteCard content={content} councilor={councilor} />
       
       case 'code':
-        const { CodeBlock } = require('./CodeBlock')
         return (
           <CodeBlock
             content={content}
@@ -136,7 +141,6 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
         )
       
       case 'list':
-        const { ListCard } = require('./ListCard')
         return (
           <ListCard
             content={content}
@@ -146,7 +150,6 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
         )
       
       case 'table':
-        const { DataTable } = require('./DataTable')
         return (
           <DataTable
             content={content}
@@ -156,7 +159,6 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
         )
       
       case 'chart':
-        const { DataChart } = require('./DataChart')
         return (
           <DataChart
             content={content}
@@ -166,7 +168,6 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
         )
       
       case 'question':
-        const { QuestionBubble } = require('./QuestionBubble')
         return (
           <QuestionBubble
             content={content}
@@ -175,7 +176,6 @@ export const SmartMessage: React.FC<SmartMessageProps> = ({
         )
       
       case 'summary':
-        const { SummaryCard } = require('./SummaryCard')
         return (
           <SummaryCard
             content={content}

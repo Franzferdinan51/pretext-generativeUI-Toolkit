@@ -12,7 +12,7 @@ import { QuestionBubble } from '../../components/QuestionBubble'
 import { StreamingCard } from '../../components/StreamingCard'
 
 import { StreamableText, StreamingCursor } from '../../streaming/StreamableText'
-import { LoadingStates } from '../../streaming/LoadingStates'
+import { LoadingDots, LoadingSpinner, LoadingBars, LoadingPulse, LoadingOrb } from '../../streaming/LoadingStates'
 
 import { ParticleEmitter } from '../../effects/ParticleEmitter'
 import { AnimatedGrid } from '../../magicui/AnimatedGrid'
@@ -91,10 +91,30 @@ const componentRegistry: Record<string, { component: React.ComponentType<any>; d
     defaultProps: { char: '▋', blinkSpeed: 500 },
     code: `<StreamingCursor char="▋" blinkSpeed={500} />`
   },
-  LoadingStates: {
-    component: LoadingStates,
-    defaultProps: { type: 'dots' },
-    code: `<LoadingStates type="dots" />`
+  LoadingDots: {
+    component: LoadingDots,
+    defaultProps: { count: 3, size: 12, color: '#8b5cf6' },
+    code: `<LoadingDots count={3} color="#8b5cf6" />`
+  },
+  LoadingSpinner: {
+    component: LoadingSpinner,
+    defaultProps: { size: 40, color: '#8b5cf6' },
+    code: `<LoadingSpinner size={40} color="#8b5cf6" />`
+  },
+  LoadingBars: {
+    component: LoadingBars,
+    defaultProps: { count: 5, height: 20, color: '#06b6d4' },
+    code: `<LoadingBars count={5} color="#06b6d4" />`
+  },
+  LoadingPulse: {
+    component: LoadingPulse,
+    defaultProps: { width: 100, height: 20, color: '#ec4899' },
+    code: `<LoadingPulse width={100} color="#ec4899" />`
+  },
+  LoadingOrb: {
+    component: LoadingOrb,
+    defaultProps: { size: 50, color: '#8b5cf6' },
+    code: `<LoadingOrb size={50} color="#8b5cf6" />`
   },
   ParticleEmitter: {
     component: ParticleEmitter,
