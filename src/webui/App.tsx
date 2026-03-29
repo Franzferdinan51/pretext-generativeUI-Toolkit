@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react'
 
 // Provider configurations
 const PROVIDERS = {
-  lmstudio: { name: 'LM Studio', endpoint: 'http://100.116.54.125:1234/v1', icon: '🖥️', color: '#10b981' },
+  lmstudio: { name: 'LM Studio', endpoint: '/api/lm-studio', icon: '🖥️', color: '#10b981' },
   minimax: { name: 'MiniMax', endpoint: 'https://api.minimax.io/v1', icon: '🚀', color: '#f59e0b' },
   openai: { name: 'OpenAI', endpoint: 'https://api.openai.com/v1', icon: '🤖', color: '#10a54a' },
   anthropic: { name: 'Claude', endpoint: 'https://api.anthropic.com/v1', icon: '🧠', color: '#d946ef' },
@@ -290,15 +290,15 @@ export default function App() {
   const [view, setView] = useState<'canvas' | 'html'>('canvas')
   const [showSettings, setShowSettings] = useState(false)
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([
-    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '3', name: 'Frontend', role: 'content', icon: '💻', sections: ['Toolkit', 'How It Works'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '4', name: 'QA', role: 'footer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' }
+    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'lmstudio', model: 'qwen3.5-9b', status: 'waiting' },
+    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'lmstudio', model: 'qwen3.5-9b', status: 'waiting' },
+    { id: '3', name: 'Frontend', role: 'content', icon: '💻', sections: ['Toolkit', 'How It Works'], provider: 'lmstudio', model: 'qwen3.5-27b', status: 'waiting' },
+    { id: '4', name: 'QA', role: 'footer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'lmstudio', model: 'qwen3.5-27b', status: 'waiting' }
   ])
   const [settings, setSettings] = useState({
-    provider: 'minimax' as Provider,
-    apiKey: '', // MiniMax API key needed
-    model: 'MiniMax-M2.7'
+    provider: 'lmstudio' as Provider,
+    apiKey: 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW',
+    model: 'qwen3.5-27b'
   })
   
   const initRef = useRef(false)
