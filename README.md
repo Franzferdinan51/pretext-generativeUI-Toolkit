@@ -10,7 +10,7 @@
 
 <p align="center">
   <strong>🎨 The world's most advanced AI-powered generative UI toolkit</strong><br>
-  Character-level canvas rendering with Pretext, streaming components, beautiful visual effects, and <strong>live AI website generation</strong>.
+  Character-level canvas rendering with Pretext, streaming components, beautiful visual effects, and <strong>live AI-controlled UI</strong>.
 </p>
 
 ---
@@ -25,16 +25,55 @@ npm install
 npm run dev
 ```
 
-Open your browser to `http://localhost:5173` to see the comprehensive demo showcase.
+Open your browser to `http://localhost:3456` to see the Generative UI demo!
 
 ---
 
-## 🌟 What's New (v1.0.0)
+## 🎨 Generative UI (NEW!)
+
+**AI controls the entire UI in real-time using Pretext for zero-reflow rendering.**
+
+### How It Works:
+```
+User clicks button
+    ↓
+Event sent to AI (LM Studio)
+    ↓
+AI generates component JSON (streams live)
+    ↓
+Pretext measures text positions (zero DOM reflow!)
+    ↓
+Canvas renders everything
+    ↓
+No DOM manipulation = instant updates!
+```
+
+### Features:
+- **Pretext** - Character-level text measurement without DOM reflow
+- **Canvas rendering** - Everything drawn, not DOM elements
+- **AI as runtime** - Controls all UI state
+- **Streaming** - Components appear as AI thinks
+- **Mouse tracking** - AI knows cursor position
+
+### Demo Buttons:
+- 🚀 Landing Page - AI generates full landing page
+- 📊 Dashboard - AI generates dashboard with cards
+- 🛒 Product Card - AI generates e-commerce components
+
+---
+
+## 🌟 What's New (v1.1.0)
+
+### 🆕 Generative UI Mode
+**AI is the runtime engine - controls everything in real-time.**
+
+### 🆕 Pretext + Canvas
+- Text streaming with zero DOM reflow
+- Character-level positioning
+- Pre-calculated heights
 
 ### 🆕 Live Website Generation
 **Generate complete websites in real-time as AI thinks!**
-
-Like procedural world generation, but for websites. Type a description and watch AI generate a full website with nav, hero, features, pricing, and more - all streaming live.
 
 ```
 User: "Generate a crypto trading dashboard"
@@ -44,7 +83,7 @@ User: "Generate a crypto trading dashboard"
 ```
 
 ### 🆕 Full-Featured WebUI
-- **7 Tabs**: Home, Playground, Components, Live Website, Agents, Effects, Settings
+- **8 Tabs**: Gen UI, Home, Playground, Components, Live Website, Agents, Effects, Settings
 - **Particle Backgrounds** with toggle
 - **LM Studio Integration** with model selection
 - **Real-time Streaming** chat interface
