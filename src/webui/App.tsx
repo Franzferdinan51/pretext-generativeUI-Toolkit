@@ -183,6 +183,38 @@ export default function App() {
   
   const addLog = (msg: string) => setLogs(prev => [...prev.slice(-20), `${new Date().toLocaleTimeString()} ${msg}`])
   
+  function generateFallback(sections: string[], agentName: string): UIComponent[] {
+    const fallback: UIComponent[] = []
+    let yPos = 100
+    
+    if (sections.includes('Header')) {
+      fallback.push({ id: `fallback-${agentName}-header`, type: 'header', content: '🎨 Pretext AI UI', x: 0, y: 0, width: 1200, height: 60, style: {}, visible: true })
+      yPos = 100
+    }
+    if (sections.includes('Hero')) {
+      fallback.push({ id: `fallback-${agentName}-hero`, type: 'text', content: 'Build UI with AI', x: 50, y: yPos, width: 1100, height: 60, style: { fontSize: '48', background: 'gradient' }, visible: true })
+      fallback.push({ id: `fallback-${agentName}-hero-btn`, type: 'button', content: '🚀 Get Started', x: 500, y: yPos + 80, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true })
+      yPos += 160
+    }
+    if (sections.includes('Features') || sections.includes('Stats')) {
+      const cards = ['⚡ Zero Reflow', '🎨 Canvas', '🤖 AI Controlled']
+      cards.forEach((title, i) => {
+        fallback.push({ id: `fallback-${agentName}-card-${i}`, type: 'card', content: `${title}\nAI Generated`, x: 50 + i * 320, y: yPos, width: 280, height: 180, style: { background: 'rgba(255,255,255,0.08)' }, visible: true })
+      })
+      yPos += 200
+    }
+    if (sections.includes('Toolkit') || sections.includes('How It Works')) {
+      fallback.push({ id: `fallback-${agentName}-text`, type: 'text', content: 'How It Works', x: 50, y: yPos, width: 400, height: 40, style: { fontSize: '24', color: '#8b5cf6' }, visible: true })
+      yPos += 60
+    }
+    if (sections.includes('CTA') || sections.includes('Footer')) {
+      fallback.push({ id: `fallback-${agentName}-cta`, type: 'button', content: '🚀 Get Started', x: 500, y: yPos, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true })
+    }
+    
+    addLog(`🔧 ${agentName}: Generated ${fallback.length} fallback components`)
+    return fallback
+  }
+  
   async function callAI(provider: Provider, apiKey: string, model: string, system: string, user: string) {
     const p = PROVIDERS[provider]
     let authKey = apiKey
@@ -242,26 +274,45 @@ export default function App() {
       setAgentStatuses(prev => ({ ...prev, [agent.name]: 'building' }))
       addLog(`${agent.icon} ${agent.name}: Building ${agent.sections.join(', ')}...`)
       
-      try {
-        const system = `Create UI components. Types: header{h:60}, text{fs:32}, button{w:200,h:50}, card{w:280,h:180}. Dark #0a0a0f, accents #8b5cf6,#ec4899. JSON only.`
-        const user = `Generate ${agent.sections.join(' + ')}: ${agent.sections.map(s => {
-          if (s === 'Header') return '1200x60px dark header with logo'
-          if (s === 'Hero') return 'gradient headline "Build UI with AI", subtitle, CTA button'
-          if (s === 'Features') return '4 cards: Zero Reflow, Canvas, AI Controlled, Streaming'
-          if (s === 'Stats') return '4 boxes: 50+ Components, 0ms Reflow, 100% Free, Live Preview'
-          return s
-        }).join('. ')}`
-        
-        const result = await callAI(agent.provider, '', agent.model, system, user)
-        if (Array.isArray(result) && result.length > 0) {
-          allResults.push(...result)
-          addLog(`✅ ${agent.name}: ${result.length} components`)
-          setAgentStatuses(prev => ({ ...prev, [agent.name]: 'done' }))
+      let result: UIComponent[] = []
+      let attempts = 0
+      
+      while (result.length === 0 && attempts < 2) {
+        try {
+          const systemPrompt = attempts === 0 
+            ? `Create UI components. Types: header, text, button, card. JSON array only.`
+            : `Create UI components with defaults if needed. Types: header{h:60}, text{fs:32}, button{w:200,h:50}, card{w:280,h:180}. Dark theme #0a0a0f, accents #8b5cf6. Output JSON array only.`
+          
+          const userPrompt = attempts === 0
+            ? `Generate ${agent.sections.join(' + ')}: ${agent.sections.map(s => {
+                if (s === 'Header') return '1200x60px dark header "🎨 Pretext AI UI"'
+                if (s === 'Hero') return 'gradient headline "Build UI with AI", subtitle "Zero Reflow • Streaming", CTA button'
+                if (s === 'Features') return '4 cards: "⚡ Zero Reflow", "🎨 Canvas", "🤖 AI Controlled", "✨ Streaming"'
+                if (s === 'Stats') return '4 boxes: "50+ Components", "0ms Reflow", "100% Free", "Live Preview"'
+                return s
+              }).join('. ')}`
+            : `Fallback: Create simple ${agent.sections.join(' + ')} with basic components`
+          
+          const aiResult = await callAI(agent.provider, '', agent.model, systemPrompt, userPrompt)
+          
+          if (Array.isArray(aiResult) && aiResult.length > 0) {
+            result = aiResult
+          } else if (attempts === 1) {
+            // Final fallback - generate default components
+            result = generateFallback(agent.sections, agent.name)
+          }
+        } catch (err) {
+          addLog(`⚠️ ${agent.name} attempt ${attempts + 1} failed: ${err}`)
+          if (attempts === 1) result = generateFallback(agent.sections, agent.name)
         }
-      } catch (err) {
-        addLog(`❌ ${agent.name}: ${err}`)
-        setAgentStatuses(prev => ({ ...prev, [agent.name]: 'error' }))
+        attempts++
       }
+      
+      if (result.length > 0) {
+        allResults.push(...result)
+        addLog(`✅ ${agent.name}: ${result.length} components`)
+      }
+      setAgentStatuses(prev => ({ ...prev, [agent.name]: result.length > 0 ? 'done' : 'error' }))
     }
     
     // PHASE 2: Quality build
@@ -272,20 +323,38 @@ export default function App() {
       setAgentStatuses(prev => ({ ...prev, [agent.name]: 'building' }))
       addLog(`${agent.icon} ${agent.name}: Building ${agent.sections.join(', ')}...`)
       
-      try {
-        const system = `You are expert UI builder. Create polished components. Types: header{h:60}, text{fs:32}, button{w:200,h:50}, card{w:280,h:180}. Dark #0a0a0f, accents #8b5cf6,#ec4899. Use gradient text for headlines. JSON array only.`
-        const user = `Generate ${agent.sections.join(' + ')} with high quality.`
-        
-        const result = await callAI(agent.provider, '', agent.model, system, user)
-        if (Array.isArray(result) && result.length > 0) {
-          allResults.push(...result)
-          addLog(`✅ ${agent.name}: ${result.length} components`)
-          setAgentStatuses(prev => ({ ...prev, [agent.name]: 'done' }))
+      let result: UIComponent[] = []
+      let attempts = 0
+      
+      while (result.length === 0 && attempts < 2) {
+        try {
+          const systemPrompt = attempts === 0
+            ? `You are expert UI builder. Create polished components with gradient text for headlines. Types: header{h:60}, text{fs:32}, button{w:200,h:50}, card{w:280,h:180}. Dark #0a0a0f, accents #8b5cf6,#ec4899. JSON array only.`
+            : `Create simple but valid components. Output JSON array with header, text, button, card types.`
+          
+          const userPrompt = attempts === 0
+            ? `Generate ${agent.sections.join(' + ')} with high quality. Include gradient text headlines.`
+            : `Create basic ${agent.sections.join(' + ')} components as JSON array.`
+          
+          const aiResult = await callAI(agent.provider, '', agent.model, systemPrompt, userPrompt)
+          
+          if (Array.isArray(aiResult) && aiResult.length > 0) {
+            result = aiResult
+          } else if (attempts === 1) {
+            result = generateFallback(agent.sections, agent.name)
+          }
+        } catch (err) {
+          addLog(`⚠️ ${agent.name} attempt ${attempts + 1} failed: ${err}`)
+          if (attempts === 1) result = generateFallback(agent.sections, agent.name)
         }
-      } catch (err) {
-        addLog(`❌ ${agent.name}: ${err}`)
-        setAgentStatuses(prev => ({ ...prev, [agent.name]: 'error' }))
+        attempts++
       }
+      
+      if (result.length > 0) {
+        allResults.push(...result)
+        addLog(`✅ ${agent.name}: ${result.length} components`)
+      }
+      setAgentStatuses(prev => ({ ...prev, [agent.name]: result.length > 0 ? 'done' : 'error' }))
     }
     
     // PHASE 3: Enhancement
