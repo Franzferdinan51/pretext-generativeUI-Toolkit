@@ -16,7 +16,6 @@ const PROVIDERS = {
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 const LM_STUDIO_KEY = 'lm-studio'  // No auth needed for local
-const KIMI_API_KEY = 'sk-kimi-JuC8v84dqO2VbJbDRt1Z8lbQgHqTOLrPbeSEae9FhWVQE9HUAwomE6Xmv7JwChIg'
 
 type Provider = keyof typeof PROVIDERS
 
@@ -219,7 +218,6 @@ export default function App() {
     const p = PROVIDERS[provider]
     let authKey = apiKey
     if (provider === 'minimax') authKey = MINIMAX_API_KEY
-    if (provider === 'kimi') authKey = KIMI_API_KEY
     if (provider === 'lmstudio') authKey = LM_STUDIO_KEY
     
     const res = await fetch(`${p.endpoint}/chat/completions`, {
@@ -261,7 +259,7 @@ export default function App() {
       { id: '2', name: 'Designer', icon: '🎨', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Features', 'Stats'] },
       { id: '3', name: 'Content', icon: '✍️', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Toolkit', 'How It Works'] },
       { id: '4', name: 'Frontend', icon: '💻', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['CTA', 'Footer'] },
-      { id: '5', name: 'Enhancer', icon: '✨', provider: 'kimi' as Provider, model: 'moonshot-v1-128k', sections: ['Polish'] },
+      { id: '5', name: 'Enhancer', icon: '✨', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Polish'] },
     ]
     
     const allResults: UIComponent[] = []
@@ -359,12 +357,12 @@ export default function App() {
     
     // PHASE 3: Enhancement
     setPhase('PHASE 3: Enhancement')
-    addLog('✨ Enhancing (Kimi moonshot)...')
+    addLog('✨ Enhancing (MiniMax)...')
     setAgentStatuses(prev => ({ ...prev, ['Enhancer']: 'building' }))
     
     try {
       const enhance = await callAI(
-        'kimi', '', 'moonshot-v1-128k',
+        'minimax', '', 'MiniMax-M2.7',
         `Add polish: gradient texts, decorative elements, glows, better spacing. Return 3-5 components as JSON array.`,
         `Current: ${JSON.stringify(allResults.slice(0, 6))}`
       )
