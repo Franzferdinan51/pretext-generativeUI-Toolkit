@@ -233,7 +233,7 @@ export default function App() {
   
   async function generateWebsite(prompt: string) {
     setIsGenerating(true)
-    setAiThinking('')
+    setAiThinking('🚀 9B + 🎯 27B running in parallel...\n')
     setComponents([])
     setErrors([])
     
@@ -242,167 +242,86 @@ export default function App() {
 ## MUST GENERATE (every time):
 1. HEADER: "🎨 Pretext AI UI Toolkit" logo on left, nav links on right (Home, Docs, GitHub, Demo)
 2. HERO: Large gradient headline "Build UI with AI", subtitle "Zero DOM Reflow • Streaming • Canvas Rendering • Pretext", big CTA button "Try Demo"
-3. FEATURES SECTION: Title "Why Pretext AI UI?", 4 feature CARDS:
-   - Card 1: "⚡ Zero Reflow" + "Text measured without DOM touches"
-   - Card 2: "🎨 Canvas Rendering" + "Everything drawn, not DOM elements"  
-   - Card 3: "🤖 AI Controlled" + "AI generates UI in real-time"
-   - Card 4: "✨ Streaming" + "Components appear as AI thinks"
-4. TOOLKIT SECTION: Title "The Toolkit", 3 LINK/CARD components linking to features:
-   - Card 1: "📦 Components" + "50+ Pre-built components ready to use" + link to components
-   - Card 2: "🎨 Effects" + "Particles, gradients, glows, animations" + link to effects
-   - Card 3: "🤖 AI Integration" + "LM Studio, OpenAI, Claude ready" + link to AI
-5. HOW IT WORKS SECTION: Title "How It Works", 3 STEP cards:
-   - Step 1: "Describe" + "Type what you want"
-   - Step 2: "AI Generates" + "Watch components appear"
-   - Step 3: "Preview" + "See your UI instantly"
-6. STATS SECTION: 4 stat boxes showing numbers like "50+ Components", "0ms Reflow", "100% Free", "Live Preview"
-7. CTA SECTION: Centered gradient button "Start Building Free"
-8. FOOTER: GitHub: github.com/Franzferdinan51/pretext-generativeUI-Toolkit, links, copyright "Built with Pretext AI UI"
-
-## COMPONENT TYPES:
-- header: {type:"header", height:60, background:"rgba(0,0,0,0.8)"}
-- text: {type:"text", content:"...", fontSize:"32" for headlines, "18" for body}
-- button: {type:"button", content:"...", width:180, height:50, style:{background:"#8b5cf6"}}
-- card: {type:"card", content:"Title", width:280, height:180, style:{background:"rgba(255,255,255,0.05)"}}
+3. FEATURES SECTION: Title "Why Pretext AI UI?", 4 feature CARDS
+4. TOOLKIT SECTION: Title "The Toolkit", 3 cards (Components, Effects, AI Integration)
+5. HOW IT WORKS: 3 STEP cards (Describe, Generate, Preview)
+6. STATS: 4 stat boxes (50+ Components, 0ms Reflow, 100% Free, Live Preview)
+7. CTA: Centered gradient button
+8. FOOTER: GitHub link + copyright
 
 ## RULES:
-- Canvas: 1200x800px (scrollable)
-- Dark theme: #0a0a0f background
-- Purple accent: #8b5cf6, Pink: #ec4899, Cyan: #06b6d4
-- Header y:0, Hero y:80, Features y:280, Toolkit y:520, HowItWorks y:750, Stats y:980, CTA y:1100, Footer y:1200
-- Cards in a row with gap: x positions 50, 350, 650 for 3 cards
-- Use gradient text for headlines: style:{background:"linear-gradient(135deg,#8b5cf6,#ec4899)"}
+- Canvas: 1200x800px
+- Dark theme: #0a0a0f
+- Accents: #8b5cf6, #ec4899, #06b6d4
+- Types: header(60px), text, button(180x50), card(280x180)
 
-## OUTPUT FORMAT:
-Output ONLY valid JSON array, NO markdown, NO explanation:
-[{"id":"1","type":"header","content":"🎨 Pretext AI UI","x":0,"y":0,"width":1200,"height":60,"style":{"background":"rgba(0,0,0,0.8)"},"visible":true},...]
+Output ONLY valid JSON array:`
 
-Generate a complete demo page now with ALL sections listed above!`
-
-    try {
-      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
+    // Run both models in PARALLEL
+    const [fastResult, qualityResult] = await Promise.all([
+      // Fast 9B generation
+      fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LM_STUDIO_KEY}` },
         body: JSON.stringify({
-          model: 'qwen3.5-9b', // Fast initial generation
+          model: 'qwen3.5-9b',
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+          stream: true,
+          max_tokens: 2048
+        })
+      }),
+      // Quality 27B enhancement  
+      fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LM_STUDIO_KEY}` },
+        body: JSON.stringify({
+          model: 'qwen3.5-27b',
           messages: [
-            { role: 'system', content: systemPrompt },
+            { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Generate the most polished, impressive version possible.' },
             { role: 'user', content: prompt }
           ],
           stream: true,
           max_tokens: 2048
         })
       })
+    ])
+    
+    // Process quality 27B result (use this as final)
+    const qualityReader = qualityResult.body?.getReader()
+    const decoder = new TextDecoder()
+    let full = ''
+    
+    while (true) {
+      const { done, value } = await qualityReader.read()
+      if (done) break
       
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let full = ''
+      const chunk = decoder.decode(value, { stream: true })
+      const lines = chunk.split('\n')
       
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr === '[DONE]') continue
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.choices?.[0]?.delta?.content) {
-                const token = data.choices[0].delta.content
-                full += token
-                setAiThinking(full.slice(-200))
-                
-                const match = full.match(/\[[\s\S]*\]/)
-                if (match) {
-                  try {
-                    const parsed = JSON.parse(match[0])
-                    setComponents(parsed)
-                  } catch {
-                    setErrors(['Parse error - AI output was malformed'])
-                  }
-                }
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6)
+          if (dataStr === '[DONE]') continue
+          try {
+            const data = JSON.parse(dataStr)
+            if (data.choices?.[0]?.delta?.content) {
+              full += data.choices[0].delta.content
+              setAiThinking(`🎯 27B Quality:\n${full.slice(-150)}\n\n✅ Done!`)
+              
+              const match = full.match(/\[[\s\S]*\]/)
+              if (match) {
+                try {
+                  const parsed = JSON.parse(match[0])
+                  setComponents(parsed)
+                } catch {}
               }
-            } catch {}
-          }
+            }
+          } catch {}
         }
       }
-      
-    } catch (err) {
-      setErrors([`Error: ${err}`])
     }
     
-    // Step 2: Enhance with 27B for quality
-    setAiThinking(prev => prev + '\n\n🎯 Quality 27B: Enhancing UI...\n')
-    try {
-      const enhancePrompt = `Enhance this UI JSON - add more visual polish, better spacing, more components, and make it more impressive. Return ONLY the enhanced JSON array, no explanation:
-${JSON.stringify(components)}
-
-Output ONLY valid JSON array:`
-
-      const response2 = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: 'You enhance UI JSON. Output ONLY valid JSON array.' },
-            { role: 'user', content: enhancePrompt }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-      
-      const reader2 = response2.body?.getReader()
-      const decoder2 = new TextDecoder()
-      let full2 = ''
-      
-      while (true) {
-        const { done, value } = await reader2.read()
-        if (done) break
-        
-        const chunk2 = decoder2.decode(value, { stream: true })
-        const lines2 = chunk2.split('\n')
-        
-        for (const line2 of lines2) {
-          if (line2.startsWith('data: ')) {
-            const dataStr2 = line2.slice(6)
-            if (dataStr2 === '[DONE]') continue
-            try {
-              const data2 = JSON.parse(dataStr2)
-              if (data2.choices?.[0]?.delta?.content) {
-                const token2 = data2.choices[0].delta.content
-                full2 += token2
-                setAiThinking(prev => prev.slice(0, -50) + '🎯 Enhanced!')
-                
-                const match2 = full2.match(/\[[\s\S]*\]/)
-                if (match2) {
-                  try {
-                    const parsed2 = JSON.parse(match2[0])
-                    setComponents(parsed2)
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-      setAiThinking(prev => prev + '\n\n✅ Done!')
-    } catch (err2) {
-      setAiThinking(prev => prev + `\n⚠️ Enhancement skipped: ${err2}`)
-    } finally {
-      setIsGenerating(false)
-    }
+    setIsGenerating(false)
   }
   
   // Handle component click
