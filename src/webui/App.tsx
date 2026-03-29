@@ -308,8 +308,8 @@ export default function App() {
     appContent.current.statusText = 'Building...'
     
     const agents = [
-      { name: 'Architect', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Header', 'Hero'] },
-      { name: 'Designer', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Features', 'Stats'] },
+      { name: 'Architect', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Header', 'Hero'] },
+      { name: 'Designer', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Features', 'Stats'] },
       { name: 'Content', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Toolkit', 'How It Works'] },
       { name: 'Frontend', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['CTA', 'Footer'] },
       { name: 'Enhancer', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Polish'] },
