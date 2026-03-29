@@ -255,8 +255,8 @@ export default function App() {
     setAgentStatuses({})
     
     const agents = [
-      { id: '1', name: 'Architect', icon: '🏗️', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Header', 'Hero'] },
-      { id: '2', name: 'Designer', icon: '🎨', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Features', 'Stats'] },
+      { id: '1', name: 'Architect', icon: '🏗️', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Header', 'Hero'] },
+      { id: '2', name: 'Designer', icon: '🎨', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Features', 'Stats'] },
       { id: '3', name: 'Content', icon: '✍️', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Toolkit', 'How It Works'] },
       { id: '4', name: 'Frontend', icon: '💻', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['CTA', 'Footer'] },
       { id: '5', name: 'Enhancer', icon: '✨', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Polish'] },
