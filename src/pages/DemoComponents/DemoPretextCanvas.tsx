@@ -13,7 +13,7 @@ interface PretextCanvasProps {
   backgroundColor?: string
 }
 
-export function PretextCanvas({
+export function DemoPretextCanvas({
   text,
   font = '18px Inter',
   maxWidth = 300,
