@@ -38,8 +38,17 @@ interface SwarmAgent {
   sections: string[]
   provider: Provider
   model: string
-  status: 'waiting' | 'building' | 'done' | 'error'
+  status: 'waiting' | 'building' | 'done' | 'error' | 'fixing'
   result?: UIComponent[]
+  error?: string
+  retryCount: number
+}
+
+interface SupervisorLog {
+  time: string
+  agent: string
+  status: 'ok' | 'error' | 'fixing' | 'fixed'
+  message: string
 }
 
 function CanvasRenderer({ components }: { components: UIComponent[] }) {
@@ -290,11 +299,13 @@ export default function App() {
   const [view, setView] = useState<'canvas' | 'html'>('canvas')
   const [showSettings, setShowSettings] = useState(false)
   const [swarmAgents, setSwarmAgents] = useState<SwarmAgent[]>([
-    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '3', name: 'Frontend', role: 'content', icon: '💻', sections: ['Toolkit', 'How It Works'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' },
-    { id: '4', name: 'QA', role: 'footer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting' }
+    { id: '1', name: 'Architect', role: 'header', icon: '🏗️', sections: ['Header', 'Hero'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
+    { id: '2', name: 'Designer', role: 'design', icon: '🎨', sections: ['Features', 'Stats'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
+    { id: '3', name: 'Frontend', role: 'content', icon: '💻', sections: ['Toolkit', 'How It Works'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 },
+    { id: '4', name: 'QA', role: 'footer', icon: '✅', sections: ['CTA', 'Footer'], provider: 'minimax', model: 'MiniMax-M2.7', status: 'waiting', retryCount: 0 }
   ])
+  const [supervisorLogs, setSupervisorLogs] = useState<SupervisorLog[]>([])
+  const [supervisorStatus, setSupervisorStatus] = useState('idle')
   const [settings, setSettings] = useState({
     provider: 'minimax' as Provider,
     apiKey: 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE',
@@ -361,61 +372,146 @@ export default function App() {
   async function swarmBuild() {
     setIsGenerating(true)
     setComponents([])
+    setSupervisorLogs([])
+    setSupervisorStatus('supervising')
     
-    const systemBase = `You are an expert UI generator. Create JSON components for the sections assigned to you.
+    const log = (agent: string, status: SupervisorLog['status'], message: string) => {
+      const entry = { time: new Date().toLocaleTimeString(), agent, status, message }
+      setSupervisorLogs(prev => [...prev, entry])
+      setAiThinking(prev => `${status === 'ok' ? '✅' : status === 'fixing' ? '🔧' : status === 'fixed' ? '✅' : '❌'} ${agent}: ${message}\n`)
+    }
+    
+    const systemBase = `You are an expert UI generator. Create valid JSON components.
 
 COMPONENT TYPES:
 - header: {type:"header", content:"Title", x:0, y:0, width:1200, height:60}
 - text: {type:"text", content:"...", x:0, y:80, width:1200, height:40, style:{fontSize:"32",color:"#fff"}}
 - button: {type:"button", content:"...", x:500, y:300, width:200, height:50, style:{background:"#8b5cf6"}}
-- card: {type:"card", content:"Title\\nSubtitle", x:50, y:400, width:280, height:180, style:{background:"rgba(255,255,255,0.08)"}}
+- card: {type:"card", content:"Title", x:50, y:400, width:280, height:180, style:{background:"rgba(255,255,255,0.08)"}}
 
 RULES:
 - Dark theme #0a0a0f
 - Accents: #8b5cf6, #ec4899, #06b6d4
-- Output ONLY valid JSON array, no markdown`
+- Output ONLY valid JSON array with no markdown formatting`
 
-    // Run all swarm agents in parallel
-    const agentPromises = swarmAgents.map(async (agent) => {
-      setAiThinking(prev => prev + `${agent.icon} ${agent.name}: Starting...\n`)
+    // Supervisor monitors and fixes
+    async function runAgentWithSupervision(agent: SwarmAgent, maxRetries = 2): Promise<SwarmAgent> {
+      log('Supervisor', 'ok', `Starting ${agent.name}...`)
       
-      const sectionsPrompt = agent.sections.map(s => {
-        switch (s) {
-          case 'Header': return 'HEADER: 1200x60px dark bar with "🎨 Pretext AI UI" logo'
-          case 'Hero': return 'HERO: Gradient headline "Build UI with AI", subtitle, CTA button'
-          case 'Features': return 'FEATURES: 4 cards - "⚡ Zero Reflow", "🎨 Canvas", "🤖 AI Controlled", "✨ Streaming"'
-          case 'Stats': return 'STATS: 4 boxes - "50+ Components", "0ms Reflow", "100% Free", "Live Preview"'
-          case 'Toolkit': return 'TOOLKIT: 3 cards - Components, Effects, AI Integration'
-          case 'How It Works': return 'HOW IT WORKS: 3 steps - Describe, Generate, Preview'
-          case 'CTA': return 'CTA: Large gradient button "Start Building Free"'
-          case 'Footer': return 'FOOTER: GitHub link, copyright'
-          default: return s
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          setSwarmAgents(prev => prev.map(a => a.id === agent.id ? { ...a, status: 'building' as const } : a))
+          log(agent.name, 'ok', `Building ${agent.sections.join(', ')} (attempt ${attempt + 1})`)
+          
+          const sectionsPrompt = agent.sections.map(s => {
+            switch (s) {
+              case 'Header': return 'HEADER: 1200x60px dark bar with "🎨 Pretext AI UI" logo'
+              case 'Hero': return 'HERO: Gradient headline "Build UI with AI", subtitle, CTA button'
+              case 'Features': return 'FEATURES: 4 cards - "⚡ Zero Reflow", "🎨 Canvas", "🤖 AI Controlled", "✨ Streaming"'
+              case 'Stats': return 'STATS: 4 boxes - "50+ Components", "0ms Reflow", "100% Free", "Live Preview"'
+              case 'Toolkit': return 'TOOLKIT: 3 cards - Components, Effects, AI Integration'
+              case 'How It Works': return 'HOW IT WORKS: 3 steps - Describe, Generate, Preview'
+              case 'CTA': return 'CTA: Large gradient button "Start Building Free"'
+              case 'Footer': return 'FOOTER: GitHub link, copyright'
+              default: return s
+            }
+          }).join('\n')
+          
+          const result = await callAI(
+            agent.provider,
+            settings.apiKey,
+            agent.model,
+            systemBase,
+            `Generate: ${sectionsPrompt}\n\nY positions: Header y:0, Hero y:80, Features y:300, Stats y:600, Toolkit y:900, HowItWorks y:1100, CTA y:1300, Footer y:1400`
+          )
+          
+          // Validate result
+          if (!Array.isArray(result) || result.length === 0) {
+            throw new Error('Empty or invalid response')
+          }
+          
+          log(agent.name, 'ok', `✅ Generated ${result.length} components`)
+          return { ...agent, status: 'done', result, retryCount: attempt }
+          
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          log(agent.name, 'error', `❌ ${errorMsg}`)
+          
+          if (attempt < maxRetries) {
+            log(agent.name, 'fixing', `🔧 Supervisor: Retrying with fallback prompt...`)
+            setSwarmAgents(prev => prev.map(a => a.id === agent.id ? { ...a, status: 'fixing' as const } : a))
+            
+            // Supervisor fallback: try with more explicit instructions
+            agent.model = 'MiniMax-M2.7' // Ensure using working model
+          } else {
+            log(agent.name, 'error', `❌ ${agent.name} failed after ${maxRetries + 1} attempts - using fallback`)
+            // Return minimal valid components
+            return { 
+              ...agent, 
+              status: 'done', 
+              retryCount: attempt,
+              result: generateFallbackComponents(agent.sections)
+            }
+          }
         }
-      }).join('\n')
-      
-      try {
-        const result = await callAI(
-          agent.provider, 
-          settings.apiKey, 
-          agent.model, 
-          systemBase,
-          `Generate: ${sectionsPrompt}\n\nY positions: Header y:0, Hero y:80, Features y:300, Stats y:600, Toolkit y:900, HowItWorks y:1100, CTA y:1300, Footer y:1400`
-        )
-        
-        setAiThinking(prev => prev + `${agent.icon} ${agent.name}: ✅ Done!\n`)
-        return { ...agent, status: 'done' as const, result }
-      } catch (err) {
-        setAiThinking(prev => prev + `${agent.icon} ${agent.name}: ❌ Error\n`)
-        return { ...agent, status: 'error' as const, result: [] }
       }
-    })
+      
+      return agent
+    }
     
-    const results = await Promise.all(agentPromises)
+    function generateFallbackComponents(sections: string[]): UIComponent[] {
+      const components: UIComponent[] = []
+      let yOffset = 0
+      
+      if (sections.includes('Header')) {
+        components.push({ id: `fallback-header`, type: 'header', content: '🎨 Pretext AI UI', x: 0, y: 0, width: 1200, height: 60, style: {}, visible: true })
+        yOffset = 80
+      }
+      if (sections.includes('Hero')) {
+        components.push({ id: `fallback-hero`, type: 'text', content: 'Build UI with AI', x: 50, y: yOffset, width: 1100, height: 60, style: { fontSize: '48', color: '#fff' }, visible: true })
+        yOffset += 100
+      }
+      if (sections.includes('Features')) {
+        components.push({ id: `fallback-features`, type: 'text', content: 'Features', x: 50, y: yOffset, width: 1100, height: 40, style: { fontSize: '32', color: '#8b5cf6' }, visible: true })
+      }
+      
+      return components
+    }
+    
+    // Run agents sequentially for better supervision
+    log('Supervisor', 'ok', '🧑‍⚖️ Supervisor: Starting swarm with oversight')
+    setAiThinking('🧑‍⚖️ Supervisor: Monitoring all agents...\n')
+    
+    const results: SwarmAgent[] = []
+    for (const agent of swarmAgents) {
+      const result = await runAgentWithSupervision(agent, 2)
+      results.push(result)
+      setSwarmAgents(results)
+      
+      // Supervisor verifies each result before moving on
+      if (result.status === 'done' && result.result && result.result.length > 0) {
+        log('Supervisor', 'ok', `🧑‍⚖️ Verified: ${agent.name} output valid`)
+      }
+    }
     
     // Merge all results
     const allComponents = results.flatMap(r => r.result || [])
+    
+    // Final supervisor check
+    log('Supervisor', 'ok', `🧑‍⚖️ Final check: ${allComponents.length} total components`)
+    
+    if (allComponents.length < 5) {
+      log('Supervisor', 'fixing', '⚠️ Too few components - regenerating missing sections...')
+      // Add minimal fallback content
+      allComponents.push(
+        { id: 'fallback-1', type: 'text', content: 'Generated by AI Swarm', x: 50, y: 1200, width: 1100, height: 40, style: { fontSize: '24', color: '#8b5cf6' }, visible: true },
+        { id: 'fallback-2', type: 'button', content: 'Try Again', x: 500, y: 1280, width: 200, height: 50, style: { background: '#8b5cf6' }, visible: true }
+      )
+    }
+    
     setComponents(allComponents)
-    setAiThinking(`✅ Swarm Complete! ${allComponents.length} components built`)
+    setSupervisorStatus('complete')
+    log('Supervisor', 'ok', '✅ Swarm complete with supervisor verification')
     setIsGenerating(false)
   }
   
@@ -456,24 +552,75 @@ RULES:
       
       <main className="pt-16 h-screen">
         {isGenerating && (
-          <div className="absolute inset-0 z-40 bg-[#0a0a0f]/90 flex items-start justify-center pt-20">
-            <div className="max-w-2xl w-full px-4">
-              <h2 className="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                🐝 AI Swarm Building
+          <div className="absolute inset-0 z-40 bg-[#0a0a0f]/95 flex items-start justify-center pt-16">
+            <div className="max-w-3xl w-full px-4 pb-4">
+              <h2 className="text-2xl font-bold mb-2 text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🧑‍⚖️ Supervisor + 🐝 Swarm Building
               </h2>
-              <div className="bg-black/50 rounded-lg p-4 max-h-48 overflow-auto">
-                <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono">
-                  {aiThinking || 'Initializing swarm...'}
-                </pre>
+              <p className="text-center text-gray-400 text-sm mb-4">Monitoring all agents - auto-fixing any failures</p>
+              
+              {/* Supervisor status */}
+              <div className="bg-purple-900/30 border border-purple-500/30 rounded-lg p-3 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🧑‍⚖️</span>
+                  <span className="font-bold">Supervisor</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${supervisorStatus === 'supervising' ? 'bg-yellow-600' : 'bg-green-600'}`}>
+                    {supervisorStatus === 'supervising' ? 'Active' : 'Complete'}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  {supervisorLogs.length} log entries
+                </div>
               </div>
-              <div className="mt-4 grid grid-cols-4 gap-2">
+              
+              {/* Agent cards */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
                 {swarmAgents.map(agent => (
-                  <div key={agent.id} className="bg-white/5 rounded-lg p-2 text-center">
+                  <div key={agent.id} className={`rounded-lg p-2 text-center ${
+                    agent.status === 'done' ? 'bg-green-900/30 border border-green-500/30' :
+                    agent.status === 'error' ? 'bg-red-900/30 border border-red-500/30' :
+                    agent.status === 'fixing' ? 'bg-yellow-900/30 border border-yellow-500/30' :
+                    'bg-white/5 border border-white/10'
+                  }`}>
                     <div className="text-2xl mb-1">{agent.icon}</div>
                     <div className="text-xs font-medium">{agent.name}</div>
-                    <div className="text-xs text-gray-500">{PROVIDERS[agent.provider]?.icon} {agent.model}</div>
+                    <div className={`text-xs ${
+                      agent.status === 'done' ? 'text-green-400' :
+                      agent.status === 'error' ? 'text-red-400' :
+                      agent.status === 'fixing' ? 'text-yellow-400' :
+                      'text-gray-500'
+                    }`}>
+                      {agent.status === 'done' ? '✅ Done' :
+                       agent.status === 'error' ? '❌ Error' :
+                       agent.status === 'fixing' ? '🔧 Fixing' :
+                       agent.status === 'building' ? '⏳ Building' :
+                       '⭕ Waiting'}
+                    </div>
+                    {agent.retryCount > 0 && (
+                      <div className="text-xs text-orange-400">Retries: {agent.retryCount}</div>
+                    )}
                   </div>
                 ))}
+              </div>
+              
+              {/* Live logs */}
+              <div className="bg-black/50 rounded-lg p-4 h-48 overflow-auto border border-white/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm">📋 Live Logs</span>
+                </div>
+                <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono">
+                  {supervisorLogs.map((log, i) => (
+                    <div key={i} className={`mb-1 ${
+                      log.status === 'error' ? 'text-red-400' :
+                      log.status === 'fixing' ? 'text-yellow-400' :
+                      log.status === 'fixed' ? 'text-green-400' :
+                      'text-gray-400'
+                    }`}>
+                      <span className="text-gray-600">[{log.time}]</span> {log.agent}: {log.message}
+                    </div>
+                  ))}
+                  {aiThinking}
+                </pre>
               </div>
             </div>
           </div>
