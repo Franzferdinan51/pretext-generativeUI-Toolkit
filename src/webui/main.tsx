@@ -1,14 +1,10 @@
-/**
- * Main entry point for Pretext AI UI Toolkit Demo
- */
-
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { DemoShowcase } from './pages/DemoShowcase'
+import App from './App'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <DemoShowcase />
+    <App />
   </React.StrictMode>
 )
