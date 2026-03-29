@@ -1,319 +1,418 @@
-# 🎯 Pretext AI UI Toolkit
+# Pretext Generative UI Toolkit
 
-**A comprehensive AI-powered generative UI toolkit for React.**
+**AI-powered generative UI with character-level layout control.**
 
-Build stunning, AI-generated user interfaces with character-level text control, streaming components, and beautiful visual effects.
+[![npm version](https://img.shields.io/npm/v/@chenglou/pretext)](https://www.npmjs.com/package/@chenglou/pretext)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Powered by:** Pretext + Morphic + CopilotKit + Vercel AI SDK + shadcn/ui + MagicUI
+---
+
+## 🎯 Overview
+
+This toolkit combines the power of **Pretext** (zero-layout-reflow text measurement) with **shadcn/ui**, **MagicUI**, and **streaming components** to build AI-native interfaces where AI controls every pixel.
+
+### The Core Insight
+
+Pretext measures every character's exact (x, y, width, height) position. Canvas renders at those exact coordinates. **The AI generates layout instructions, pretext measures, canvas renders.** No DOM, no reflow, no CSS constraints.
+
+This enables:
+- AI-controlled generative UI (AI outputs positioned text, not HTML)
+- Pre-calculated heights before content appears
+- Character-by-character streaming with pre-measured layouts
+- Complex text flows around obstacles
+- Zero layout shift during streaming
+
+---
+
+## ✨ Features
+
+### Pretext Core
+- **Zero-reflow text measurement** - Measure text height without touching DOM
+- **Character-level positioning** - Get exact (x, y) for every character
+- **Line-by-line layout** - Flow text around obstacles
+- **Pre-measurement** - Calculate heights before streaming content
+
+### Smart Components
+- **SmartMessage** - Auto-detects content type (vote, code, list, table, chart, question, summary)
+- **StreamingCard** - Streaming text with pre-measured height
+- **VoteCard** - Animated voting results
+- **CodeBlock** - Syntax highlighting with copy button
+- **DataTable** - Sortable, filterable tables
+- **DataChart** - Bar, line, and pie charts
+- **ListCard** - Styled lists with icons
+- **SummaryCard** - Key points extraction
+- **QuestionBubble** - Interactive question bubbles
+
+### Effects
+- **ParticleEmitter** - GPU-accelerated particles
+- **GradientMesh** - Animated gradient backgrounds
+- **GlowBorder** - Neon glow effects
+- **RippleEffect** - Touch ripple animations
+- **Shimmer** - Loading skeleton animations
+
+### Layout
+- **ResponsiveGrid** - Auto-responsive grid layouts
+- **MasonryLayout** - Pinterest-style masonry
+- **AdaptiveLayout** - Breakpoint-based layouts
+
+### Streaming
+- **StreamableText** - Character-by-character streaming with Pretext
+- **LoadingStates** - Animated loading indicators
+
+### shadcn/ui Components
+- Button, Card, Badge, Input, Dialog, Tabs, ScrollArea
+
+### MagicUI Components
+- AnimatedGrid, FadeIn, BentoGrid, WordRotate, TextGradient, OrbitingShapes
+
+### AI Components
+- **AIGenerator** - AI-powered content generation
+- **ContentDetector** - Auto-detect content types
+- **LayoutOptimizer** - Optimize text layouts
 
 ---
 
 ## 🚀 Quick Start
 
+### Installation
+
 ```bash
-# Clone the toolkit
-git clone https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit.git
-cd pretext-generativeUI-Toolkit
+npm install @chenglou/pretext react react-dom
+```
 
-# Install dependencies
-npm install
+### Basic Usage
 
-# Start the AI Playground
-npm run dev
+```tsx
+import { PretextCanvas, StreamingMessage } from 'pretext-generative-ui-toolkit'
 
-# Open http://localhost:5173
+// Pre-measure text height before streaming
+function MyComponent() {
+  const [content, setContent] = useState('')
+  
+  return (
+    <StreamingMessage 
+      content={content}
+      font="15px Inter"
+      maxWidth={500}
+      lineHeight={22}
+      color="#8b5cf6"
+    />
+  )
+}
+```
+
+### Pretext Core API
+
+```tsx
+import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+
+// Measure text height (fast, cached)
+const prepared = prepare('Hello world', '16px Inter')
+const { height, lineCount } = layout(prepared, 400, 20) // pure math!
+
+// Get all lines with exact positions
+const prepared = prepareWithSegments('Hello world', '18px Inter')
+const { lines } = layoutWithLines(prepared, 320, 26)
+for (const line of lines) {
+  console.log(line.text, line.y) // exact positions
+}
+```
+
+### Canvas Rendering
+
+```tsx
+import { usePretext } from 'pretext-generative-ui-toolkit'
+
+function PretextCanvas({ text, font, maxWidth, lineHeight }) {
+  const canvasRef = useRef(null)
+  const measurement = usePretext(text, font, maxWidth, lineHeight)
+  
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !measurement) return
+    
+    const ctx = canvas.getContext('2d')
+    canvas.width = maxWidth
+    canvas.height = measurement.height + 20
+    
+    ctx.font = font
+    for (const line of measurement.lines) {
+      ctx.fillText(line.text, 0, line.y + lineHeight)
+    }
+  }, [measurement])
+  
+  return <canvas ref={canvasRef} />
+}
 ```
 
 ---
 
-## 🎮 Live AI Playground
+## 📦 Components
 
-The toolkit includes a **full AI-powered Web UI** where you can:
+### SmartMessage
 
-1. **Chat with AI** — Ask AI to generate UI components in real-time
-2. **See components render LIVE** — Watch AI-generated components appear instantly
-3. **Browse all components** — Search and filter by category
-4. **Configure LM Studio** — Connect to your local AI for fast, private inference
-
-```bash
-npm run dev
-# → http://localhost:5173
-```
-
----
-
-## 📦 What's Included
-
-### 🤖 AI-Powered Core
-
-| Component | Description |
-|-----------|-------------|
-| `SmartMessage` | Auto-detects content type (vote, code, list, table, chart, summary) and renders appropriate UI |
-| `ContentDetector` | AI-powered content classification with regex + keyword matching |
-| `AIGenerator` | Generate React components from natural language |
-| `LayoutOptimizer` | AI-driven layout suggestions based on content |
-| `AutoModeSelector` | Analyze topics and suggest optimal modes |
-| `PredictiveCouncilorSelection` | AI suggests relevant councilors based on topic |
-
-### ⚡ Streaming Components
-
-| Component | Description |
-|-----------|-------------|
-| `StreamableText` | Character-by-character streaming with pre-measured heights (no reflow!) |
-| `StreamingComponent` | Stream AI-generated components (vote, chart, table, code, list) |
-| `StreamingCode` | Streaming code blocks with syntax highlighting |
-| `StreamingCard` | Full-featured streaming message cards with glassmorphism |
-| `StreamingLoadingState` | 10 beautiful loaders: TypingDots, CouncilThinking, AudioBars, etc. |
-| `StreamableUI` | Generic streamable value hook for RSC patterns |
-
-### 📐 Pretext Core (Character-Level Control)
-
-| Component | Description |
-|-----------|-------------|
-| `PretextCanvas` | Core canvas renderer with pretext measurement |
-| `PretextText` | Text measurement without DOM |
-| `PretextLayout` | Layout engine for precise positioning |
-| `PretextStream` | Streaming with pre-measured heights |
-| `usePretext` | React hook for text measurement |
-
-### ✨ Visual Effects
-
-| Component | Description |
-|-----------|-------------|
-| `ParticleEmitter` | Canvas particles: energy, constellations, stars |
-| `GradientMesh` | Animated gradient mesh with spring physics |
-| `GlowBorder` | Animated glowing borders |
-| `LiquidFill` | Liquid fill animations for meters/bars |
-| `MorphShape` | Morphing shapes with spring physics |
-| `RippleEffect` | Ripple click effects |
-| `Shimmer` | Loading shimmer animations |
-
-### 🎨 UI Primitives (shadcn-inspired)
-
-| Component | Description |
-|-----------|-------------|
-| `Button` | Buttons with variants: primary, secondary, ghost, outline |
-| `Card` | Glass/blur cards with hover effects |
-| `Badge` | Status badges with pulse animation |
-| `Input` | Styled inputs with icons |
-| `Dialog` | Modal dialogs with animations |
-| `Sheet` | Slide-out panels (sidebars) |
-| `Tabs` | Tab navigation |
-| `ScrollArea` | Custom scrollbar styling |
-
-### 🔮 MagicUI Effects
-
-| Component | Description |
-|-----------|-------------|
-| `AnimatedGrid` | Pulsing grid patterns |
-| `FadeIn` | Smooth entrance animations |
-| `BentoGrid` | Modern bento-style grid layouts |
-| `WordRotate` | Rotating word animations |
-| `TextGradient` | Gradient text effects |
-| `OrbitingShapes` | Orbiting particle shapes |
-| `MorphingSpinner` | Morphing loading spinners |
-
-### 📊 Data Visualization
-
-| Component | Description |
-|-----------|-------------|
-| `DataViz` | Auto-detecting charts: bar, line, pie, table, stat |
-| `DataTable` | Auto-generated tables from data |
-| `DataChart` | SVG charts with streaming support |
-| `VoteCard` | Voting result cards |
-| `VoteDashboard` | Full voting dashboard |
-| `StatCard` | Statistics cards |
-
-### 🛠️ Agent & MCP Tools
-
-| Component | Description |
-|-----------|-------------|
-| `useLMStudioAgent` | Native LM Studio chat control with streaming |
-| `AgentChat` | Chat UI with connection status |
-| `AgentBuilder` | Build custom agents with system prompts |
-| `useMCPTools` | 13 built-in MCP tools |
-| `ToolResultsPanel` | Visual tool execution results |
-
-### 📐 Layout Components
-
-| Component | Description |
-|-----------|-------------|
-| `AdaptiveLayout` | Auto-adjusting layout based on content |
-| `ResponsiveGrid` | Responsive grid system |
-| `MasonryLayout` | Masonry/pinterest-style layout |
-| `StackLayout` | Stack-based layout |
-
----
-
-## 🧩 Usage Examples
-
-### SmartMessage (AI Content Detection)
+Auto-detects content type and renders appropriate component:
 
 ```tsx
 import { SmartMessage } from 'pretext-generative-ui-toolkit'
 
-// Automatically detects content type and renders appropriate UI
-function App() {
-  const content = `
-    Let me analyze the data:
-    
-    1. Revenue increased by 23%
-    2. Costs decreased by 15%
-    
-    | Metric | Q1 | Q2 |
-    |--------|----|----|
-    | Revenue | $100k | $123k |
-    
-    VOTE: APPROVE
-  `
-  
-  return <SmartMessage content={content} />
-}
+// Automatically detects vote, code, list, table, etc.
+<SmartMessage content={aiResponse} />
 ```
 
-### Streaming Text with Pretext
+### VoteCard
 
 ```tsx
-import { StreamingText } from 'pretext-generative-ui-toolkit'
+import { VoteCard } from 'pretext-generative-ui-toolkit'
 
-function App() {
-  const [content, setContent] = useState('')
-  
-  return (
-    <StreamingText 
-      content={content}
-      font="16px Inter"
-      maxWidth={500}
-      lineHeight={22}
-      speed={15} // ms per character
-    />
-  )
-}
+<VoteCard 
+  votes={[
+    { voter: 'Alice', choice: 'yes', confidence: 95, color: '#8b5cf6' },
+    { voter: 'Bob', choice: 'no', confidence: 72, color: '#ef4444' },
+  ]}
+  title="Decision Vote"
+/>
 ```
 
-### Pretext Canvas
+### StreamingCard
 
 ```tsx
-import { PretextCanvas, usePretext } from 'pretext-generative-ui-toolkit'
+import { StreamingCard } from 'pretext-generative-ui-toolkit'
 
-function App() {
-  const measurement = usePretext('Hello world', '16px Inter', 400, 22)
-  
-  return (
-    <PretextCanvas
-      text="Hello world"
-      font="16px Inter"
-      maxWidth={400}
-      lineHeight={22}
-      color="#fff"
-    />
-  )
-}
+<StreamingCard
+  content="AI is generating text character by character..."
+  title="AI Response"
+  avatar="🤖"
+  color="#8b5cf6"
+/>
 ```
 
-### Particle Effects
+### CodeBlock
 
 ```tsx
-import { ParticleEmitter } from 'pretext-generative-ui-toolkit'
+import { CodeBlock } from 'pretext-generative-ui-toolkit'
 
-function App() {
-  return (
-    <ParticleEmitter
-      count={50}
-      color="#8b5cf6"
-      type="energy" // energy | constellation | stars
-    />
-  )
-}
+<CodeBlock 
+  code={`function hello() {
+  console.log('Hello, World!')
+}`}
+  language="javascript"
+  filename="hello.js"
+  showLineNumbers
+  showCopy
+/>
 ```
 
-### Agent Chat with LM Studio
+### DataTable
 
 ```tsx
-import { useLMStudioAgent } from 'pretext-generative-ui-toolkit'
+import { DataTable } from 'pretext-generative-ui-toolkit'
 
-function App() {
-  const { messages, sendMessage, isLoading, healthCheck } = useLMStudioAgent()
-  const [input, setInput] = useState('')
-  
-  const handleSend = async () => {
-    await sendMessage(input)
-    setInput('')
-  }
-  
-  return (
-    <div>
-      <button onClick={() => healthCheck()}>Test Connection</button>
-      {messages.map((msg, i) => (
-        <div key={i}>{msg.content}</div>
-      ))}
-      <input value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handleSend}>Send</button>
-    </div>
-  )
-}
+<DataTable
+  data={[
+    { name: 'Alice', age: 30, city: 'NYC' },
+    { name: 'Bob', age: 25, city: 'LA' },
+  ]}
+  columns={[
+    { key: 'name', header: 'Name' },
+    { key: 'age', header: 'Age', align: 'right' },
+    { key: 'city', header: 'City' },
+  ]}
+  striped
+  hoverable
+/>
+```
+
+### DataChart
+
+```tsx
+import { DataChart } from 'pretext-generative-ui-toolkit'
+
+<DataChart
+  data={[
+    { label: 'Jan', value: 40, color: '#8b5cf6' },
+    { label: 'Feb', value: 65, color: '#06b6d4' },
+    { label: 'Mar', value: 45, color: '#22c55e' },
+  ]}
+  type="bar"
+  title="Monthly Revenue"
+/>
 ```
 
 ---
 
-## 🔧 Configuration
+## 🎨 Effects
 
-### LM Studio Connection
+### ParticleEmitter
 
 ```tsx
-// Default: Windows PC at 100.116.54.125
-const config = {
-  baseUrl: 'http://100.116.54.125:1234',
-  model: 'qwen3.5-27b' // or 'glm-4.7-flash', 'jan-v3-4b', etc.
+import { ParticleEmitter, useParticleSystem } from 'pretext-generative-ui-toolkit'
+
+function MyComponent() {
+  const { emit, start, stop } = useParticleSystem(canvasRef, {
+    colors: ['#8b5cf6', '#06b6d4', '#22c55e'],
+    count: 50,
+    minSize: 2,
+    maxSize: 6,
+  })
+  
+  // Emit particles on click
+  return <canvas ref={canvasRef} onClick={(e) => emit(e.x, e.y, 20)} />
 }
 ```
 
-### Available Models (LM Studio)
-
-| Model | Description |
-|-------|-------------|
-| `qwen3.5-27b` | Fast local, excellent quality |
-| `qwen3.5-35b-a3b` | Balanced, uses more RAM |
-| `zai-org/glm-4.7-flash` | Fast reasoning, small footprint |
-| `jan-v3-4b-base-instruct` | Ultra fast, compact |
-| `nvidia/nemotron-3-nano` | Compact tasks only |
-
-### MCP Tools (Built-in)
+### GradientMesh
 
 ```tsx
-const tools = [
-  'web_search',      // Search the web
-  'fetch_website',   // Fetch webpage content
-  'run_code',        // Execute JavaScript
-  'calculate',       // Math calculations
-  'get_weather',     // Weather by location
-  'get_crypto_price', // Crypto prices
-  'send_telegram',   // Send Telegram message
-  'generate_image',  // Generate image
-  'text_to_speech', // Text to speech
-  'read_file',       // Read file
-  'write_file',      // Write file
-  'list_directory',  // List directory
-  'execute_command', // Shell command
-]
+import { GradientMesh } from 'pretext-generative-ui-toolkit'
+
+<GradientMesh
+  width={400}
+  height={300}
+  colors={['#8b5cf6', '#06b6d4', '#22c55e']}
+  blur={100}
+/>
+```
+
+### GlowBorder
+
+```tsx
+import { GlowBorder } from 'pretext-generative-ui-toolkit'
+
+<GlowBorder color="#8b5cf6" blur={20} intensity={0.5}>
+  <div style={{ padding: 20, background: '#1a1a1a' }}>
+    Content with glow
+  </div>
+</GlowBorder>
 ```
 
 ---
 
-## 🎨 Theming
+## 🎭 Layout
 
-All components support custom colors via CSS variables:
+### ResponsiveGrid
 
-```css
-:root {
-  --glow-color: #8b5cf6;
-  --accent-primary: #8b5cf6;
-  --accent-secondary: #06b6d4;
-  --background: #0a0a0f;
-  --surface: #1a1a2e;
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-}
+```tsx
+import { ResponsiveGrid } from 'pretext-generative-ui-toolkit'
+
+<ResponsiveGrid columns={{ base: 1, md: 2, lg: 3 }} gap={16}>
+  <Card>1</Card>
+  <Card>2</Card>
+  <Card>3</Card>
+</ResponsiveGrid>
+```
+
+### BentoGrid
+
+```tsx
+import { BentoGrid } from 'pretext-generative-ui-toolkit'
+
+<BentoGrid
+  items={[
+    { id: '1', title: 'Sales', icon: '💰', span: { col: 2 } },
+    { id: '2', title: 'Users', icon: '👥' },
+    { id: '3', title: 'Growth', icon: '📈' },
+  ]}
+  columns={3}
+/>
+```
+
+---
+
+## 🔮 MagicUI
+
+### AnimatedGrid
+
+```tsx
+import { AnimatedGrid } from 'pretext-generative-ui-toolkit'
+
+<AnimatedGrid rows={5} columns={5} color="#8b5cf6" />
+```
+
+### WordRotate
+
+```tsx
+import { WordRotate } from 'pretext-generative-ui-toolkit'
+
+<WordRotate words={['Hello', 'Bonjour', 'Hola', 'Ciao']} />
+```
+
+### TextGradient
+
+```tsx
+import { TextGradient } from 'pretext-generative-ui-toolkit'
+
+<TextGradient from="#8b5cf6" to="#06b6d4">
+  Gradient Text
+</TextGradient>
+```
+
+---
+
+## 🤖 AI Integration
+
+### Content Detection
+
+```tsx
+import { detectContent } from 'pretext-generative-ui-toolkit'
+
+const { type, confidence, suggestions } = detectContent(content)
+// type: 'vote' | 'code' | 'list' | 'table' | 'chart' | 'question' | 'summary' | 'normal'
+```
+
+### Layout Optimization
+
+```tsx
+import { optimizeLayout } from 'pretext-generative-ui-toolkit'
+
+const layout = optimizeLayout(
+  [
+    { id: '1', text: 'First message', maxWidth: 400 },
+    { id: '2', text: 'Second message', maxWidth: 400 },
+  ],
+  800, // container width
+  { gap: 12, padding: 16, lineHeight: 22 }
+)
+// Returns: [{ id: '1', x: 16, y: 16, width: 368, height: 60 }, ...]
+```
+
+---
+
+## ⚓ API Reference
+
+### Pretext Hooks
+
+```tsx
+// usePretext - Measure text
+const measurement = usePretext(text, font, maxWidth, lineHeight)
+// Returns: { prepared, height, lineCount, lines }
+
+// usePretextCanvas - Canvas + Pretext
+const { canvasRef, drawText, measureTextHeight } = usePretextCanvas()
+```
+
+### Streaming Hooks
+
+```tsx
+// useStreaming - Stream text character by character
+const { displayed, isStreaming, progress } = useStreaming(content, {
+  speed: 20,
+  onProgress: (p) => console.log(`${p * 100}%`),
+  onComplete: () => console.log('Done'),
+})
+```
+
+### Layout Hooks
+
+```tsx
+// useDebounce - Debounce value
+const debounced = useDebounce(value, 300)
+
+// useIntersection - Intersection observer
+const isVisible = useIntersection(ref, { threshold: 0.5 })
+
+// useKeyboard - Keyboard shortcuts
+useKeyboard('Escape', () => close(), { ctrl: true })
 ```
 
 ---
@@ -323,78 +422,89 @@ All components support custom colors via CSS variables:
 ```
 pretext-generativeUI-Toolkit/
 ├── src/
-│   ├── pretext/           # Pretext core engine
-│   │   ├── PretextCanvas.tsx
-│   │   ├── PretextText.tsx
-│   │   ├── PretextLayout.tsx
-│   │   └── PretextStream.tsx
-│   ├── components/        # AI components
-│   │   ├── SmartMessage.tsx
-│   │   ├── StreamingText.tsx
-│   │   ├── VoteCard.tsx
-│   │   └── ...
-│   ├── effects/           # Visual effects
-│   │   ├── ParticleEmitter.tsx
-│   │   ├── GradientMesh.tsx
-│   │   └── ...
-│   ├── agents/            # Agent control
-│   │   ├── LMStudioAgent.tsx
-│   │   └── AgentChat.tsx
-│   ├── mcp/               # MCP tools
-│   │   ├── ToolExecutor.tsx
-│   │   └── ...
-│   ├── layout/            # Layout components
-│   ├── streaming/         # Streaming components
-│   ├── shadcn/            # shadcn-inspired UI
-│   ├── magicui/           # MagicUI effects
-│   └── hooks/             # React hooks
-├── docs/                  # Documentation
-├── examples/              # Usage examples
-└── index.html             # AI Playground
+│   ├── pretext/          # Pretext core (Canvas, Text, Stream)
+│   ├── components/       # Smart components
+│   ├── effects/          # Visual effects
+│   ├── layout/           # Layout components
+│   ├── streaming/        # Streaming components
+│   ├── hooks/            # Custom React hooks
+│   ├── shadcn/           # shadcn/ui components
+│   ├── magicui/          # MagicUI components
+│   ├── ai/               # AI integration
+│   └── index.ts          # Main export
+├── index.html            # Demo page
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
 ```
 
 ---
 
-## 🌟 Features
+## 🔧 Development
 
-- ✅ **Zero DOM reflow** — Pretext measures text before rendering
-- ✅ **Streaming without jitter** — Pre-measured heights prevent layout shifts
-- ✅ **AI-powered content detection** — Auto-detects vote/code/list/table/chart
-- ✅ **Canvas-based rendering** — Precise pixel control
-- ✅ **Streaming components** — Real-time AI-generated UI
-- ✅ **Beautiful effects** — Particles, gradients, glows, morphing
-- ✅ **Local AI** — Works with LM Studio (no API keys needed)
-- ✅ **MCP tools** — 13 built-in tools for agent control
-- ✅ **Dark theme** — Beautiful lobster theme by default
-- ✅ **TypeScript** — Full TypeScript support
-- ✅ **Tree-shakeable** — Import only what you need
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Type check
+npm run typecheck
+```
 
 ---
 
-## 🤝 Contributing
+## 🎯 Use Cases
 
-Contributions welcome! Please read the contribution guidelines first.
+### AI Council Chamber
 
-1. Fork the repo
-2. Create your feature branch
-3. Make your changes
-4. Submit a PR
+Build multi-agent deliberation UIs with:
+- Pre-measured streaming messages
+- Vote panels with animated bars
+- Consensus meters
+- Character scatter effects
+
+### Generative Chat
+
+Stream AI responses with:
+- Pre-calculated height (no layout shift)
+- Syntax highlighting code blocks
+- Auto-detected content components
+- Particle effects on completion
+
+### Data Dashboards
+
+Create real-time dashboards with:
+- Pretext-measured labels
+- Animated charts
+- Responsive grids
+- Loading states
+
+---
+
+## 📚 References
+
+- [Pretext](https://github.com/chenglou/pretext) - Zero-layout-reflow text measurement
+- [shadcn/ui](https://ui.shadcn.com/) - Reusable components
+- [MagicUI](https://magicui.design/) - Beautiful UI components
+- [Morphic](https://github.com/miurla/morphic) - AI-powered search with generative UI
 
 ---
 
 ## 📄 License
 
-MIT License - use freely for personal and commercial projects.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🔗 Links
+## 🙏 Credits
 
-- **GitHub:** https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit
-- **Demo:** http://localhost:5173 (run `npm run dev`)
-- **Pretext:** https://github.com/chenglou/pretext
-- **LM Studio:** https://lmstudio.ai
-
----
-
-**Built with ❤️ for AI-powered UIs**
+- **Pretext** by [chenglou](https://github.com/chenglou)
+- **shadcn/ui** by the shadcn team
+- **MagicUI** by the MagicUI team
+- Built with ❤️ for the AI-native UI future

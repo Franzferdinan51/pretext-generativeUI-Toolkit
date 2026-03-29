@@ -1,143 +1,198 @@
 # Examples
 
-## Basic Examples
+## AI Council Chamber
 
-### Simple Pretext Canvas
+A complete example of a multi-agent deliberation UI:
 
 ```tsx
-import { PretextCanvas } from 'pretext-generative-ui-toolkit'
+import { PretextCanvas, VoteCard, usePretextMeasurements } from 'pretext-generative-ui-toolkit'
 
-export default function SimpleCanvas() {
-  return (
-    <PretextCanvas 
-      text="Hello, Pretext!"
-      font="24px Inter"
-      maxWidth={400}
-    />
+function CouncilChamber({ messages, votes, consensus }) {
+  const measurements = usePretextMeasurements(
+    messages.map(m => ({ id: m.id, text: m.text })),
+    600,
+    22
   )
-}
-```
-
-### Streaming Message
-
-```tsx
-import { StreamableText } from 'pretext-generative-ui-toolkit'
-
-export default function StreamingMessage() {
-  return (
-    <StreamableText 
-      content="This text streams in character by character..."
-      speed={30}
-      showCursor={true}
-    />
-  )
-}
-```
-
-### AI Chat Bubble
-
-```tsx
-import { SmartMessage } from 'pretext-generative-ui-toolkit'
-
-export default function ChatBubble({ message }) {
-  return (
-    <SmartMessage 
-      content={message.content}
-      councilor={message.councilor}
-    />
-  )
-}
-```
-
-## Advanced Examples
-
-### AI Chat Interface
-
-```tsx
-import { SmartMessage, StreamableText, Button } from 'pretext-generative-ui-toolkit'
-import { useState } from 'react'
-
-export default function AIChat() {
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
   
-  const handleSend = async () => {
-    const userMsg = { content: input, councilor: { name: 'User', color: '#3b82f6' } }
-    setMessages([...messages, userMsg])
-    setInput('')
-    
-    // Simulate AI response
-    const aiResponse = await fetchAIResponse(input)
-    setMessages(prev => [...prev, { content: aiResponse, councilor: { name: 'AI', color: '#8b5cf6' } }])
+  return (
+    <div style={{ display: 'flex', gap: 20 }}>
+      <div>
+        {messages.map((msg, i) => {
+          const m = measurements.get(msg.id)
+          return (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              x={0}
+              y={i * 100} // Would use actual measurement
+              height={m?.height || 100}
+            />
+          )
+        })}
+      </div>
+      <div style={{ width: 200 }}>
+        <VoteCard votes={votes} />
+        <ConsensusMeter consensus={consensus} />
+      </div>
+    </div>
+  )
+}
+```
+
+## Streaming Chat
+
+```tsx
+import { StreamingCard } from 'pretext-generative-ui-toolkit'
+
+function ChatMessage({ message }) {
+  return (
+    <StreamingCard
+      content={message.content}
+      avatar={message.avatar}
+      avatarColor={message.color}
+      title={message.sender}
+      color={message.color}
+    />
+  )
+}
+```
+
+## Data Dashboard
+
+```tsx
+import { DataTable, DataChart, BentoGrid, AdaptiveLayout } from 'pretext-generative-ui-toolkit'
+
+function Dashboard() {
+  return (
+    <AdaptiveLayout
+      layouts={{
+        base: <MobileDashboard />,
+        md: <TabletDashboard />,
+        lg: (
+          <BentoGrid
+            items={[
+              { id: 'chart', title: 'Revenue', icon: '💰', span: { col: 2 } },
+              { id: 'table', title: 'Users', icon: '👥' },
+              { id: 'stats', title: 'Growth', icon: '📈' },
+            ]}
+          />
+        ),
+      }}
+    />
+  )
+}
+```
+
+## Interactive Voting
+
+```tsx
+import { VoteCard, SmartMessage } from 'pretext-generative-ui-toolkit'
+
+function VotingSession() {
+  const [votes, setVotes] = useState([])
+  
+  const castVote = (choice) => {
+    setVotes(prev => [...prev, {
+      voter: 'You',
+      choice,
+      confidence: 95,
+      color: '#8b5cf6',
+    }])
   }
   
   return (
     <div>
-      <div style={{ maxHeight: '400px', overflow: 'auto' }}>
-        {messages.map((msg, i) => (
-          <SmartMessage key={i} {...msg} />
-        ))}
+      <VoteCard votes={votes} />
+      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+        <button onClick={() => castVote('yes')}>Yes</button>
+        <button onClick={() => castVote('no')}>No</button>
       </div>
-      <input value={input} onChange={(e) => setInput(e.target.value)} />
-      <Button onClick={handleSend}>Send</Button>
     </div>
   )
 }
 ```
 
-### Voting Interface
+## Code Display
 
 ```tsx
-import { VoteCard } from 'pretext-generative-ui-toolkit'
+import { CodeBlock, SmartMessage } from 'pretext-generative-ui-toolkit'
 
-export default function VotingInterface() {
-  const [votes, setVotes] = useState({})
+function CodeResponse({ response }) {
+  // Auto-detect and render appropriate component
+  return (
+    <SmartMessage content={response} />
+  )
+}
+
+// Or explicitly:
+<CodeBlock
+  code={`function hello() {
+  console.log('Hello, World!')
+}`}
+  language="javascript"
+  filename="hello.js"
+  showLineNumbers
+  showCopy
+/>
+```
+
+## Particle Effects
+
+```tsx
+import { ParticleEmitter, useParticleSystem } from 'pretext-generative-ui-toolkit'
+
+function InteractiveCanvas() {
+  const canvasRef = useRef(null)
+  const { emit, start, stop } = useParticleSystem(canvasRef, {
+    colors: ['#8b5cf6', '#06b6d4', '#22c55e'],
+    count: 50,
+    minSize: 2,
+    maxSize: 6,
+    gravity: 0.1,
+  })
   
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <h2>Council Vote</h2>
-      
-      <VoteCard 
-        content="1. Approve proposal\n2. Reject proposal\n3. Abstain"
-        onVote={(selected) => setVotes(v => ({ ...v, vote: selected }))}
+    <canvas
+      ref={canvasRef}
+      onClick={(e) => emit(e.nativeEvent.offsetX, e.nativeEvent.offsetY, 20)}
+      onMouseEnter={start}
+      onMouseLeave={stop}
+    />
+  )
+}
+```
+
+## Morphic-Style Search
+
+```tsx
+import { Input, Tabs, SmartMessage } from 'pretext-generative-ui-toolkit'
+
+function SearchInterface() {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  
+  return (
+    <div>
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search..."
       />
+      
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="videos">Videos</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all">
+          {results.map(result => (
+            <SmartMessage key={result.id} content={result.content} />
+          ))}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
-```
-
-### Generative UI Dashboard
-
-```tsx
-import { BentoGrid, BentoItem, AnimatedGrid, TextGradient } from 'pretext-generative-ui-toolkit'
-
-export default function Dashboard() {
-  return (
-    <BentoGrid cols={3} gap={20}>
-      <BentoItem title="Overview" colSpan={2}>
-        <TextGradient from="#8b5cf6" to="#06b6d4">
-          Dashboard Title
-        </TextGradient>
-      </BentoItem>
-      
-      <BentoItem title="Activity">
-        <AnimatedGrid rows={3} cols={3} />
-      </BentoItem>
-      
-      <BentoItem title="Recent">
-        List of items...
-      </BentoItem>
-    </BentoGrid>
-  )
-}
-```
-
-## Running Examples
-
-```bash
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
 ```
