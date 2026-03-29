@@ -283,7 +283,7 @@ Generate a complete demo page now with ALL sections listed above!`
           'Authorization': `Bearer ${LM_STUDIO_KEY}`
         },
         body: JSON.stringify({
-          model: 'qwen3.5-27b',
+          model: 'qwen3.5-9b',
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
