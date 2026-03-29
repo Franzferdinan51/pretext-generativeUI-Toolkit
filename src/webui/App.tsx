@@ -275,7 +275,7 @@ export default function App() {
       let result: UIComponent[] = []
       let attempts = 0
       
-      while (result.length === 0 && attempts < 2) {
+      while (result.length === 0 && attempts < 3) {
         try {
           const systemPrompt = attempts === 0 
             ? `Create UI components. Types: header, text, button, card. JSON array only.`
@@ -324,7 +324,7 @@ export default function App() {
       let result: UIComponent[] = []
       let attempts = 0
       
-      while (result.length === 0 && attempts < 2) {
+      while (result.length === 0 && attempts < 3) {
         try {
           const systemPrompt = attempts === 0
             ? `You are expert UI builder. Create polished components with gradient text for headlines. Types: header{h:60}, text{fs:32}, button{w:200,h:50}, card{w:280,h:180}. Dark #0a0a0f, accents #8b5cf6,#ec4899. JSON array only.`
