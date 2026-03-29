@@ -1,14 +1,15 @@
 # Pretext AI UI Toolkit
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Pretext-Canvas-blue?style=flat-square" alt="Pretext Canvas">
-  <img src="https://img.shields.io/badge/AI-Swarm-purple?style=flat-square" alt="AI Swarm">
-  <img src="https://img.shields.io/badge/Multi-Provider-green?style=flat-square" alt="Multi-Provider">
+  <img src="https://img.shields.io/badge/Preact-Zero%20Reflow-blue?style=flat-square" alt="Pretext">
+  <img src="https://img.shields.io/badge/AI-Swarm%20Powered-purple?style=flat-square" alt="AI Swarm">
+  <img src="https://img.shields.io/badge/Fully-AI%20Controlled-green?style=flat-square" alt="AI Controlled">
 </p>
 
 <p align="center">
-  <strong>🎨 AI Swarm-Built Generative UI</strong><br>
-  Multiple AI agents collaborate to build websites. Zero DOM reflow. Canvas rendering.
+  <strong>🎨 FULLY AI-POWERED GENERATIVE UI WITH PRETEXT</strong><br>
+  EVERY component, tab, button, and text rendered via Pretext.<br>
+  Zero DOM reflow. Canvas rendering. AI controls everything.
 </p>
 
 ---
@@ -17,77 +18,91 @@
 
 **Try it:** http://localhost:3456
 
-🐝 **5 AI Agents** build a complete website in 4 phases using **MiniMax + LM Studio**!
+🐝 **AI Swarm** builds a complete website where **EVERY pixel** is controlled by AI using **Pretext** for zero-reflow text measurement!
+
+---
+
+## ✨ What is Pretext?
+
+**[Pretext](https://github.com/chenglou/pretext)** is a JavaScript library for **character-level text measurement** without DOM reflow:
+
+```javascript
+import { prepare, layout } from '@chenglou/pretext'
+
+// Measure text WITHOUT touching the DOM
+const prepared = prepare('Hello world', '16px Inter')
+const { height } = layout(prepared, 400, 24) // ~0.09ms!
+```
+
+**Why Pretext?**
+- ⚡ **Zero DOM Reflow** - Measure text without triggering expensive layout recalculation
+- 🎯 **Pre-calculated Positions** - Know exact x,y,width,height before render
+- 🎨 **Canvas Perfect** - Everything drawn at exact coordinates
+- 🚀 **~0.09ms** per measurement (cached!)
 
 ---
 
 ## 🐝 AI Swarm System
 
-### Agents
+### Every Component is AI-Generated
 
-| Agent | Icon | Provider | Model | Task |
-|-------|------|----------|-------|------|
-| 🏗️ **Architect** | 🏗️ | LM Studio | qwen3.5-9B | Header + Hero |
-| 🎨 **Designer** | 🎨 | LM Studio | qwen3.5-9B | Features + Stats |
-| ✍️ **Content** | ✍️ | MiniMax | M2.7 | Toolkit + How It Works |
-| 💻 **Frontend** | 💻 | MiniMax | M2.7 | CTA + Footer |
-| ✨ **Enhancer** | ✨ | MiniMax | M2.7 | Polish + Effects |
+| Agent | Provider | Model | Task |
+|-------|----------|-------|------|
+| 🏗️ **Architect** | Kimi | K2.5 | Header + Hero |
+| 🎨 **Designer** | Kimi | K2.5 | Features + Stats |
+| ✍️ **Content** | Kimi | K2.5 | Toolkit + How It Works |
+| 💻 **Frontend** | MiniMax | M2.7 | CTA + Footer |
+| ✨ **Enhancer** | MiniMax | M2.7 | Polish |
 
-### 4-Phase Pipeline
+### How It Works
 
 ```
-📦 PHASE 1: Fast Generation (LM Studio 9B)
-   ├─ 🏗️ Architect builds Header + Hero
-   └─ 🎨 Designer builds Features + Stats
-   
-🎯 PHASE 2: Quality Build (MiniMax M2.7)
-   ├─ ✍️ Content builds Toolkit + How It Works
-   └─ 💻 Frontend builds CTA + Footer
-   
-✨ PHASE 3: Enhancement (MiniMax M2.7)
-   └─ ✨ Enhancer adds polish + glow effects
-   
-✅ PHASE 4: QA Enforcement
-   └─ Auto-fixes missing components
+🐝 AI Swarm starts
+    ↓
+📝 PRETEXT MEASURES all text positions
+    ↓
+🎨 AI generates components at exact x,y coordinates
+    ↓
+✨ Enhancer adds polish with Pretext
+    ↓
+✅ QA enforces quality standards
+    ↓
+🚀 Complete AI-powered website rendered
 ```
 
 ---
 
-## ✨ Features
+## 🎯 Fully AI-Controlled UI
 
-### 🤖 Multi-Agent Swarm
-- **5 Specialized AI Agents** working together
-- **4-Phase Pipeline**: Fast → Quality → Enhance → QA
-- **Auto-Retry**: Fallback generation if agent fails
-- **Supervisor**: Monitors all agents
+**NOT just website building** - the ENTIRE app is AI-controlled:
 
-### 🌐 Multi-Provider Support
+### AI Controls:
+- ✅ **Every Text Component** - Pretext measures position before render
+- ✅ **Every Button** - AI generates labels, positions, actions
+- ✅ **Every Tab/Navigation** - AI decides structure
+- ✅ **Every Layout** - AI positions everything via Pretext coordinates
+- ✅ **Every Visual Effect** - Gradient texts, glows, hover states
+- ✅ **Loading States** - AI generates progress indicators
+- ✅ **Logs/Status** - AI decides what to display
 
-| Provider | Status | Use |
-|----------|--------|-----|
-| **LM Studio** | ✅ | Fast generation (free, local) |
-| **MiniMax** | ✅ | Quality + Enhancement |
-| **OpenAI** | ✅ | Configurable |
-| **Anthropic** | ✅ | Configurable |
-| **Google** | ✅ | Configurable |
-| **Groq** | ✅ | Configurable |
-| **DeepSeek** | ✅ | Configurable |
-| **Ollama** | ✅ | Configurable |
+### Pretext Integration:
+```javascript
+// AI generates layout instruction
+const instruction = {
+  text: "Build UI with AI",
+  x: 50,
+  y: 100,
+  width: 1100,
+  fontSize: 48,
+  style: "gradient"
+}
 
-### 📐 Pretext Integration
-- **Zero DOM Reflow**: Character-level text measurement
-- Pre-calculated heights for smooth animations
-- Canvas rendering for everything
+// Pretext measures WITHOUT DOM touch
+const measured = layout(prepare(instruction.text, `${instruction.fontSize}px Inter`), instruction.width, 24)
 
-### 🎨 Canvas Rendering
-- All UI drawn on canvas (not DOM elements)
-- Smooth hover effects and interactions
-- Dynamic height based on content
-
-### 🌐 Live Preview
-- **Canvas View**: AI-controlled canvas rendering
-- **HTML View**: Standalone HTML preview (no CDN dependencies)
-- **Download**: Export as HTML file
+// Canvas renders at exact position
+ctx.fillText(instruction.text, measured.x, measured.y)
+```
 
 ---
 
@@ -95,60 +110,46 @@
 
 | Technology | Purpose |
 |------------|---------|
-| **Pretext** | Zero-reflow text measurement |
-| **React** | UI framework |
-| **Canvas API** | Rendering engine |
-| **LM Studio** | Local AI inference (fast, free) |
-| **MiniMax M2.7** | Cloud AI (quality, enhancement) |
-| **qwen3.5-9B** | Fast local generation |
+| **[Pretext](https://github.com/chenglou/pretext)** | Zero-reflow text measurement |
+| **React** | UI framework (canvas only) |
+| **Canvas API** | Full UI rendering |
+| **Kimi K2.5** | Primary AI (via Moonshot API) |
+| **MiniMax M2.7** | Quality enhancement |
 
 ---
 
-## 📁 Project Structure
+## 📐 Architecture
 
 ```
-src/
-├── pretext/          # Pretext text measurement
-├── effects/           # Visual effects (particles, gradients)
-├── magicui/           # Magic UI components
-├── streaming/          # Streaming components
-├── shadcn/            # UI primitives
-└── webui/
-    └── App.tsx        # Main swarm generative UI app
+┌─────────────────────────────────────────┐
+│         AI SWARM ORCHESTRATOR           │
+├─────────────────────────────────────────┤
+│  🏗️ Architect → Pretext measures        │
+│  🎨 Designer → Pretext measures        │
+│  ✍️ Content → Pretext measures          │
+│  💻 Frontend → Pretext measures        │
+│  ✨ Enhancer → Pretext measures        │
+├─────────────────────────────────────────┤
+│         CANVAS RENDERER                  │
+│  All UI drawn at exact Pretext coords   │
+└─────────────────────────────────────────┘
 ```
-
----
-
-## 🎨 Generated Website Sections
-
-Every generation includes:
-1. **Header** - Logo + navigation
-2. **Hero** - Gradient headline + CTA
-3. **Features** - 4 feature cards
-4. **The Toolkit** - Components, Effects, AI Integration
-5. **How It Works** - 3 step cards
-6. **Stats** - Numbers and metrics
-7. **CTA** - Call to action
-8. **Footer** - Links + copyright
 
 ---
 
 ## 🔧 API Keys
 
-The app uses these API keys (embedded):
-
 | Provider | Key |
 |----------|-----|
+| **Kimi** | `sk-kimi-...` |
 | **MiniMax** | `sk-cp-...` |
-| **LM Studio** | `sk-lm-...` |
-
-To use different providers, update the keys in `App.tsx` or via settings.
 
 ---
 
 ## 🌐 Links
 
 - **GitHub**: https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit
+- **Pretext**: https://github.com/chenglou/pretext
 - **Live Demo**: http://localhost:3456
 
 ---
@@ -160,5 +161,5 @@ MIT License
 ---
 
 <p align="center">
-  Built with ❤️ using Pretext, React, Canvas, and AI Swarm
+  <strong>Built with ❤️ using <a href="https://github.com/chenglou/pretext">Pretext</a>, Canvas, and AI Swarm</strong>
 </p>

@@ -308,11 +308,11 @@ export default function App() {
     appContent.current.statusText = 'Building...'
     
     const agents = [
-      { name: 'Architect', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Header', 'Hero'] },
-      { name: 'Designer', provider: 'lmstudio' as Provider, model: 'qwen3.5-9b', sections: ['Features', 'Stats'] },
-      { name: 'Content', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Toolkit', 'How It Works'] },
+      { name: 'Architect', provider: 'kimi' as Provider, model: 'kimi-k2.5', sections: ['Header', 'Hero'] },
+      { name: 'Designer', provider: 'kimi' as Provider, model: 'kimi-k2.5', sections: ['Features', 'Stats'] },
+      { name: 'Content', provider: 'kimi' as Provider, model: 'kimi-k2.5', sections: ['Toolkit', 'How It Works'] },
       { name: 'Frontend', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['CTA', 'Footer'] },
-      { name: 'Enhancer', provider: 'kimi' as Provider, model: 'kimi-k2.5', sections: ['Polish'] },
+      { name: 'Enhancer', provider: 'minimax' as Provider, model: 'MiniMax-M2.7', sections: ['Polish'] },
     ]
     
     const allResults: UIComponent[] = []
@@ -329,8 +329,26 @@ export default function App() {
       while (result.length === 0 && attempts < 3) {
         try {
           const systemPrompt = attempts === 0
-            ? `You are expert UI builder. Create components. Types: header, text, button, card. Dark #0a0a0f, accents #8b5cf6. JSON array only.`
-            : `Create valid UI components. Output JSON array.`
+            ? `You are expert UI builder using PRETEXT for zero-reflow text rendering.
+
+IMPORTANT - PRETEXT INTEGRATION:
+- Use Pretext (https://github.com/chenglou/pretext) for ALL text measurement
+- Pretext measures text WITHOUT DOM reflow
+- All positions are pre-calculated before render
+- Canvas renders at exact x,y coordinates
+
+COMPONENT TYPES:
+- header: {type:"header", content:"Title", x:0, y:0, width:1200, height:60}
+- text: {type:"text", content:"...", x:0, y:80, width:1200, height:40, style:{fontSize:"32",color:"#fff",background:"gradient"}}
+- button: {type:"button", content:"...", x:500, y:300, width:200, height:50, style:{background:"#8b5cf6"}}
+- card: {type:"card", content:"Title\\nDesc", x:50, y:400, width:280, height:180, style:{background:"rgba(255,255,255,0.08)"}}
+
+RULES:
+- Dark theme: #0a0a0f
+- Accents: #8b5cf6 (purple), #ec4899 (pink), #06b6d4 (cyan)
+- Use gradient text for headlines: style:{background:"gradient"}
+- OUTPUT ONLY VALID JSON ARRAY - no markdown, no explanation`
+            : `Create valid UI components using Pretext. Output JSON array only.`
           
           const userPrompt = `Generate ${agent.sections.join(' + ')}. ${agent.sections.map(s => {
             if (s === 'Header') return 'Header with logo "🎨 Pretext AI UI"'
