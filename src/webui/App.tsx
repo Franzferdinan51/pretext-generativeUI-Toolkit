@@ -224,7 +224,7 @@ export default function App() {
   
   // Generate website on mount
   useEffect(() => {
-    generateWebsite('Generate a beautiful AI toolkit website with header "🎨 Pretext AI", hero with headline "Build UI with AI", 4 feature cards (Zero Reflow, Streaming, Canvas Rendering, AI Powered), pricing section (Free, Pro $29, Enterprise $99), and footer')
+    generateWebsite('Generate a DEMO PAGE for Pretext AI UI Toolkit with: header, hero section with gradient headline, features section with 4 cards, demo section, pricing section with 3 tiers, CTA, and footer')
   }, [])
   
   async function generateWebsite(prompt: string) {
@@ -233,22 +233,40 @@ export default function App() {
     setComponents([])
     setErrors([])
     
-    const systemPrompt = `You are a UI generator. Output ONLY valid JSON array of components.
+    const systemPrompt = `You are a UI generator. Create a DEMO PAGE showcasing AI UI toolkit capabilities.
 
-Types: header (height:60), text, button (width:150, height:44), card, input, container
-Each: id, type, content, x, y, width, height, style, visible
+## MUST GENERATE (every time):
+1. HEADER: "🎨 Pretext AI UI Toolkit" logo on left, nav links on right (Home, Components, Pricing, GitHub)
+2. HERO: Large gradient headline "Build UI with AI", subtitle "Zero DOM Reflow • Streaming • Canvas Rendering • Pretext", big CTA button "Get Started"
+3. FEATURES SECTION: Title "Why Pretext AI UI?", 4 feature CARDS:
+   - Card 1: "⚡ Zero Reflow" + "Text measured without DOM touches"
+   - Card 2: "🎨 Canvas Rendering" + "Everything drawn, not DOM elements"  
+   - Card 3: "🤖 AI Controlled" + "AI generates UI in real-time"
+   - Card 4: "✨ Streaming" + "Components appear as AI thinks"
+4. DEMO SECTION: Title "Live Demo", show EXAMPLE of what it does with placeholder content
+5. PRICING: Title "Simple Pricing", 3 CARD components: Free ($0), Pro ($29/mo), Enterprise ($99/mo)
+6. CTA SECTION: Centered button "Start Building Free"
+7. FOOTER: Links, copyright "Built with Pretext AI UI"
 
-Rules:
-- Canvas: 1200x800px
-- Header: y:0, width:1200
-- Content starts y:80
-- Dark theme: #0a0a0f background, #8b5cf6 accent
-- Modern, professional design
+## COMPONENT TYPES:
+- header: {type:"header", height:60, background:"rgba(0,0,0,0.8)"}
+- text: {type:"text", content:"...", fontSize:"32" for headlines, "18" for body}
+- button: {type:"button", content:"...", width:180, height:50, style:{background:"#8b5cf6"}}
+- card: {type:"card", content:"Title", width:280, height:180, style:{background:"rgba(255,255,255,0.05)"}}
 
-Output ONLY JSON array like:
-[{"id":"1","type":"header","content":"Logo","x":0,"y":0,"width":1200,"height":60,"style":{},"visible":true}]
+## RULES:
+- Canvas: 1200x800px (scrollable)
+- Dark theme: #0a0a0f background
+- Purple accent: #8b5cf6, Pink: #ec4899, Cyan: #06b6d4
+- Header y:0, Hero y:80, Features y:300, Pricing y:600, CTA y:900, Footer y:1000
+- Cards in a row with gap: x positions 50, 350, 650 for 3 cards
+- Use gradient text for headlines: style:{background:"linear-gradient(135deg,#8b5cf6,#ec4899)"}
 
-Generate now:`
+## OUTPUT FORMAT:
+Output ONLY valid JSON array, NO markdown, NO explanation:
+[{"id":"1","type":"header","content":"🎨 Pretext AI UI","x":0,"y":0,"width":1200,"height":60,"style":{"background":"rgba(0,0,0,0.8)"},"visible":true},...]
+
+Generate a complete demo page now with ALL sections listed above!`
 
     try {
       const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
