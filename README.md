@@ -1,15 +1,14 @@
 # Pretext AI UI Toolkit
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Preact-Zero%20Reflow-blue?style=flat-square" alt="Pretext">
-  <img src="https://img.shields.io/badge/AI-Swarm%20Powered-purple?style=flat-square" alt="AI Swarm">
-  <img src="https://img.shields.io/badge/Fully-AI%20Controlled-green?style=flat-square" alt="AI Controlled">
+  <img src="https://img.shields.io/badge/Pretext-Zero%20Reflow-blue?style=flat-square" alt="Pretext">
+  <img src="https://img.shields.io/badge/JSON%20Render-Safe%20UI-purple?style=flat-square" alt="JSON Render">
+  <img src="https://img.shields.io/badge/A2UI-Agent%20Standard-green?style=flat-square" alt="A2UI">
 </p>
 
 <p align="center">
-  <strong>🎨 FULLY AI-POWERED GENERATIVE UI WITH PRETEXT</strong><br>
-  EVERY component, tab, button, and text rendered via Pretext.<br>
-  Zero DOM reflow. Canvas rendering. AI controls everything.
+  <strong>🎨 AI-Powered Generative UI</strong><br>
+  Pretext + JSON Render + A2UI concepts for zero-reflow, safe, agent-generated UIs
 </p>
 
 ---
@@ -18,90 +17,99 @@
 
 **Try it:** http://localhost:3456
 
-🐝 **AI Swarm** builds a complete website where **EVERY pixel** is controlled by AI using **Pretext** for zero-reflow text measurement!
-
 ---
 
-## ✨ What is Pretext?
+## ✨ Core Technologies
 
-**[Pretext](https://github.com/chenglou/pretext)** is a JavaScript library for **character-level text measurement** without DOM reflow:
+### [Pretext](https://github.com/chenglou/pretext)
+**Zero DOM reflow text measurement**
 
 ```javascript
 import { prepare, layout } from '@chenglou/pretext'
-
-// Measure text WITHOUT touching the DOM
-const prepared = prepare('Hello world', '16px Inter')
+const prepared = prepare('Hello', '16px Inter')
 const { height } = layout(prepared, 400, 24) // ~0.09ms!
 ```
 
-**Why Pretext?**
-- ⚡ **Zero DOM Reflow** - Measure text without triggering expensive layout recalculation
-- 🎯 **Pre-calculated Positions** - Know exact x,y,width,height before render
-- 🎨 **Canvas Perfect** - Everything drawn at exact coordinates
-- 🚀 **~0.09ms** per measurement (cached!)
+### [JSON Render](https://github.com/vercel-labs/json-render)
+**Safe generative UI framework**
+
+```javascript
+// AI generates JSON → Components render safely
+const spec = {
+  root: 'card-1',
+  elements: {
+    'card-1': { type: 'Card', props: { title: 'Hello' } }
+  }
+}
+<Renderer spec={spec} registry={registry} />
+```
+
+### [A2UI Concepts](https://github.com/google/A2UI)
+**Google's open standard for agent-generated UIs**
+
+- Security-first declarative JSON format
+- Agents can only use pre-approved components
+- Framework-agnostic (React, Flutter, Lit, etc.)
+- Incremental updates supported
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         AI SWARM ORCHESTRATOR            │
+│   MiniMax M2.7 (5 specialized agents)  │
+├─────────────────────────────────────────┤
+│         PRETEXT LAYER                   │
+│   Zero-reflow text measurement          │
+│   Character-level positioning           │
+├─────────────────────────────────────────┤
+│         JSON RENDER LAYER              │
+│   Safe component catalog               │
+│   AI generates component JSON           │
+├─────────────────────────────────────────┤
+│         CANVAS / REACT RENDERER        │
+│   Exact x,y coordinates from Pretext   │
+│   Components from JSON Render catalog   │
+└─────────────────────────────────────────┘
+```
 
 ---
 
 ## 🐝 AI Swarm System
 
-### Every Component is AI-Generated
-
-| Agent | Provider | Model | Task |
-|-------|----------|-------|------|
-| 🏗️ **Architect** | Kimi | K2.5 | Header + Hero |
-| 🎨 **Designer** | Kimi | K2.5 | Features + Stats |
-| ✍️ **Content** | Kimi | K2.5 | Toolkit + How It Works |
-| 💻 **Frontend** | MiniMax | M2.7 | CTA + Footer |
-| ✨ **Enhancer** | MiniMax | M2.7 | Polish |
-
-### How It Works
-
-```
-🐝 AI Swarm starts
-    ↓
-📝 PRETEXT MEASURES all text positions
-    ↓
-🎨 AI generates components at exact x,y coordinates
-    ↓
-✨ Enhancer adds polish with Pretext
-    ↓
-✅ QA enforces quality standards
-    ↓
-🚀 Complete AI-powered website rendered
-```
+| Agent | Provider | Task |
+|-------|----------|------|
+| 🏗️ **Architect** | MiniMax M2.7 | Header + Hero |
+| 🎨 **Designer** | MiniMax M2.7 | Features + Stats |
+| ✍️ **Content** | MiniMax M2.7 | Toolkit + How It Works |
+| 💻 **Frontend** | MiniMax M2.7 | CTA + Footer |
+| ✨ **Enhancer** | MiniMax M2.7 | Polish |
 
 ---
 
-## 🎯 Fully AI-Controlled UI
+## 🔒 Security Model (A2UI-style)
 
-**NOT just website building** - the ENTIRE app is AI-controlled:
+1. **Declarative Only** - AI generates JSON, not code
+2. **Component Catalog** - Only pre-approved components allowed
+3. **Type Validation** - Zod schemas validate all props
+4. **No eval()** - Components rendered safely via React
+5. **Sandboxed** - Canvas rendering isolates content
 
-### AI Controls:
-- ✅ **Every Text Component** - Pretext measures position before render
-- ✅ **Every Button** - AI generates labels, positions, actions
-- ✅ **Every Tab/Navigation** - AI decides structure
-- ✅ **Every Layout** - AI positions everything via Pretext coordinates
-- ✅ **Every Visual Effect** - Gradient texts, glows, hover states
-- ✅ **Loading States** - AI generates progress indicators
-- ✅ **Logs/Status** - AI decides what to display
+---
 
-### Pretext Integration:
+## 📦 Component Catalog
+
 ```javascript
-// AI generates layout instruction
-const instruction = {
-  text: "Build UI with AI",
-  x: 50,
-  y: 100,
-  width: 1100,
-  fontSize: 48,
-  style: "gradient"
-}
-
-// Pretext measures WITHOUT DOM touch
-const measured = layout(prepare(instruction.text, `${instruction.fontSize}px Inter`), instruction.width, 24)
-
-// Canvas renders at exact position
-ctx.fillText(instruction.text, measured.x, measured.y)
+const catalog = defineCatalog(schema, {
+  components: {
+    Header: { props: z.object({ content: z.string() }) },
+    Text: { props: z.object({ content: z.string(), fontSize: z.number() }) },
+    Button: { props: z.object({ content: z.string(), action: z.string() }) },
+    Card: { props: z.object({ title: z.string(), description: z.string() }) },
+  }
+})
 ```
 
 ---
@@ -110,39 +118,12 @@ ctx.fillText(instruction.text, measured.x, measured.y)
 
 | Technology | Purpose |
 |------------|---------|
-| **[Pretext](https://github.com/chenglou/pretext)** | Zero-reflow text measurement |
-| **React** | UI framework (canvas only) |
-| **Canvas API** | Full UI rendering |
-| **Kimi K2.5** | Primary AI (via Moonshot API) |
-| **MiniMax M2.7** | Quality enhancement |
-
----
-
-## 📐 Architecture
-
-```
-┌─────────────────────────────────────────┐
-│         AI SWARM ORCHESTRATOR           │
-├─────────────────────────────────────────┤
-│  🏗️ Architect → Pretext measures        │
-│  🎨 Designer → Pretext measures        │
-│  ✍️ Content → Pretext measures          │
-│  💻 Frontend → Pretext measures        │
-│  ✨ Enhancer → Pretext measures        │
-├─────────────────────────────────────────┤
-│         CANVAS RENDERER                  │
-│  All UI drawn at exact Pretext coords   │
-└─────────────────────────────────────────┘
-```
-
----
-
-## 🔧 API Keys
-
-| Provider | Key |
-|----------|-----|
-| **Kimi** | `sk-kimi-...` |
-| **MiniMax** | `sk-cp-...` |
+| **Pretext** | Zero-reflow text measurement |
+| **JSON Render** | Safe component rendering |
+| **React** | UI framework |
+| **Canvas API** | Fallback rendering |
+| **MiniMax M2.7** | AI generation |
+| **Tailwind CSS** | Styling |
 
 ---
 
@@ -150,16 +131,12 @@ ctx.fillText(instruction.text, measured.x, measured.y)
 
 - **GitHub**: https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit
 - **Pretext**: https://github.com/chenglou/pretext
+- **JSON Render**: https://github.com/vercel-labs/json-render
+- **A2UI**: https://github.com/google/A2UI
 - **Live Demo**: http://localhost:3456
 
 ---
 
-## 📄 License
-
-MIT License
-
----
-
 <p align="center">
-  <strong>Built with ❤️ using <a href="https://github.com/chenglou/pretext">Pretext</a>, Canvas, and AI Swarm</strong>
+  Built with ❤️ using Pretext, JSON Render, and AI Swarm
 </p>
