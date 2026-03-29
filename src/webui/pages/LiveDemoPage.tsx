@@ -1,7 +1,7 @@
 // LIVE AI-GENERATED UI - Everything streams from AI
 import React, { useState, useEffect, useRef } from 'react'
 import { useLMStudio } from '../hooks/useLMStudioAgent'
-import { StreamingText } from '../../streaming/StreamableText'
+import { StreamableText } from '../../streaming/StreamableText'
 import { ParticleEmitter } from '../../effects/ParticleEmitter'
 
 // Component registry for rendering AI-generated JSX
@@ -34,7 +34,7 @@ const componentRegistry: Record<string, React.ComponentType<any>> = {
     </div>
   ),
   StreamableText: ({ content }: any) => (
-    <StreamingText content={content || 'Streaming text will appear here...'} speed={20} />
+    <StreamableText content={content || 'Streaming text will appear here...'} speed={20} />
   ),
   DataChart: () => (
     <div className="w-full h-64 bg-white/5 rounded-xl p-4 flex items-end justify-around gap-4">
