@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>🎨 AI-Powered Generative UI</strong><br>
-  Pretext + JSON Render + A2UI concepts for zero-reflow, safe, agent-generated UIs
+  Pretext + JSON Render + A2UI for zero-reflow, safe, agent-generated UIs
 </p>
 
 ---
@@ -31,26 +31,27 @@ const { height } = layout(prepared, 400, 24) // ~0.09ms!
 ```
 
 ### [JSON Render](https://github.com/vercel-labs/json-render)
-**Safe generative UI framework**
+**Safe generative UI framework by Vercel**
 
 ```javascript
 // AI generates JSON → Components render safely
-const spec = {
-  root: 'card-1',
-  elements: {
-    'card-1': { type: 'Card', props: { title: 'Hello' } }
-  }
-}
+const spec = { root: 'card-1', elements: { 'card-1': { type: 'Card', props: { title: 'Hello' } } } }
 <Renderer spec={spec} registry={registry} />
 ```
 
-### [A2UI Concepts](https://github.com/google/A2UI)
+### [Google A2UI](https://github.com/google/A2UI)
 **Google's open standard for agent-generated UIs**
 
 - Security-first declarative JSON format
 - Agents can only use pre-approved components
 - Framework-agnostic (React, Flutter, Lit, etc.)
 - Incremental updates supported
+
+**Core philosophies:**
+- Security first: Declarative data, not executable code
+- LLM-friendly: Flat component list, easy for AI to generate
+- Framework-agnostic: Same JSON renders everywhere
+- Incremental: Agents can update UI progressively
 
 ---
 
@@ -59,18 +60,22 @@ const spec = {
 ```
 ┌─────────────────────────────────────────┐
 │         AI SWARM ORCHESTRATOR            │
-│   MiniMax M2.7 (5 specialized agents)  │
+│   MiniMax M2.7 (5 specialized agents)    │
 ├─────────────────────────────────────────┤
-│         PRETEXT LAYER                   │
+│         A2UI LAYER                      │
+│   Declarative JSON spec format           │
+│   Component catalog validation            │
+├─────────────────────────────────────────┤
+│         PRETEXT LAYER                    │
 │   Zero-reflow text measurement          │
-│   Character-level positioning           │
+│   Character-level positioning            │
 ├─────────────────────────────────────────┤
-│         JSON RENDER LAYER              │
-│   Safe component catalog               │
-│   AI generates component JSON           │
+│         JSON RENDER LAYER               │
+│   Safe component catalog                │
+│   Zod schema validation                 │
 ├─────────────────────────────────────────┤
 │         CANVAS / REACT RENDERER        │
-│   Exact x,y coordinates from Pretext   │
+│   Exact x,y coordinates from Pretext    │
 │   Components from JSON Render catalog   │
 └─────────────────────────────────────────┘
 ```
@@ -120,6 +125,7 @@ const catalog = defineCatalog(schema, {
 |------------|---------|
 | **Pretext** | Zero-reflow text measurement |
 | **JSON Render** | Safe component rendering |
+| **A2UI** | Agent UI standard |
 | **React** | UI framework |
 | **Canvas API** | Fallback rendering |
 | **MiniMax M2.7** | AI generation |
@@ -138,5 +144,5 @@ const catalog = defineCatalog(schema, {
 ---
 
 <p align="center">
-  Built with ❤️ using Pretext, JSON Render, and AI Swarm
+  Built with ❤️ using Pretext, JSON Render, A2UI, and AI Swarm
 </p>
