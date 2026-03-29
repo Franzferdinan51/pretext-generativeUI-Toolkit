@@ -1,10 +1,42 @@
 // GENERATIVE UI - PRETEXT + JSON-RENDER + A2UI STACK
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
 import { defineCatalog } from '@json-render/core'
 import { defineRegistry, Renderer } from '@json-render/react'
 import { VisibilityProvider } from '@json-render/react'
 import { schema } from '@json-render/react/schema'
 import { z } from 'zod'
+
+// Error Boundary component
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: '' }
+  }
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message }
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center p-8">
+          <div className="text-center max-w-lg">
+            <h1 className="text-2xl font-bold text-red-400 mb-4">⚠️ Error</h1>
+            <p className="text-gray-400 mb-4 font-mono text-sm">{this.state.error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 
@@ -172,11 +204,16 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
   const [phase, setPhase] = useState('Starting...')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null) // kept for manual error setting
   
   const initRef = useRef(false)
   
-  useEffect(() => { if (!initRef.current) { initRef.current = true; runSwarm() } }, [])
+  useEffect(() => {
+    if (!initRef.current) {
+      initRef.current = true
+      runSwarm().catch(console.error)
+    }
+  }, [])
   
   // Only MiniMax - no LM Studio
   async function callMiniMax(system: string, user: string) {
@@ -292,7 +329,7 @@ export default function App() {
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
-      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeTime()} ⚠️ QA: ${errMsg}`])
+      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ⚠️ QA: ${errMsg}`])
     }
     
     // Fallback if needed
@@ -324,49 +361,51 @@ export default function App() {
   }
   
   return (
-    <VisibilityProvider registry={registry}>
-      <div className="min-h-screen bg-[#0a0a0f] text-white">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              🎨 Pretext + JSON Render + A2UI
-            </h1>
-            <div className="flex items-center gap-3">
-              <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
-              <span className="text-gray-400 text-sm">{isGenerating ? phase : 'Ready'}</span>
-              <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium disabled:opacity-50">
-                🔄 Regenerate
-              </button>
-            </div>
-          </div>
-        </header>
-        
-        <main className="pt-16">
-          {isGenerating ? (
-            <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-              <div className="max-w-2xl w-full px-4">
-                <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  🐝 AI Swarm Building...
-                </h2>
-                <p className="text-center text-gray-400 mb-4">{phase}</p>
-                <div className="bg-black/50 rounded-lg p-4 border border-white/10">
-                  <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
-                    {logs.join('\n') || 'Starting...'}
-                  </pre>
-                </div>
+    <ErrorBoundary>
+      <VisibilityProvider>
+        <div className="min-h-screen bg-[#0a0a0f] text-white">
+          <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
+            <div className="flex items-center justify-between max-w-7xl mx-auto">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🎨 Pretext + JSON Render + A2UI
+              </h1>
+              <div className="flex items-center gap-3">
+                <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
+                <span className="text-gray-400 text-sm">{isGenerating ? phase : 'Ready'}</span>
+                <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium disabled:opacity-50">
+                  🔄 Regenerate
+                </button>
               </div>
             </div>
-          ) : spec ? (
-            <div className="p-8 max-w-6xl mx-auto space-y-8">
-              <Renderer spec={spec} registry={registry} />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
-              No components generated
-            </div>
-          )}
-        </main>
-      </div>
-    </VisibilityProvider>
+          </header>
+          
+          <main className="pt-16">
+            {isGenerating ? (
+              <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+                <div className="max-w-2xl w-full px-4">
+                  <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    🐝 AI Swarm Building...
+                  </h2>
+                  <p className="text-center text-gray-400 mb-4">{phase}</p>
+                  <div className="bg-black/50 rounded-lg p-4 border border-white/10">
+                    <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
+                      {logs.join('\n') || 'Starting...'}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            ) : spec ? (
+              <div className="p-8 max-w-6xl mx-auto space-y-8">
+                <Renderer spec={spec} registry={registry} />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
+                No components generated
+              </div>
+            )}
+          </main>
+        </div>
+      </VisibilityProvider>
+    </ErrorBoundary>
   )
 }
