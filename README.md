@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>🎨 AI-Powered Generative UI</strong><br>
-  Pretext + JSON Render + A2UI for zero-reflow, safe, agent-generated UIs
+  Combining Pretext + JSON Render + A2UI for the ultimate generative UI stack
 </p>
 
 ---
@@ -21,101 +21,156 @@
 
 ## ✨ Core Technologies
 
-### [Pretext](https://github.com/chenglou/pretext)
-**Zero DOM reflow text measurement**
+### [Pretext](https://github.com/chenglou/pretext) - Zero-Reflow Text
+**Character-level text measurement without DOM reflow**
 
 ```javascript
-import { prepare, layout } from '@chenglou/pretext'
-const prepared = prepare('Hello', '16px Inter')
-const { height } = layout(prepared, 400, 24) // ~0.09ms!
+import { prepare, layout, layoutWithLines, layoutNextLine } from '@chenglou/pretext'
+
+// Fast: ~0.09ms per measurement (cached!)
+const prepared = prepare('Hello world', '16px Inter')
+const { height } = layout(prepared, 400, 24) // pure math!
+
+// Exact line positions
+const { lines } = layoutWithLines(prepared, 320, 26)
+
+// Flow text around obstacles
+while (true) {
+  const width = y < imageBottom ? columnWidth - imageWidth : columnWidth
+  const line = layoutNextLine(prepared, cursor, width)
+  if (!line) break
+  ctx.fillText(line.text, 0, y)
+  y += 26
+}
 ```
 
-### [JSON Render](https://github.com/vercel-labs/json-render)
-**Safe generative UI framework by Vercel**
+**Features:**
+- ✅ ~0.09ms per measurement (cached)
+- ✅ No DOM reflow triggered
+- ✅ Exact x,y positions for every character
+- ✅ Flow text around obstacles
+- ✅ Multi-language + emoji support
+- ✅ Shrinkwrap width calculation
+
+---
+
+### [JSON Render](https://github.com/vercel-labs/json-render) - Safe Components
+**Generative UI with guardrails**
 
 ```javascript
-// AI generates JSON → Components render safely
-const spec = { root: 'card-1', elements: { 'card-1': { type: 'Card', props: { title: 'Hello' } } } }
+import { defineCatalog, defineRegistry, Renderer } from '@json-render/core'
+import { schema } from '@json-render/react/schema'
+
+// Define component catalog (AI can ONLY use these)
+const catalog = defineCatalog(schema, {
+  components: {
+    Card: { props: z.object({ title: z.string() }), description: 'Card container' },
+    Button: { props: z.object({ content: z.string() }), description: 'Clickable button' },
+  }
+})
+
+// Register component implementations
+const { registry } = defineRegistry(catalog, {
+  components: {
+    Card: ({ props }) => <div className="card"><h3>{props.title}</h3></div>,
+    Button: ({ props, emit }) => <button onClick={() => emit('press')}>{props.content}</button>,
+  }
+})
+
+// AI generates JSON → Safely rendered
 <Renderer spec={spec} registry={registry} />
 ```
 
-### [Google A2UI](https://github.com/google/A2UI)
+**Features:**
+- ✅ Zod schema validation
+- ✅ AI can only use catalog components
+- ✅ Streaming support
+- ✅ 15+ built-in components
+- ✅ Cross-platform (React, Vue, Svelte, Solid)
+
+---
+
+### [Google A2UI](https://github.com/google/A2UI) - Agent UI Standard
 **Google's open standard for agent-generated UIs**
 
-- Security-first declarative JSON format
-- Agents can only use pre-approved components
-- Framework-agnostic (React, Flutter, Lit, etc.)
-- Incremental updates supported
+```javascript
+// A2UI flat spec format
+const spec = {
+  root: 'card-1',
+  elements: {
+    'card-1': { type: 'Card', props: { title: 'Hello' }, children: ['button-1'] },
+    'button-1': { type: 'Button', props: { label: 'Click' }, children: [] },
+  }
+}
+```
 
 **Core philosophies:**
-- Security first: Declarative data, not executable code
-- LLM-friendly: Flat component list, easy for AI to generate
-- Framework-agnostic: Same JSON renders everywhere
-- Incremental: Agents can update UI progressively
+- 🔒 **Security first**: Declarative JSON, not executable code
+- 🤖 **LLM-friendly**: Flat list with ID references
+- 🔄 **Incremental**: Agents can update UI progressively
+- 🌐 **Framework-agnostic**: Same spec renders on React, Flutter, Lit, etc.
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│         AI SWARM ORCHESTRATOR            │
-│   MiniMax M2.7 (5 specialized agents)    │
-├─────────────────────────────────────────┤
-│         A2UI LAYER                      │
-│   Declarative JSON spec format           │
-│   Component catalog validation            │
-├─────────────────────────────────────────┤
-│         PRETEXT LAYER                    │
-│   Zero-reflow text measurement          │
-│   Character-level positioning            │
-├─────────────────────────────────────────┤
-│         JSON RENDER LAYER               │
-│   Safe component catalog                │
-│   Zod schema validation                 │
-├─────────────────────────────────────────┤
-│         CANVAS / REACT RENDERER        │
-│   Exact x,y coordinates from Pretext    │
-│   Components from JSON Render catalog   │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    AI SWARM ORCHESTRATOR                    │
+│                  MiniMax M2.7 (5 agents)                    │
+├─────────────────────────────────────────────────────────────┤
+│                      A2UI LAYER                             │
+│  Declarative JSON spec format • Security-first design      │
+│  Incremental updates • Trusted component catalog only        │
+├─────────────────────────────────────────────────────────────┤
+│                    PRETEXT LAYER                             │
+│  Zero-reflow text measurement • ~0.09ms cached              │
+│  Exact character positions • Flow around obstacles           │
+├─────────────────────────────────────────────────────────────┤
+│                   JSON RENDER LAYER                          │
+│  Zod-validated component catalog • Safe React rendering     │
+│  Streaming support • 15+ components                          │
+├─────────────────────────────────────────────────────────────┤
+│                    CANVAS RENDERER                           │
+│  Exact Pretext coordinates • React components               │
+│  Zero DOM manipulation                                      │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 📦 Component Catalog (15 Components)
+
+| Category | Components |
+|----------|------------|
+| **Text** | Header, Text, Heading |
+| **Interactive** | Button, Link |
+| **Layout** | Card, Container, Stack, Grid |
+| **Data** | Metric, Badge |
+| **Media** | Image, Icon |
+| **Input** | Input, Select |
 
 ---
 
 ## 🐝 AI Swarm System
 
-| Agent | Provider | Task |
-|-------|----------|------|
-| 🏗️ **Architect** | MiniMax M2.7 | Header + Hero |
-| 🎨 **Designer** | MiniMax M2.7 | Features + Stats |
-| ✍️ **Content** | MiniMax M2.7 | Toolkit + How It Works |
-| 💻 **Frontend** | MiniMax M2.7 | CTA + Footer |
-| ✨ **Enhancer** | MiniMax M2.7 | Polish |
+| Agent | Task | Components |
+|-------|------|-----------|
+| 🏗️ **Architect** | Header + Hero | Header, Heading, Text |
+| 🎨 **Designer** | Features | Cards, Grid, Badges |
+| ✍️ **Content** | Body | Text, Stack, Container |
+| 💻 **Frontend** | CTA + Footer | Button, Link, Metrics |
+| ✨ **Enhancer** | Polish | Icons, Gradients, Effects |
 
 ---
 
-## 🔒 Security Model (A2UI-style)
+## 🔒 Security Model
 
 1. **Declarative Only** - AI generates JSON, not code
-2. **Component Catalog** - Only pre-approved components allowed
-3. **Type Validation** - Zod schemas validate all props
+2. **Component Catalog** - Only 15 pre-approved components
+3. **Zod Validation** - All props type-checked
 4. **No eval()** - Components rendered safely via React
-5. **Sandboxed** - Canvas rendering isolates content
-
----
-
-## 📦 Component Catalog
-
-```javascript
-const catalog = defineCatalog(schema, {
-  components: {
-    Header: { props: z.object({ content: z.string() }) },
-    Text: { props: z.object({ content: z.string(), fontSize: z.number() }) },
-    Button: { props: z.object({ content: z.string(), action: z.string() }) },
-    Card: { props: z.object({ title: z.string(), description: z.string() }) },
-  }
-})
-```
+5. **Pretext Isolation** - Text measured without DOM access
 
 ---
 
@@ -130,6 +185,7 @@ const catalog = defineCatalog(schema, {
 | **Canvas API** | Fallback rendering |
 | **MiniMax M2.7** | AI generation |
 | **Tailwind CSS** | Styling |
+| **Zod** | Type validation |
 
 ---
 
