@@ -283,7 +283,7 @@ Generate a complete demo page now with ALL sections listed above!`
           'Authorization': `Bearer ${LM_STUDIO_KEY}`
         },
         body: JSON.stringify({
-          model: 'qwen3.5-9b',
+          model: 'qwen3.5-9b', // Fast initial generation
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
@@ -332,6 +332,70 @@ Generate a complete demo page now with ALL sections listed above!`
       
     } catch (err) {
       setErrors([`Error: ${err}`])
+    }
+    
+    // Step 2: Enhance with 27B for quality
+    setAiThinking(prev => prev + '\n\n🎯 Quality 27B: Enhancing UI...\n')
+    try {
+      const enhancePrompt = `Enhance this UI JSON - add more visual polish, better spacing, more components, and make it more impressive. Return ONLY the enhanced JSON array, no explanation:
+${JSON.stringify(components)}
+
+Output ONLY valid JSON array:`
+
+      const response2 = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LM_STUDIO_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'qwen3.5-27b',
+          messages: [
+            { role: 'system', content: 'You enhance UI JSON. Output ONLY valid JSON array.' },
+            { role: 'user', content: enhancePrompt }
+          ],
+          stream: true,
+          max_tokens: 2048
+        })
+      })
+      
+      const reader2 = response2.body?.getReader()
+      const decoder2 = new TextDecoder()
+      let full2 = ''
+      
+      while (true) {
+        const { done, value } = await reader2.read()
+        if (done) break
+        
+        const chunk2 = decoder2.decode(value, { stream: true })
+        const lines2 = chunk2.split('\n')
+        
+        for (const line2 of lines2) {
+          if (line2.startsWith('data: ')) {
+            const dataStr2 = line2.slice(6)
+            if (dataStr2 === '[DONE]') continue
+            try {
+              const data2 = JSON.parse(dataStr2)
+              if (data2.choices?.[0]?.delta?.content) {
+                const token2 = data2.choices[0].delta.content
+                full2 += token2
+                setAiThinking(prev => prev.slice(0, -50) + '🎯 Enhanced!')
+                
+                const match2 = full2.match(/\[[\s\S]*\]/)
+                if (match2) {
+                  try {
+                    const parsed2 = JSON.parse(match2[0])
+                    setComponents(parsed2)
+                  } catch {}
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+      setAiThinking(prev => prev + '\n\n✅ Done!')
+    } catch (err2) {
+      setAiThinking(prev => prev + `\n⚠️ Enhancement skipped: ${err2}`)
     } finally {
       setIsGenerating(false)
     }
