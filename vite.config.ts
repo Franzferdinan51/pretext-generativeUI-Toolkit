@@ -21,7 +21,9 @@ export default defineConfig({
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'PretextGenerativeUI',
       formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js}`
+      fileName: (format) => {
+        return format === 'es' ? 'index.mjs' : 'index.js'
+      }
     },
     rollupOptions: {
       external: ['react', 'react-dom'],
@@ -33,8 +35,5 @@ export default defineConfig({
       }
     },
     sourcemap: true
-  },
-  optimizeDeps: {
-    exclude: ['@chenglou/pretext']
   }
 })
