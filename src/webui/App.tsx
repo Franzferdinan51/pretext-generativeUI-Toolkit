@@ -243,13 +243,17 @@ export default function App() {
    - Card 2: "🎨 Canvas Rendering" + "Everything drawn, not DOM elements"  
    - Card 3: "🤖 AI Controlled" + "AI generates UI in real-time"
    - Card 4: "✨ Streaming" + "Components appear as AI thinks"
-4. HOW IT WORKS SECTION: Title "How It Works", 3 STEP cards:
+4. TOOLKIT SECTION: Title "The Toolkit", 3 LINK/CARD components linking to features:
+   - Card 1: "📦 Components" + "50+ Pre-built components ready to use" + link to components
+   - Card 2: "🎨 Effects" + "Particles, gradients, glows, animations" + link to effects
+   - Card 3: "🤖 AI Integration" + "LM Studio, OpenAI, Claude ready" + link to AI
+5. HOW IT WORKS SECTION: Title "How It Works", 3 STEP cards:
    - Step 1: "Describe" + "Type what you want"
    - Step 2: "AI Generates" + "Watch components appear"
    - Step 3: "Preview" + "See your UI instantly"
-5. STATS SECTION: 4 stat boxes showing numbers like "50+ Components", "0ms Reflow", "100% Free", "Live Preview"
-6. CTA SECTION: Centered gradient button "Start Building Free"
-7. FOOTER: GitHub link, links, copyright "Built with Pretext AI UI"
+6. STATS SECTION: 4 stat boxes showing numbers like "50+ Components", "0ms Reflow", "100% Free", "Live Preview"
+7. CTA SECTION: Centered gradient button "Start Building Free"
+8. FOOTER: GitHub: github.com/Franzferdinan51/pretext-generativeUI-Toolkit, links, copyright "Built with Pretext AI UI"
 
 ## COMPONENT TYPES:
 - header: {type:"header", height:60, background:"rgba(0,0,0,0.8)"}
@@ -261,7 +265,7 @@ export default function App() {
 - Canvas: 1200x800px (scrollable)
 - Dark theme: #0a0a0f background
 - Purple accent: #8b5cf6, Pink: #ec4899, Cyan: #06b6d4
-- Header y:0, Hero y:80, Features y:280, HowItWorks y:520, Stats y:780, CTA y:950, Footer y:1050
+- Header y:0, Hero y:80, Features y:280, Toolkit y:520, HowItWorks y:750, Stats y:980, CTA y:1100, Footer y:1200
 - Cards in a row with gap: x positions 50, 350, 650 for 3 cards
 - Use gradient text for headlines: style:{background:"linear-gradient(135deg,#8b5cf6,#ec4899)"}
 
