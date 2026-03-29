@@ -1,46 +1,25 @@
-// TRUE GENERATIVE UI - AI CONTROLS EVERYTHING
-// Pretext for zero-reflow text, Canvas for rendering, AI as runtime engine
+// GENERATIVE UI - AI BUILDS THE WHOLE WEBSITE
+// No chat - just AI generates the website live
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+import { prepare, layout } from '@chenglou/pretext'
 
 const LM_STUDIO_URL = '/api/lm-studio'
 const LM_STUDIO_KEY = 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW'
 
 // ============ TYPES ============
-interface Position { x: number; y: number }
-interface UIStyle { background?: string; color?: string; fontSize?: string; borderRadius?: string; padding?: string }
 interface UIComponent {
   id: string
-  type: 'text' | 'button' | 'card' | 'input' | 'image' | 'container' | 'header' | 'list'
+  type: 'text' | 'button' | 'card' | 'input' | 'container' | 'header' | 'list'
   content: string
   x: number; y: number; width: number; height: number
-  style: UIStyle
-  children?: UIComponent[]
-  items?: string[]
-  onClick?: string  // AI prompt to execute on click
+  style: Record<string, string>
+  onClick?: string
   visible: boolean
-}
-interface AIGenerator {
-  state: {
-    components: UIComponent[]
-    mousePos: Position
-    focusedComponent: string | null
-    history: UIComponent[][]
-  }
-  addComponent: (comp: UIComponent) => void
-  updateComponent: (id: string, updates: Partial<UIComponent>) => void
-  removeComponent: (id: string) => void
-  setMousePos: (pos: Position) => void
-  generateUI: (prompt: string) => Promise<void>
 }
 
 // ============ PRETEXT CANVAS ENGINE ============
-function PretextCanvas({ 
-  text, font = '16px Inter', x = 0, y = 0, maxWidth = 400, lineHeight = 24, color = '#fff' 
-}: { 
-  text: string; font?: string; x?: number; y?: number; maxWidth?: number; lineHeight?: number; color?: string 
-}) {
+function PretextCanvas({ text, font = '16px Inter', maxWidth = 400, color = '#fff' }: { text: string; font?: string; maxWidth?: number; color?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   
   useEffect(() => {
@@ -49,98 +28,29 @@ function PretextCanvas({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     
-    // Pretext: measure WITHOUT touching DOM
     const prepared = prepare(text, font)
-    const measured = layout(prepared, maxWidth, lineHeight)
+    const measured = layout(prepared, maxWidth, 24)
     
     canvas.width = maxWidth
-    canvas.height = measured.height + y + 20
+    canvas.height = measured.height + 40
     
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.font = font
     ctx.fillStyle = color
     
     for (const line of measured.lines) {
-      ctx.fillText(line.text, x, y + line.y + lineHeight)
+      ctx.fillText(line.text, 0, line.y + 24)
     }
-  }, [text, font, maxWidth, lineHeight, color, x, y])
+  }, [text, font, maxWidth, color])
   
   return <canvas ref={canvasRef} className="block" />
 }
 
-// ============ STREAMING TEXT WITH PRETEXT ============
-function StreamingPretextText({ 
-  text, font = '18px Inter', maxWidth = 500, color = '#fff', onComplete 
-}: { 
-  text: string; font?: string; maxWidth?: number; color?: string; onComplete?: () => void 
-}) {
-  const [displayed, setDisplayed] = useState('')
-  const [height, setHeight] = useState(50)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  
-  // Pre-calculate final height with Pretext
-  useEffect(() => {
-    if (!text) return
-    const prepared = prepare(text, font)
-    const measured = layout(prepared, maxWidth, 28)
-    setHeight(measured.height + 40)
-  }, [text, font, maxWidth])
-  
-  // Stream character by character
-  useEffect(() => {
-    if (!text) { setDisplayed(''); return }
-    setDisplayed('')
-    let i = 0
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed(text.slice(0, i + 1))
-        i++
-      } else {
-        clearInterval(interval)
-        onComplete?.()
-      }
-    }, 15)
-    return () => clearInterval(interval)
-  }, [text, onComplete])
-  
-  // Render with Pretext (no DOM reflow!)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !displayed) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    const prepared = prepare(displayed, font)
-    const measured = layout(prepared, maxWidth, 28)
-    
-    canvas.width = maxWidth
-    canvas.height = height
-    
-    ctx.clearRect(0, 0, maxWidth, height)
-    ctx.font = font
-    ctx.fillStyle = color
-    
-    for (const line of measured.lines) {
-      ctx.fillText(line.text, 0, line.y + 28)
-    }
-  }, [displayed, font, maxWidth, height, color])
-  
-  return <canvas ref={canvasRef} className="block" />
-}
-
-// ============ AI UI RENDERER ============
-// Canvas-based renderer controlled by AI
-function AIUIcanvas({ 
-  components, mousePos, onInteract 
-}: { 
-  components: UIComponent[]
-  mousePos: Position
-  onInteract: (componentId: string, action: string) => void 
-}) {
+// ============ CANVAS RENDERER ============
+function CanvasRenderer({ components, onInteract }: { components: UIComponent[]; onInteract?: (id: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   
-  // Render all components to canvas
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -150,68 +60,46 @@ function AIUIcanvas({
     canvas.width = 1200
     canvas.height = 800
     
-    // Clear with background
     ctx.fillStyle = '#0a0a0f'
     ctx.fillRect(0, 0, 1200, 800)
     
-    // Render each component
     for (const comp of components) {
       if (!comp.visible) continue
-      
       const isHovered = hoveredId === comp.id
-      const isMouseOver = mousePos.x >= comp.x && mousePos.x <= comp.x + comp.width &&
-                          mousePos.y >= comp.y && mousePos.y <= comp.y + comp.height
       
       switch (comp.type) {
-        case 'container':
-          ctx.fillStyle = comp.style.background || 'rgba(255,255,255,0.05)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height, 12)
-          ctx.fill()
-          if (isHovered) {
-            ctx.strokeStyle = '#8b5cf6'
-            ctx.lineWidth = 2
-            ctx.stroke()
-          }
-          break
-          
         case 'header':
-          ctx.fillStyle = 'rgba(0,0,0,0.5)'
+          ctx.fillStyle = 'rgba(0,0,0,0.8)'
           ctx.fillRect(comp.x, comp.y, comp.width, comp.height || 60)
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'
-          ctx.strokeRect(comp.x, comp.y, comp.width, comp.height || 60)
+          ctx.fillStyle = '#fff'
+          ctx.font = 'bold 20px Inter'
+          ctx.fillText(comp.content, comp.x + 20, comp.y + 38)
           break
           
         case 'text':
           const fontSize = parseInt(comp.style.fontSize || '16')
           ctx.font = `${fontSize}px Inter`
           ctx.fillStyle = comp.style.color || '#fff'
-          
-          // Use Pretext for precise text layout!
-          const prepared = prepare(comp.content, `${fontSize}px Inter`)
-          const measured = layout(prepared, comp.width, fontSize * 1.5)
-          
-          for (const line of measured.lines) {
+          const prep = prepare(comp.content, `${fontSize}px Inter`)
+          const meas = layout(prep, comp.width, fontSize * 1.5)
+          for (const line of meas.lines) {
             ctx.fillText(line.text, comp.x, comp.y + line.y + fontSize)
           }
           break
           
         case 'button':
-          const btnBg = isHovered ? '#7c3aed' : '#8b5cf6'
-          ctx.fillStyle = btnBg
+          ctx.fillStyle = isHovered ? '#7c3aed' : '#8b5cf6'
           ctx.beginPath()
           ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
           ctx.fill()
-          
           if (isHovered) {
             ctx.shadowColor = '#8b5cf6'
             ctx.shadowBlur = 20
             ctx.fill()
             ctx.shadowBlur = 0
           }
-          
-          ctx.font = 'bold 14px Inter'
           ctx.fillStyle = '#fff'
+          ctx.font = 'bold 14px Inter'
           ctx.textAlign = 'center'
           ctx.fillText(comp.content, comp.x + comp.width / 2, comp.y + comp.height / 2 + 5)
           ctx.textAlign = 'left'
@@ -225,43 +113,37 @@ function AIUIcanvas({
           ctx.strokeStyle = isHovered ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'
           ctx.lineWidth = isHovered ? 2 : 1
           ctx.stroke()
-          
-          // Card content
-          ctx.font = 'bold 18px Inter'
           ctx.fillStyle = '#fff'
-          ctx.fillText(comp.content.slice(0, 30), comp.x + 16, comp.y + 30)
+          ctx.font = 'bold 18px Inter'
+          ctx.fillText(comp.content.slice(0, 25), comp.x + 16, comp.y + 35)
           break
-          
-        case 'input':
-          ctx.fillStyle = 'rgba(255,255,255,0.1)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
-          ctx.fill()
-          ctx.strokeStyle = isHovered ? '#8b5cf6' : 'rgba(255,255,255,0.2)'
-          ctx.stroke()
-          ctx.font = '14px Inter'
-          ctx.fillStyle = 'rgba(255,255,255,0.5)'
-          ctx.fillText(comp.content || 'Type here...', comp.x + 12, comp.y + comp.height / 2 + 5)
-          break
-      }
-      
-      // Draw mouse cursor indicator
-      if (isMouseOver && comp.type === 'button') {
-        canvas.style.cursor = 'pointer'
-      } else {
-        canvas.style.cursor = 'default'
       }
     }
-  }, [components, mousePos, hoveredId])
+  }, [components, hoveredId])
   
-  // Handle mouse events
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
+  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     
-    // Find hovered component
+    for (const comp of components) {
+      if (!comp.visible) continue
+      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
+        onInteract?.(comp.id)
+        break
+      }
+    }
+  }, [components, onInteract])
+  
+  const handleMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    
     let found: string | null = null
     for (const comp of components) {
       if (!comp.visible) continue
@@ -271,375 +153,22 @@ function AIUIcanvas({
       }
     }
     setHoveredId(found)
+    canvas.style.cursor = found ? 'pointer' : 'default'
   }, [components])
   
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    for (const comp of components) {
-      if (!comp.visible) continue
-      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
-        onInteract(comp.id, comp.onClick || `clicked_${comp.type}`)
-        break
-      }
-    }
-  }, [components, onInteract])
-  
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full rounded-xl border border-white/10"
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
-    />
-  )
+  return <canvas ref={canvasRef} className="w-full rounded-xl" onClick={handleClick} onMouseMove={handleMove} />
 }
 
-// ============ AI THINKING DISPLAY ============
-function AIThinking({ text, color = '#c084fc' }: { text: string; color?: string }) {
-  return (
-    <div className="bg-black/50 rounded-xl border border-white/10 p-4 h-40 overflow-auto">
-      <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color }}>
-        {text || '🤖 AI thinking...'}
-      </pre>
-    </div>
-  )
-}
-
-// ============ MAIN APP ============
-export default function App() {
-  const [isGenerating, setIsGenerating] = useState(true)
-  const [aiThinking, setAiThinking] = useState('')
-  const [components, setComponents] = useState<UIComponent[]>([])
-  const [mousePos, setMousePos] = useState<Position>({ x: 0, y: 0 })
-  const [history, setHistory] = useState<UIComponent[][]>([[]])
-  const [previewMode, setPreviewMode] = useState<'canvas' | 'html'>('canvas')
-  const [generatedHTML, setGeneratedHTML] = useState('')
-  
-  // Generate initial UI on mount
-  useEffect(() => {
-    generateInitialUI()
-  }, [])
-  
-  async function generateInitialUI() {
-    setIsGenerating(true)
-    setAiThinking('')
-    setComponents([])
-    
-    const systemPrompt = `You are a UI generator using Pretext and Canvas. Generate UI by outputting JSON.
-
-Available components:
-- header: {id, type:"header", x, y, width, height:60, style:{background}}
-- text: {id, type:"text", content:"...", x, y, width, style:{color, fontSize}}
-- button: {id, type:"button", content:"...", x, y, width:150, height:44, onClick:"prompt for AI", style:{}}
-- card: {id, type:"card", content:"...", x, y, width:300, height:150, style:{background}, children}
-- input: {id, type:"input", content:"placeholder", x, y, width, height:44}
-
-Rules:
-- All positions in pixels from top-left (0,0)
-- IDs must be unique
-- Generate a complete UI with 5-15 components
-- Include buttons that ON CLICK send prompts to AI (set onClick field with what AI should do)
-- Make it look like a modern AI UI toolkit landing page
-- Include: header with logo, hero text, feature cards, CTA buttons
-- Use dark theme colors: background #0a0a0f, accents #8b5cf6, #ec4899, #06b6d4
-
-Output ONLY valid JSON array, no markdown:
-[{"id":"1","type":"header",...}, {...}]`
-
-    try {
-      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: 'Generate a COMPLETE beautiful AI toolkit website with: header with logo "🎨 Pretext AI", hero section with large headline "Build UI with AI", subtitle text, and CTA button, features section with 4 feature cards showing capabilities like "Zero Reflow", "Streaming", "Canvas Rendering", "AI Powered", pricing section with 3 tiers (Free, Pro, Enterprise), testimonials section with quotes, and footer with links' }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-      
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullResponse = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr === '[DONE]') continue
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.choices?.[0]?.delta?.content) {
-                const token = data.choices[0].delta.content
-                fullResponse += token
-                setAiThinking(prev => prev + token)
-                
-                // Try to parse JSON
-                const jsonMatch = fullResponse.match(/\[.*\]/s)
-                if (jsonMatch) {
-                  try {
-                    const parsed = JSON.parse(jsonMatch[0])
-                    setComponents(parsed)
-                    setHistory(h => [...h, parsed])
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-      
-      // Final parse
-      const jsonMatch = fullResponse.match(/\[.*\]/s)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        setComponents(parsed)
-        setHistory(h => [...h, parsed])
-      }
-      
-    } catch (err) {
-      console.error(err)
-      setAiThinking('❌ Error connecting to AI')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-  
-  // Handle AI interaction
-  async function handleInteraction(componentId: string, action: string) {
-    const comp = components.find(c => c.id === componentId)
-    setAiThinking(prev => prev + `\n\n[User ${action} on ${comp?.content || componentId}]`)
-    
-    const systemPrompt = `You are controlling a Canvas UI. The user just interacted with a component.
-Current UI has these components: ${JSON.stringify(components.map(c => ({id: c.id, type: c.type, content: c.content})))}
-
-The user ${action}.
-Generate a JSON array of components to UPDATE the UI based on this interaction. 
-You can: add new components, update existing ones (change content, position, style), or remove components.
-Keep IDs consistent for components you want to update.
-
-Output ONLY valid JSON array:`
-
-    try {
-      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: action }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-      
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullResponse = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr === '[DONE]') continue
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.choices?.[0]?.delta?.content) {
-                const token = data.choices[0].delta.content
-                fullResponse += token
-                setAiThinking(prev => prev + token)
-                
-                const jsonMatch = fullResponse.match(/\[.*\]/s)
-                if (jsonMatch) {
-                  try {
-                    const parsed = JSON.parse(jsonMatch[0])
-                    setComponents(parsed)
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-      
-      const jsonMatch = fullResponse.match(/\[.*\]/s)
-      if (jsonMatch) {
-        setComponents(JSON.parse(jsonMatch[0]))
-      }
-      
-    } catch (err) {
-      console.error(err)
-    }
-  }
-  
-  // Track mouse position
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = e.currentTarget?.getBoundingClientRect()
-    if (rect) {
-      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }
-  }, [])
-  
-  return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white" onMouseMove={handleMouseMove}>
-      {/* Header Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 p-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🎨 Generative UI with Pretext
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">
-              Mouse: ({Math.round(mousePos.x)}, {Math.round(mousePos.y)})
-            </span>
-            <button 
-              onClick={() => { setComponents([]); generateInitialUI() }}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm"
-            >
-              🔄 Regenerate
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="pt-20 p-4">
-        {/* Loading State */}
-        {isGenerating && (
-          <div className="fixed inset-0 z-40 bg-[#0a0a0f] flex items-center justify-center">
-            <div className="text-center max-w-2xl">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-                🤖 AI Building Your UI
-              </h2>
-              <p className="text-gray-400 mb-6">Generating components with Pretext...</p>
-              <AIThinking text={aiThinking} />
-              <div className="mt-4 animate-pulse text-purple-400">
-                {components.length} components generated
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* AI UI Canvas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-100px)]">
-          {/* Left: AI Thinking */}
-          <div className="space-y-4">
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
-                AI Brain
-              </h3>
-              <AIThinking text={aiThinking} />
-            </div>
-            
-            {/* Component List */}
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2">📋 Components ({components.length})</h3>
-              <div className="space-y-2 max-h-60 overflow-auto">
-                {components.map(comp => (
-                  <div key={comp.id} className="text-xs bg-white/5 p-2 rounded flex items-center gap-2">
-                    <span className="bg-purple-600 px-2 py-0.5 rounded text-white">{comp.type}</span>
-                    <span className="truncate flex-1">{comp.content?.slice(0, 20) || comp.id}</span>
-                    <span className="text-gray-600">({comp.x},{comp.y})</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Streaming Text Demo */}
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2">✨ Streaming with Pretext</h3>
-              <div className="bg-black/30 p-4 rounded">
-                <StreamingPretextText 
-                  text="This text streams character by character, measured precisely with Pretext for zero DOM reflow!"
-                  font="16px Inter"
-                  maxWidth={300}
-                  color="#c084fc"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Right: Preview */}
-          <div className="lg:col-span-2">
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4 h-full flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium">🎨 Preview</h3>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => { setPreviewMode('canvas'); setGeneratedHTML(componentsToHTML(components)) }}
-                    className={`px-3 py-1 rounded text-xs ${previewMode === 'canvas' ? 'bg-purple-600' : 'bg-white/10'}`}
-                  >
-                    Canvas
-                  </button>
-                  <button 
-                    onClick={() => { setPreviewMode('html'); setGeneratedHTML(componentsToHTML(components)) }}
-                    className={`px-3 py-1 rounded text-xs ${previewMode === 'html' ? 'bg-purple-600' : 'bg-white/10'}`}
-                  >
-                    HTML
-                  </button>
-                  <button 
-                    onClick={() => downloadWebsite(components)}
-                    className="px-3 py-1 rounded text-xs bg-green-600 hover:bg-green-700"
-                  >
-                    📥 Download
-                  </button>
-                </div>
-              </div>
-              {previewMode === 'canvas' ? (
-                <AIUIcanvas 
-                  components={components}
-                  mousePos={mousePos}
-                  onInteract={handleInteraction}
-                />
-              ) : (
-                <iframe
-                  className="flex-1 w-full rounded border-0"
-                  srcDoc={generatedHTML}
-                  title="HTML Preview"
-                  sandbox="allow-scripts"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Convert components to HTML for iframe preview
-function componentsToHTML(components: UIComponent[]): string {
+// ============ HTML PREVIEW ============
+function HTMLPreview({ components }: { components: UIComponent[] }) {
   const visible = components.filter(c => c.visible)
   
-  let html = `<!DOCTYPE html>
+  const header = visible.find(c => c.type === 'header')
+  const texts = visible.filter(c => c.type === 'text')
+  const cards = visible.filter(c => c.type === 'card')
+  const buttons = visible.filter(c => c.type === 'button')
+  
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -653,60 +182,243 @@ function componentsToHTML(components: UIComponent[]): string {
   </style>
 </head>
 <body class="min-h-screen">
-`
-
-  // Header
-  const header = visible.find(c => c.type === 'header')
-  if (header) {
-    html += `\n  <header class="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur border-b border-white/10 p-4 z-50">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
+  
+  ${header ? `<header class="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur border-b border-white/10 p-4 z-50">
+    <div class="max-w-6xl mx-auto">
       <h1 class="text-xl font-bold gradient-text">${header.content}</h1>
     </div>
-  </header>`
-  }
-
-  // Cards
-  const cards = visible.filter(c => c.type === 'card')
-  if (cards.length > 0) {
-    html += `\n  <section class="py-20 px-4 pt-32">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-${Math.min(cards.length, 3)} gap-6">`
-    cards.forEach(card => {
-      html += `\n      <div class="p-6 rounded-xl border border-white/10" style="background: ${card.style.background || 'rgba(255,255,255,0.05)'}">
-        <h3 class="text-lg font-bold mb-2">${card.content}</h3>
+  </header>` : ''}
+  
+  ${texts.length > 0 ? `<section class="pt-32 pb-16 px-4 text-center">
+    ${texts.map(t => `<h2 class="text-${parseInt(t.style.fontSize || '24') / 4}xl font-black mb-4" style="color: ${t.style.color || '#fff'}">${t.content}</h2>`).join('')}
+  </section>` : ''}
+  
+  ${cards.length > 0 ? `<section class="py-16 px-4">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-${Math.min(cards.length, 3)} gap-6">
+      ${cards.map(c => `<div class="p-6 rounded-xl border border-white/10" style="background: ${c.style.background || 'rgba(255,255,255,0.05)'}">
+        <h3 class="text-lg font-bold mb-2">${c.content}</h3>
         <p class="text-gray-400">Generated by AI</p>
-      </div>`
-    })
-    html += `\n    </div>
-  </section>`
-  }
-
-  // Buttons
-  const buttons = visible.filter(c => c.type === 'button')
-  if (buttons.length > 0) {
-    html += `\n  <section class="py-12 text-center">
-    <div class="flex flex-wrap justify-center gap-4">`
-    buttons.forEach(btn => {
-      html += `\n      <button class="px-6 py-3 rounded-lg font-bold gradient-bg hover:opacity-90 transition">${btn.content}</button>`
-    })
-    html += `\n    </div>
-  </section>`
-  }
-
-  html += `\n</body>
+      </div>`).join('')}
+    </div>
+  </section>` : ''}
+  
+  ${buttons.length > 0 ? `<section class="py-12 text-center">
+    <div class="flex flex-wrap justify-center gap-4">
+      ${buttons.map(b => `<button class="px-6 py-3 rounded-lg font-bold gradient-bg hover:opacity-90 transition">${b.content}</button>`).join('')}
+    </div>
+  </section>` : ''}
+  
+</body>
 </html>`
-  return html
+  
+  return <iframe className="w-full h-full border-0" srcDoc={html} title="Preview" sandbox="allow-scripts" />
 }
 
-// Download website
-function downloadWebsite(components: UIComponent[]) {
-  const html = componentsToHTML(components)
-  const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'generated-website.html'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+// ============ MAIN APP ============
+export default function App() {
+  const [components, setComponents] = useState<UIComponent[]>([])
+  const [aiThinking, setAiThinking] = useState('')
+  const [isGenerating, setIsGenerating] = useState(true)
+  const [view, setView] = useState<'canvas' | 'html'>('canvas')
+  const [errors, setErrors] = useState<string[]>([])
+  
+  // Generate website on mount
+  useEffect(() => {
+    generateWebsite('Generate a beautiful AI toolkit website with header "🎨 Pretext AI", hero with headline "Build UI with AI", 4 feature cards (Zero Reflow, Streaming, Canvas Rendering, AI Powered), pricing section (Free, Pro $29, Enterprise $99), and footer')
+  }, [])
+  
+  async function generateWebsite(prompt: string) {
+    setIsGenerating(true)
+    setAiThinking('')
+    setComponents([])
+    setErrors([])
+    
+    const systemPrompt = `You are a UI generator. Output ONLY valid JSON array of components.
+
+Types: header (height:60), text, button (width:150, height:44), card, input, container
+Each: id, type, content, x, y, width, height, style, visible
+
+Rules:
+- Canvas: 1200x800px
+- Header: y:0, width:1200
+- Content starts y:80
+- Dark theme: #0a0a0f background, #8b5cf6 accent
+- Modern, professional design
+
+Output ONLY JSON array like:
+[{"id":"1","type":"header","content":"Logo","x":0,"y":0,"width":1200,"height":60,"style":{},"visible":true}]
+
+Generate now:`
+
+    try {
+      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LM_STUDIO_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'qwen3.5-27b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          max_tokens: 2048
+        })
+      })
+      
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let full = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6)
+            if (dataStr === '[DONE]') continue
+            try {
+              const data = JSON.parse(dataStr)
+              if (data.choices?.[0]?.delta?.content) {
+                const token = data.choices[0].delta.content
+                full += token
+                setAiThinking(full.slice(-200))
+                
+                const match = full.match(/\[[\s\S]*\]/)
+                if (match) {
+                  try {
+                    const parsed = JSON.parse(match[0])
+                    setComponents(parsed)
+                  } catch {
+                    setErrors(['Parse error - AI output was malformed'])
+                  }
+                }
+              }
+            } catch {}
+          }
+        }
+      }
+      
+    } catch (err) {
+      setErrors([`Error: ${err}`])
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+  
+  // Handle component click
+  function handleClick(id: string) {
+    const comp = components.find(c => c.id === id)
+    if (comp?.onClick) {
+      generateWebsite(comp.onClick)
+    }
+  }
+  
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            🎨 Pretext AI UI
+          </h1>
+          <div className="flex items-center gap-3">
+            {/* Status */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className="text-gray-400">
+                {isGenerating ? 'Generating...' : `${components.length} components`}
+              </span>
+            </div>
+            
+            {/* View Toggle */}
+            <div className="flex bg-white/5 rounded-lg p-1">
+              <button
+                onClick={() => setView('canvas')}
+                className={`px-3 py-1 rounded text-sm ${view === 'canvas' ? 'bg-purple-600' : ''}`}
+              >
+                Canvas
+              </button>
+              <button
+                onClick={() => setView('html')}
+                className={`px-3 py-1 rounded text-sm ${view === 'html' ? 'bg-purple-600' : ''}`}
+              >
+                HTML
+              </button>
+            </div>
+            
+            {/* Regenerate */}
+            <button
+              onClick={() => generateWebsite('Generate a beautiful AI toolkit website with header "🎨 Pretext AI", hero section, feature cards, pricing, and footer')}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              🔄 New
+            </button>
+            
+            {/* Download */}
+            {components.length > 0 && (
+              <button
+                onClick={() => {
+                  const html = `<!DOCTYPE html><html><body>${components.map(c => `<div>${c.content}</div>`).join('')}</body></html>`
+                  const blob = new Blob([html], { type: 'text/html' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = 'website.html'
+                  a.click()
+                }}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium"
+              >
+                📥 Download
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+      
+      {/* Main Content */}
+      <main className="pt-16 h-screen">
+        {/* Loading State */}
+        {isGenerating && (
+          <div className="absolute inset-0 z-40 bg-[#0a0a0f]/90 flex items-center justify-center">
+            <div className="text-center max-w-2xl">
+              <div className="text-4xl mb-4 animate-pulse">🤖</div>
+              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                AI Building Your Website
+              </h2>
+              <p className="text-gray-400 mb-4">Watch the AI generate components in real-time</p>
+              <div className="bg-black/50 rounded-lg p-4 max-h-32 overflow-auto text-left">
+                <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono">
+                  {aiThinking || 'Initializing...'}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Errors */}
+        {errors.length > 0 && (
+          <div className="absolute top-20 left-4 right-4 z-50 bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+            {errors.map((e, i) => <p key={i} className="text-red-400 text-sm">{e}</p>)}
+          </div>
+        )}
+        
+        {/* Preview */}
+        <div className="h-full">
+          {view === 'canvas' ? (
+            <CanvasRenderer components={components} onInteract={handleClick} />
+          ) : (
+            <HTMLPreview components={components} />
+          )}
+        </div>
+      </main>
+    </div>
+  )
 }
