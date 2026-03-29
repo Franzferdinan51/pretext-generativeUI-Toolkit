@@ -1,27 +1,18 @@
 // GENERATIVE UI - PRETEXT + JSON-RENDER + A2UI STACK
 import React, { useState, useEffect, useRef } from 'react'
-import { prepare, layout } from '@chenglou/pretext'
 import { defineCatalog } from '@json-render/core'
 import { defineRegistry, Renderer } from '@json-render/react'
+import { VisibilityProvider } from '@json-render/react'
 import { schema } from '@json-render/react/schema'
 import { z } from 'zod'
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
-
-type Provider = 'minimax'
 
 interface UIComponent {
   id: string
   type: string
   props: Record<string, any>
   children?: string[]
-}
-
-// Pretext engine for text measurement
-function measureText(text: string, fontSize: number, maxWidth: number) {
-  const prepared = prepare(text, `${fontSize}px Inter`)
-  const result = layout(prepared, maxWidth, fontSize + 4)
-  return result
 }
 
 // JSON Render catalog
@@ -51,13 +42,14 @@ const components = {
     </div>
   ),
   Text: ({ props }: { props: any }) => (
-    <p className={`${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-black' : ''}`} style={{ color: props.isGradient ? 'transparent' : props.color || '#fff', fontSize: props.fontSize || 16 }}>
+    <p style={{ fontSize: props.fontSize || 16, color: props.isGradient ? 'transparent' : (props.color || '#fff'), background: props.isGradient ? 'linear-gradient(to right, #a855f7, #ec4899)' : undefined, WebkitBackgroundClip: props.isGradient ? 'text' : undefined, WebkitTextFillColor: props.isGradient ? 'transparent' : undefined }}>
       {props.content}
     </p>
   ),
   Heading: ({ props }: { props: any }) => {
     const sizes: Record<string, string> = { h1: 'text-4xl', h2: 'text-3xl', h3: 'text-2xl' }
-    return <h2 className={`${sizes[props.level] || 'text-4xl'} font-black ${props.isGradient ? 'bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent' : ''}`}>{props.content}</h2>
+    const style = props.isGradient ? { background: 'linear-gradient(to right, #a855f7, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : { color: '#fff' }
+    return <h2 className={`${sizes[props.level] || 'text-4xl'} font-black`} style={style}>{props.content}</h2>
   },
   Button: ({ props, emit }: { props: any; emit: any }) => (
     <button className="px-6 py-3 rounded-lg font-bold bg-purple-600 hover:bg-purple-700 transition" onClick={() => emit?.('press')}>
@@ -77,7 +69,7 @@ const components = {
     </div>
   ),
   Stack: ({ props, children }: { props: any; children?: React.ReactNode }) => (
-    <div className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-${props.gap || 4}`}>
+    <div className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-4`}>
       {children}
     </div>
   ),
@@ -133,18 +125,17 @@ function fallback(): UIComponent[] {
   ]
 }
 
-// Agent prompts
+// Agent prompts - all use MiniMax only
 const PROMPTS = {
   architect: `You are the ARCHITECT agent. Create HEADER and HERO.
 
-MUST OUTPUT JSON like this:
+MUST OUTPUT VALID JSON like:
 {"root":"header-1","elements":{"header-1":{"type":"Header","props":{"content":"🎨 Pretext AI UI"}},"hero-1":{"type":"Heading","props":{"content":"Build UI with AI","level":"h1","isGradient":true}},"text-1":{"type":"Text","props":{"content":"Zero Reflow • JSON Render • A2UI"}},"btn-1":{"type":"Button","props":{"content":"🚀 Get Started"}}}}
 
 Checklist:
-✓ Header with logo text
+✓ Header with logo
 ✓ Heading with gradient
-✓ CTA button
-✓ Dark theme #0a0a0f`,
+✓ CTA button`,
 
   designer: `You are the DESIGNER agent. Create FEATURE CARDS.
 
@@ -152,29 +143,28 @@ MUST OUTPUT JSON:
 {"root":"grid-1","elements":{"grid-1":{"type":"Grid","props":{"columns":3}},"card-1":{"type":"Card","props":{"title":"⚡ Zero Reflow","description":"Text measured instantly"}},"card-2":{"type":"Card","props":{"title":"🎨 JSON Render","description":"Safe components"}},"card-3":{"type":"Card","props":{"title":"🤖 A2UI","description":"Agent standard"}}}}
 
 Checklist:
-✓ Exactly 3 Cards
-✓ Each has title AND description
-✓ Grid with columns: 3`,
+✓ 3 Cards with title AND description
+✓ Grid columns: 3`,
 
-  frontend: `You are the FRONTEND agent. Create CTA, STATS, FOOTER.
+  frontend: `You are the FRONTEND agent. Create CTA and STATS.
 
 MUST OUTPUT JSON:
-{"root":"cta-1","elements":{"cta-1":{"type":"Button","props":{"content":"🚀 Get Started"}},"metric-1":{"type":"Metric","props":{"label":"Speed","value":"0ms"}},"metric-2":{"type":"Metric","props":{"label":"Components","value":"50+"}},"metric-3":{"type":"Metric","props":{"label":"Free","value":"100%"}},"footer-1":{"type":"Text","props":{"content":"© 2026 Pretext AI UI"}}}
+{"root":"cta-1","elements":{"cta-1":{"type":"Button","props":{"content":"🚀 Get Started"}},"metric-1":{"type":"Metric","props":{"label":"Speed","value":"0ms"}},"metric-2":{"type":"Metric","props":{"label":"Components","value":"50+"}},"metric-3":{"type":"Metric","props":{"label":"Free","value":"100%"}}}}
 
 Checklist:
-✓ CTA button exists
+✓ CTA button
 ✓ 3 Metrics with label AND value`,
 
-  qa: `You are the QA AGENT. Verify and FIX components.
+  qa: `You are the QA AGENT. Verify and FIX.
 
-TASK: Check this list and fix issues:
-1. Missing Header → add Header {content:"🎨 Pretext AI UI"}
-2. No gradient heading → add Heading {isGradient:true}
-3. < 3 Cards → add Cards
-4. No CTA → add Button
-5. Empty fields → fill with valid content
+Check:
+1. Header exists with content
+2. At least 1 Heading
+3. At least 1 Button
+4. At least 1 Card
+5. No empty required fields
 
-OUTPUT the FIXED JSON.`
+Fix any issues and OUTPUT JSON.`
 }
 
 export default function App() {
@@ -182,22 +172,31 @@ export default function App() {
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
   const [phase, setPhase] = useState('Starting...')
+  const [error, setError] = useState<string | null>(null)
   
   const initRef = useRef(false)
   
   useEffect(() => { if (!initRef.current) { initRef.current = true; runSwarm() } }, [])
   
-  async function callAI(provider: Provider, model: string, system: string, user: string) {
+  // Only MiniMax - no LM Studio
+  async function callMiniMax(system: string, user: string) {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
-      body: JSON.stringify({ model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], stream: true, max_tokens: 2048 })
+      body: JSON.stringify({ 
+        model: 'MiniMax-M2.7', 
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }], 
+        stream: true, 
+        max_tokens: 2048 
+      })
     })
-    if (!res.ok) throw new Error(`${provider} error: ${res.status}`)
+    
+    if (!res.ok) throw new Error(`MiniMax error: ${res.status} ${res.statusText}`)
     
     const reader = res.body?.getReader()
     const decoder = new TextDecoder()
     let full = ''
+    
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
@@ -225,19 +224,27 @@ export default function App() {
           const id = entry[0] as string
           const elem = entry[1] as any
           if (elem && elem.type) {
-            comps.push({ id, type: elem.type.toLowerCase(), props: elem.props || {}, children: elem.children || [] })
+            comps.push({ 
+              id, 
+              type: (elem.type as string).toLowerCase(), 
+              props: elem.props || {}, 
+              children: elem.children || [] 
+            })
           }
         })
         return comps
       }
-    } catch {}
+    } catch (e) {
+      console.error('Parse error:', e)
+    }
     return []
   }
   
   async function runSwarm() {
     setIsGenerating(true)
+    setError(null)
     setLogs([])
-    setPhase('Running...')
+    setPhase('Running AI agents...')
     
     const allComponents: UIComponent[] = []
     
@@ -255,7 +262,7 @@ export default function App() {
       let success = false
       for (let try_ = 0; try_ < 3 && !success; try_++) {
         try {
-          const result = await callAI('minimax', 'MiniMax-M2.7', agent.prompt, 'Generate valid JSON.')
+          const result = await callMiniMax(agent.prompt, 'Generate valid JSON for the component.')
           const comps = parseAIResponse(result)
           
           if (comps.length > 0) {
@@ -264,7 +271,8 @@ export default function App() {
             success = true
           }
         } catch (err) {
-          setLogs(prev => [...prev.slice(-15), `${time} ❌ ${agent.name}: ${err}`])
+          const errMsg = err instanceof Error ? err.message : String(err)
+          setLogs(prev => [...prev.slice(-15), `${time} ❌ ${agent.name}: ${errMsg}`])
         }
       }
     }
@@ -274,7 +282,7 @@ export default function App() {
     setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} 🔍 QA: Verifying...`])
     
     try {
-      const qaResult = await callAI('minimax', 'MiniMax-M2.7', PROMPTS.qa, `Fix: ${JSON.stringify(allComponents.slice(0, 8))}`)
+      const qaResult = await callMiniMax(PROMPTS.qa, `Review: ${JSON.stringify(allComponents.slice(0, 8))}`)
       const qaComps = parseAIResponse(qaResult)
       
       if (qaComps.length >= allComponents.length) {
@@ -283,7 +291,8 @@ export default function App() {
         setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ✅ QA: Fixed to ${qaComps.length} components`])
       }
     } catch (err) {
-      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ⚠️ QA: ${err}`])
+      const errMsg = err instanceof Error ? err.message : String(err)
+      setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeTime()} ⚠️ QA: ${errMsg}`])
     }
     
     // Fallback if needed
@@ -292,53 +301,72 @@ export default function App() {
       allComponents.push(...fallback())
     }
     
-    setSpec(buildSpec(allComponents))
+    const finalSpec = buildSpec(allComponents)
+    setSpec(finalSpec)
     setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} ✅ Done: ${allComponents.length} components`])
     setPhase('Complete!')
     setIsGenerating(false)
   }
   
-  return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🎨 Pretext + JSON Render + A2UI
-          </h1>
-          <div className="flex items-center gap-3">
-            <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
-            <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium disabled:opacity-50">
-              🔄 Regenerate
-            </button>
-          </div>
+  // Error boundary content
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold text-red-400 mb-4">Error</h1>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-purple-600 rounded-lg">
+            Reload
+          </button>
         </div>
-      </header>
-      
-      <main className="pt-16">
-        {isGenerating ? (
-          <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-            <div className="max-w-2xl w-full px-4">
-              <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                🐝 AI Swarm Building...
-              </h2>
-              <p className="text-center text-gray-400 mb-4">{phase}</p>
-              <div className="bg-black/50 rounded-lg p-4 border border-white/10">
-                <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
-                  {logs.join('\n') || 'Starting...'}
-                </pre>
-              </div>
+      </div>
+    )
+  }
+  
+  return (
+    <VisibilityProvider registry={registry}>
+      <div className="min-h-screen bg-[#0a0a0f] text-white">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 px-4 py-3">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              🎨 Pretext + JSON Render + A2UI
+            </h1>
+            <div className="flex items-center gap-3">
+              <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className="text-gray-400 text-sm">{isGenerating ? phase : 'Ready'}</span>
+              <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-medium disabled:opacity-50">
+                🔄 Regenerate
+              </button>
             </div>
           </div>
-        ) : spec ? (
-          <div className="p-8 max-w-6xl mx-auto space-y-8">
-            <Renderer spec={spec} registry={registry} />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
-            No components
-          </div>
-        )}
-      </main>
-    </div>
+        </header>
+        
+        <main className="pt-16">
+          {isGenerating ? (
+            <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+              <div className="max-w-2xl w-full px-4">
+                <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  🐝 AI Swarm Building...
+                </h2>
+                <p className="text-center text-gray-400 mb-4">{phase}</p>
+                <div className="bg-black/50 rounded-lg p-4 border border-white/10">
+                  <pre className="text-xs text-purple-400 whitespace-pre-wrap font-mono max-h-48 overflow-auto">
+                    {logs.join('\n') || 'Starting...'}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          ) : spec ? (
+            <div className="p-8 max-w-6xl mx-auto space-y-8">
+              <Renderer spec={spec} registry={registry} />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-[calc(100vh-64px)] text-gray-500">
+              No components generated
+            </div>
+          )}
+        </main>
+      </div>
+    </VisibilityProvider>
   )
 }
