@@ -227,100 +227,92 @@ export default function App() {
   useEffect(() => {
     if (!initRef.current) {
       initRef.current = true
-      generateWebsite('Generate a DEMO PAGE for Pretext AI UI Toolkit with: header, hero section with gradient headline, features section with 4 cards, demo section, pricing section with 3 tiers, CTA, and footer')
+      swarmBuild('Generate a DEMO PAGE for Pretext AI UI Toolkit with: header, hero section with gradient headline, features section with 4 cards, demo section, pricing section with 3 tiers, CTA, and footer')
     }
   }, [])
   
-  async function generateWebsite(prompt: string) {
+  // Swarm: Multiple specialized AIs build different sections
+  async function swarmBuild(prompt: string) {
     setIsGenerating(true)
-    setAiThinking('🚀 9B + 🎯 27B running in parallel...\n')
+    setAiThinking('🐝 AI Council Building Website...\n\n')
     setComponents([])
     setErrors([])
     
-    const systemPrompt = `You are a UI generator. Create a DEMO PAGE showcasing AI UI toolkit capabilities.
-
-## MUST GENERATE (every time):
-1. HEADER: "🎨 Pretext AI UI Toolkit" logo on left, nav links on right (Home, Docs, GitHub, Demo)
-2. HERO: Large gradient headline "Build UI with AI", subtitle "Zero DOM Reflow • Streaming • Canvas Rendering • Pretext", big CTA button "Try Demo"
-3. FEATURES SECTION: Title "Why Pretext AI UI?", 4 feature CARDS
-4. TOOLKIT SECTION: Title "The Toolkit", 3 cards (Components, Effects, AI Integration)
-5. HOW IT WORKS: 3 STEP cards (Describe, Generate, Preview)
-6. STATS: 4 stat boxes (50+ Components, 0ms Reflow, 100% Free, Live Preview)
-7. CTA: Centered gradient button
-8. FOOTER: GitHub link + copyright
-
-## RULES:
-- Canvas: 1200x800px
-- Dark theme: #0a0a0f
-- Accents: #8b5cf6, #ec4899, #06b6d4
-- Types: header(60px), text, button(180x50), card(280x180)
-
-Output ONLY valid JSON array:`
-
-    // Run both models in PARALLEL
-    const [fastResult, qualityResult] = await Promise.all([
-      // Fast 9B generation
-      fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LM_STUDIO_KEY}` },
-        body: JSON.stringify({
-          model: 'qwen3.5-9b',
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
-          stream: true,
-          max_tokens: 2048
-        })
-      }),
-      // Quality 27B enhancement  
-      fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LM_STUDIO_KEY}` },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: systemPrompt + '\n\nIMPORTANT: Generate the most polished, impressive version possible.' },
-            { role: 'user', content: prompt }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-    ])
+    // Swarm roles - each builds a section
+    const swarmRoles = [
+      { role: 'architect', model: 'qwen3.5-9b', task: 'HEADER + HERO', 
+        prompt: 'Create JSON for header (logo "🎨 Pretext AI") and hero section (headline "Build UI with AI", subtitle, CTA button). Only output JSON array.' },
+      { role: 'designer', model: 'qwen3.5-9b', task: 'FEATURES', 
+        prompt: 'Create JSON for 4 feature cards: "⚡ Zero Reflow", "🎨 Canvas Rendering", "🤖 AI Controlled", "✨ Streaming". Only output JSON array.' },
+      { role: 'frontend', model: 'qwen3.5-27b', task: 'TOOLKIT + HOW IT WORKS', 
+        prompt: 'Create JSON for toolkit section (3 cards: Components, Effects, AI) and How It Works (3 steps). Only output JSON array.' },
+      { role: 'qa', model: 'qwen3.5-27b', task: 'STATS + CTA + FOOTER', 
+        prompt: 'Create JSON for stats (4 boxes), CTA button, and footer with GitHub link. Only output JSON array.' }
+    ]
     
-    // Process quality 27B result (use this as final)
-    const qualityReader = qualityResult.body?.getReader()
-    const decoder = new TextDecoder()
-    let full = ''
-    
-    while (true) {
-      const { done, value } = await qualityReader.read()
-      if (done) break
-      
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n')
-      
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const dataStr = line.slice(6)
-          if (dataStr === '[DONE]') continue
-          try {
-            const data = JSON.parse(dataStr)
-            if (data.choices?.[0]?.delta?.content) {
-              full += data.choices[0].delta.content
-              setAiThinking(`🎯 27B Quality:\n${full.slice(-150)}\n\n✅ Done!`)
-              
-              const match = full.match(/\[[\s\S]*\]/)
-              if (match) {
-                try {
-                  const parsed = JSON.parse(match[0])
-                  setComponents(parsed)
-                } catch {}
-              }
+    // Run all swarm members in parallel!
+    const allResults = await Promise.all(
+      swarmRoles.map(async (member) => {
+        setAiThinking(prev => prev + `🤖 ${member.role.toUpperCase()} (${member.model}): Building ${member.task}...\n`)
+        
+        const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${LM_STUDIO_KEY}` },
+          body: JSON.stringify({
+            model: member.model,
+            messages: [
+              { role: 'system', content: `You are a ${member.role} AI. ${member.prompt}
+
+RULES:
+- JSON array only, no markdown
+- Components: header(60px), text, button(180x50), card(280x180)
+- Dark theme: #0a0a0f, Accents: #8b5cf6, #ec4899, #06b6d4` },
+              { role: 'user', content: prompt }
+            ],
+            stream: true,
+            max_tokens: 1024
+          })
+        })
+        
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        let full = ''
+        
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          for (const line of chunk.split('\n')) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(line.slice(6))
+                if (data.choices?.[0]?.delta?.content) {
+                  full += data.choices[0].delta.content
+                }
+              } catch {}
             }
-          } catch {}
+          }
         }
-      }
-    }
+        
+        // Extract JSON
+        const match = full.match(/\[[\s\S]*\]/)
+        if (match) {
+          try {
+            const parsed = JSON.parse(match[0])
+            setAiThinking(prev => prev + `✅ ${member.role.toUpperCase()}: Done!\n`)
+            return parsed
+          } catch {
+            setAiThinking(prev => prev + `⚠️ ${member.role.toUpperCase()}: Parse error\n`)
+          }
+        }
+        return []
+      })
+    )
     
+    // Merge all results
+    const allComponents = allResults.flat()
+    setComponents(allComponents)
+    setAiThinking(`✅ AI Council Complete!\n${allComponents.length} components built by swarm`)
     setIsGenerating(false)
   }
   
@@ -328,7 +320,7 @@ Output ONLY valid JSON array:`
   function handleClick(id: string) {
     const comp = components.find(c => c.id === id)
     if (comp?.onClick) {
-      generateWebsite(comp.onClick)
+      swarmBuild(comp.onClick)
     }
   }
   
@@ -367,7 +359,7 @@ Output ONLY valid JSON array:`
             
             {/* Regenerate */}
             <button
-              onClick={() => generateWebsite('Generate a beautiful AI toolkit website with header "🎨 Pretext AI", hero section, feature cards, pricing, and footer')}
+              onClick={() => swarmBuild('Generate a beautiful AI toolkit website with header "🎨 Pretext AI", hero section, feature cards, pricing, and footer')}
               disabled={isGenerating}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium disabled:opacity-50"
             >
