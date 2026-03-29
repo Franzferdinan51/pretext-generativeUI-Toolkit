@@ -5,11 +5,13 @@
   <img src="https://img.shields.io/badge/React-18-black?style=flat-square" alt="React 18">
   <img src="https://img.shields.io/badge/TypeScript-5-red?style=flat-square" alt="TypeScript 5">
   <img src="https://img.shields.io/badge/LM_Studio-Local_AI-green?style=flat-square" alt="LM Studio">
+  <img src="https://img.shields.io/badge/Auto_Healing-Enabled-purple?style=flat-square" alt="Auto Healing">
 </p>
 
 <p align="center">
-  <strong>🎨 AI-Controlled Generative UI with Pretext</strong><br>
-  AI is the runtime engine. Character-level canvas rendering with Pretext. Every component, every interaction, controlled by AI.
+  <strong>🎨 AI-Controlled Generative UI with Auto-Healing</strong><br>
+  AI is the runtime engine. Character-level canvas rendering with Pretext.<br>
+  Every component, every interaction — controlled by AI. Errors auto-healed.
 </p>
 
 ---
@@ -20,11 +22,52 @@
 # Install dependencies
 npm install
 
-# Start development server
+# Start development server (Demo mode)
 npm run dev
+
+# Start with Auto-Healing demo
+npm run dev -- --port 3456
+# Then visit: http://localhost:3456/?mode=autoheal
 ```
 
-Open your browser to `http://localhost:3456` - AI builds the entire UI on load!
+---
+
+## 🔧 Auto-Healing Architecture
+
+**The key innovation**: When errors occur, AI automatically detects and fixes them in real-time.
+
+### How Auto-Healing Works:
+
+```
+User loads page
+    ↓
+AI generates entire UI as JSON (streams live)
+    ↓
+Pretext measures all text positions (zero DOM reflow!)
+    ↓
+Canvas renders EVERYTHING
+    ↓
+Error occurs (parse, network, render, etc.)
+    ↓
+Error Boundary catches it
+    ↓
+AI receives error context
+    ↓
+AI generates fix (JSON patches)
+    ↓
+Components updated automatically
+    ↓
+No page refresh! User never notices.
+```
+
+### Error Types Handled:
+
+| Type | Description | Auto-heal |
+|------|-------------|-----------|
+| `react` | React render error | ✅ Yes |
+| `canvas` | Canvas draw error | ✅ Yes |
+| `network` | Network/API error | ✅ Yes |
+| `parse` | JSON parse error | ✅ Yes |
 
 ---
 
@@ -58,12 +101,36 @@ Pretext re-measures → Canvas re-renders
 - ✨ **All interactions** - hover, click, focus
 - 🖱️ **Mouse tracking** - AI knows cursor position
 - 🔄 **Real-time updates** - UI changes as AI thinks
+- 🩹 **Error recovery** - AI fixes its own mistakes
 
-### Pretext Integration:
-- **Character-level positioning** - exact pixel control
-- **Zero DOM reflow** - text measured without touching the DOM
-- **Pre-calculated heights** - smooth streaming animations
-- **Canvas rendering** - everything drawn, not DOM elements
+---
+
+## 🤖 Agent-Friendly API
+
+Designed for AI agents to control UI programmatically:
+
+```typescript
+import { useAutoHealingUI } from './ai/AutoHealingUI'
+
+const ui = useAutoHealingUI({
+  lmStudioUrl: 'http://100.116.54.125:1234',
+  lmStudioKey: 'sk-lm-...',
+  model: 'qwen3.5-27b',
+  autoHeal: true,
+  maxRetries: 3
+})
+
+// Generate UI
+await ui.generateUI('Create a dashboard with charts')
+
+// Access state
+const { components, errors, aiThinking, isHealing } = ui
+
+// Manual control
+ui.updateComponent('header-1', { content: 'New Title' })
+ui.removeComponent('broken-card')
+ui.forceHeal()
+```
 
 ---
 
@@ -88,6 +155,7 @@ Pretext re-measures → Canvas re-renders
 │   • Handles all interactions            │
 │   • Updates UI state in real-time       │
 │   • Streams thinking process             │
+│   • AUTO-HEALS ERRORS ✨                │
 └─────────────────────────────────────────┘
 ```
 
@@ -98,31 +166,33 @@ Pretext re-measures → Canvas re-renders
 ```
 pretext-generative-ui-toolkit/
 ├── src/
-│   ├── pretext/          # Pretext text measurement
+│   ├── ai/                   # AI Auto-Healing System ⭐
+│   │   ├── AutoHealingUI.tsx # Core auto-healing hook
+│   │   └── index.ts
+│   ├── pretext/              # Pretext text measurement
 │   │   ├── PretextCanvas.tsx
 │   │   └── PretextStream.tsx
-│   ├── components/       # Smart UI components
+│   ├── components/           # Smart UI components
 │   │   ├── SmartMessage.tsx
 │   │   ├── VoteCard.tsx
-│   │   ├── CodeBlock.tsx
 │   │   └── ...
-│   ├── effects/          # Visual effects
+│   ├── effects/              # Visual effects
 │   │   ├── ParticleEmitter.tsx
 │   │   ├── GradientMesh.tsx
 │   │   └── GlowBorder.tsx
-│   ├── magicui/          # MagicUI components
+│   ├── magicui/              # MagicUI components
 │   │   ├── AnimatedGrid.tsx
 │   │   ├── BentoGrid.tsx
 │   │   └── WordRotate.tsx
-│   ├── streaming/         # Streaming components
+│   ├── streaming/            # Streaming components
 │   │   ├── StreamableText.tsx
 │   │   └── LoadingStates.tsx
-│   ├── ai/               # AI components
-│   │   ├── AIGenerator.tsx
-│   │   └── ContentDetector.tsx
-│   └── webui/            # Web UI demo
-│       └── App.tsx       # Main AI-controlled app
-├── docs/                 # Documentation
+│   ├── webui/                # Auto-Healing Demo ⭐
+│   │   └── App.tsx
+│   └── skills/               # OpenClaw Skills
+│       └── generative-ui/
+│           └── SKILL.md
+├── docs/
 └── package.json
 ```
 
@@ -148,7 +218,7 @@ for (const line of measured.lines) {
 }
 ```
 
-### AI as Runtime Engine
+### AI as Runtime Engine with Auto-Healing
 
 ```typescript
 // AI generates component JSON
@@ -164,17 +234,31 @@ const response = await fetch('/api/lm-studio/v1/chat/completions', {
 for (const component of aiOutput.components) {
   renderToCanvas(component)
 }
+
+// Errors? AI heals automatically!
+ui.errors.forEach(error => {
+  // Auto-heal triggers if autoHeal: true
+})
 ```
 
-### Mouse Tracking
+### Error Recovery Flow
 
 ```typescript
-// Track mouse position
-const handleMouseMove = (e: MouseEvent) => {
-  const pos = { x: e.clientX, y: e.clientY }
-  // Send to AI for context
-  ai.updateContext({ mousePos: pos })
-}
+// 1. Error occurs (parse error, network failure, etc.)
+// 2. ErrorBoundary catches it
+<UIErrorBoundary onError={(e) => ui.reportError(e)}>
+  <CanvasRenderer ... />
+</UIErrorBoundary>
+
+// 3. AI receives error context
+const systemPrompt = `Fix this error: ${error.message}
+Current components: ${JSON.stringify(components)}`
+
+// 4. AI generates fix
+await healError(error)
+
+// 5. Components updated - no refresh!
+setComponents(fixedComponents)
 ```
 
 ---
@@ -194,6 +278,7 @@ const handleMouseMove = (e: MouseEvent) => {
 
 ## 📖 Documentation
 
+- [Auto-Healing Guide](src/skills/generative-ui/SKILL.md) - Full auto-healing documentation
 - [Pretext Guide](docs/PRETEXT_GUIDE.md) - Deep dive into Pretext
 - [Components](docs/COMPONENTS.md) - Component catalog
 - [AI Integration](docs/AI_INTEGRATION.md) - AI setup guide
@@ -246,5 +331,6 @@ MIT License
 
 <p align="center">
   Built with ❤️ using Pretext, React, Canvas, and AI<br>
+  <strong>🩹 Auto-Healing enabled</strong><br>
   <a href="https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit">GitHub</a>
 </p>

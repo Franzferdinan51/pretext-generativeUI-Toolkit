@@ -1,53 +1,15 @@
 /**
- * AI module exports
+ * AI Module - Auto-healing generative UI
  */
 
 export {
-  detectContentType,
-  detectMixedContent,
-  extractStructuredData,
-  getContentTypeColor,
-  getContentTypeIcon,
-  type ContentType,
-  type DetectionResult
-} from './ContentDetector'
-
-export {
-  AIGenerator,
-  generateComponentProps,
-  useAIGeneration,
-  type GeneratorOptions,
-  type GeneratedComponent,
-  type AIGeneratorProps
-} from './AIGenerator'
-
-export {
-  LayoutOptimizer,
-  analyzeLayout,
-  getBestLayout,
-  calculateOptimalColumns,
-  useLayoutOptimizer,
-  type LayoutSuggestion,
-  type LayoutContext,
-  type LayoutOptimizerProps
-} from './LayoutOptimizer'
-
-export {
-  ModeSelector,
-  AutoModeSelector,
-  detectOptimalMode,
-  getModeOption,
-  useModeSelector,
-  type DeliberationMode,
-  type ModeOption,
-  type ModeSelectorProps
-} from './ModeSelector'
-
-export {
-  CouncilorSelector,
-  selectCouncilorsForContext,
-  useCouncilorSelector,
-  COUNCILOR_ARCHETYPES,
-  type Councilor,
-  type CouncilorSelectorProps
-} from './CouncilorSelector'
+  useAutoHealingUI,
+  useAutoHealingUIDefault,
+  UIErrorBoundary,
+  CanvasRenderer,
+  defaultConfig,
+  type UIComponent,
+  type ErrorReport,
+  type AutoHealingConfig,
+  type CanvasRendererProps
+} from './AutoHealingUI'

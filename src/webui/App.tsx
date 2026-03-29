@@ -1,603 +1,415 @@
-// TRUE GENERATIVE UI - AI CONTROLS EVERYTHING
-// Pretext for zero-reflow text, Canvas for rendering, AI as runtime engine
+/**
+ * Auto-Healing Generative UI Demo
+ * 
+ * This app demonstrates AI-powered generative UI with automatic error recovery.
+ * The AI generates UI components, renders them on canvas, and automatically
+ * heals any errors that occur.
+ */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  useAutoHealingUI,
+  UIErrorBoundary,
+  CanvasRenderer,
+  UIComponent,
+  ErrorReport
+} from '../ai/AutoHealingUI'
 
-const LM_STUDIO_URL = '/api/lm-studio'
-const LM_STUDIO_KEY = 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW'
+// ============================================================================
+// TYPES
+// ============================================================================
 
-// ============ TYPES ============
-interface Position { x: number; y: number }
-interface UIStyle { background?: string; color?: string; fontSize?: string; borderRadius?: string; padding?: string }
-interface UIComponent {
+interface ChatMessage {
   id: string
-  type: 'text' | 'button' | 'card' | 'input' | 'image' | 'container' | 'header' | 'list'
+  role: 'user' | 'assistant'
   content: string
-  x: number; y: number; width: number; height: number
-  style: UIStyle
-  children?: UIComponent[]
-  items?: string[]
-  onClick?: string  // AI prompt to execute on click
-  visible: boolean
+  timestamp: number
 }
-interface AIGenerator {
-  state: {
-    components: UIComponent[]
-    mousePos: Position
-    focusedComponent: string | null
-    history: UIComponent[][]
+
+// ============================================================================
+// STYLES
+// ============================================================================
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    backgroundColor: '#0a0a0f',
+    color: '#ffffff',
+    fontFamily: 'Inter, system-ui, sans-serif'
+  },
+  header: {
+    padding: '16px 24px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  main: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 400px',
+    height: 'calc(100vh - 65px)'
+  },
+  canvasArea: {
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px'
+  },
+  canvas: {
+    flex: 1,
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.1)',
+    overflow: 'hidden'
+  },
+  sidebar: {
+    borderLeft: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex',
+    flexDirection: 'column' as const
+  },
+  chatArea: {
+    flex: 1,
+    overflow: 'auto',
+    padding: '16px'
+  },
+  inputArea: {
+    padding: '16px',
+    borderTop: '1px solid rgba(255,255,255,0.1)'
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px',
+    backgroundColor: '#1a1a2e',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '8px',
+    color: '#ffffff',
+    fontSize: '14px',
+    outline: 'none'
+  },
+  thinkingArea: {
+    padding: '12px 16px',
+    backgroundColor: '#1a1a2e',
+    borderTop: '1px solid rgba(255,255,255,0.1)',
+    fontFamily: 'monospace',
+    fontSize: '12px',
+    color: '#8b5cf6',
+    maxHeight: '200px',
+    overflow: 'auto'
+  },
+  errorBadge: {
+    padding: '4px 8px',
+    backgroundColor: 'rgba(239,68,68,0.2)',
+    color: '#ef4444',
+    borderRadius: '4px',
+    fontSize: '12px'
+  },
+  successBadge: {
+    padding: '4px 8px',
+    backgroundColor: 'rgba(34,197,94,0.2)',
+    color: '#22c55e',
+    borderRadius: '4px',
+    fontSize: '12px'
+  },
+  button: {
+    padding: '10px 20px',
+    backgroundColor: '#8b5cf6',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 600
+  },
+  secondaryButton: {
+    padding: '10px 20px',
+    backgroundColor: '#2d2d5f',
+    color: '#ffffff',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  message: {
+    padding: '12px 16px',
+    borderRadius: '12px',
+    marginBottom: '8px',
+    maxWidth: '85%'
+  },
+  userMessage: {
+    backgroundColor: '#8b5cf6',
+    marginLeft: 'auto'
+  },
+  assistantMessage: {
+    backgroundColor: '#1e1e3f'
   }
-  addComponent: (comp: UIComponent) => void
-  updateComponent: (id: string, updates: Partial<UIComponent>) => void
-  removeComponent: (id: string) => void
-  setMousePos: (pos: Position) => void
-  generateUI: (prompt: string) => Promise<void>
 }
 
-// ============ PRETEXT CANVAS ENGINE ============
-function PretextCanvas({ 
-  text, font = '16px Inter', x = 0, y = 0, maxWidth = 400, lineHeight = 24, color = '#fff' 
-}: { 
-  text: string; font?: string; x?: number; y?: number; maxWidth?: number; lineHeight?: number; color?: string 
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !text) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    // Pretext: measure WITHOUT touching DOM
-    const prepared = prepare(text, font)
-    const measured = layout(prepared, maxWidth, lineHeight)
-    
-    canvas.width = maxWidth
-    canvas.height = measured.height + y + 20
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.font = font
-    ctx.fillStyle = color
-    
-    for (const line of measured.lines) {
-      ctx.fillText(line.text, x, y + line.y + lineHeight)
-    }
-  }, [text, font, maxWidth, lineHeight, color, x, y])
-  
-  return <canvas ref={canvasRef} className="block" />
-}
+// ============================================================================
+// COMPONENT: ErrorDisplay
+// ============================================================================
 
-// ============ STREAMING TEXT WITH PRETEXT ============
-function StreamingPretextText({ 
-  text, font = '18px Inter', maxWidth = 500, color = '#fff', onComplete 
-}: { 
-  text: string; font?: string; maxWidth?: number; color?: string; onComplete?: () => void 
-}) {
-  const [displayed, setDisplayed] = useState('')
-  const [height, setHeight] = useState(50)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  
-  // Pre-calculate final height with Pretext
-  useEffect(() => {
-    if (!text) return
-    const prepared = prepare(text, font)
-    const measured = layout(prepared, maxWidth, 28)
-    setHeight(measured.height + 40)
-  }, [text, font, maxWidth])
-  
-  // Stream character by character
-  useEffect(() => {
-    if (!text) { setDisplayed(''); return }
-    setDisplayed('')
-    let i = 0
-    const interval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayed(text.slice(0, i + 1))
-        i++
-      } else {
-        clearInterval(interval)
-        onComplete?.()
-      }
-    }, 15)
-    return () => clearInterval(interval)
-  }, [text, onComplete])
-  
-  // Render with Pretext (no DOM reflow!)
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !displayed) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    const prepared = prepare(displayed, font)
-    const measured = layout(prepared, maxWidth, 28)
-    
-    canvas.width = maxWidth
-    canvas.height = height
-    
-    ctx.clearRect(0, 0, maxWidth, height)
-    ctx.font = font
-    ctx.fillStyle = color
-    
-    for (const line of measured.lines) {
-      ctx.fillText(line.text, 0, line.y + 28)
-    }
-  }, [displayed, font, maxWidth, height, color])
-  
-  return <canvas ref={canvasRef} className="block" />
-}
-
-// ============ AI UI RENDERER ============
-// Canvas-based renderer controlled by AI
-function AIUIcanvas({ 
-  components, mousePos, onInteract 
-}: { 
-  components: UIComponent[]
-  mousePos: Position
-  onInteract: (componentId: string, action: string) => void 
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  
-  // Render all components to canvas
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    
-    canvas.width = 1200
-    canvas.height = 800
-    
-    // Clear with background
-    ctx.fillStyle = '#0a0a0f'
-    ctx.fillRect(0, 0, 1200, 800)
-    
-    // Render each component
-    for (const comp of components) {
-      if (!comp.visible) continue
-      
-      const isHovered = hoveredId === comp.id
-      const isMouseOver = mousePos.x >= comp.x && mousePos.x <= comp.x + comp.width &&
-                          mousePos.y >= comp.y && mousePos.y <= comp.y + comp.height
-      
-      switch (comp.type) {
-        case 'container':
-          ctx.fillStyle = comp.style.background || 'rgba(255,255,255,0.05)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height, 12)
-          ctx.fill()
-          if (isHovered) {
-            ctx.strokeStyle = '#8b5cf6'
-            ctx.lineWidth = 2
-            ctx.stroke()
-          }
-          break
-          
-        case 'header':
-          ctx.fillStyle = 'rgba(0,0,0,0.5)'
-          ctx.fillRect(comp.x, comp.y, comp.width, comp.height || 60)
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)'
-          ctx.strokeRect(comp.x, comp.y, comp.width, comp.height || 60)
-          break
-          
-        case 'text':
-          const fontSize = parseInt(comp.style.fontSize || '16')
-          ctx.font = `${fontSize}px Inter`
-          ctx.fillStyle = comp.style.color || '#fff'
-          
-          // Use Pretext for precise text layout!
-          const prepared = prepare(comp.content, `${fontSize}px Inter`)
-          const measured = layout(prepared, comp.width, fontSize * 1.5)
-          
-          for (const line of measured.lines) {
-            ctx.fillText(line.text, comp.x, comp.y + line.y + fontSize)
-          }
-          break
-          
-        case 'button':
-          const btnBg = isHovered ? '#7c3aed' : '#8b5cf6'
-          ctx.fillStyle = btnBg
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
-          ctx.fill()
-          
-          if (isHovered) {
-            ctx.shadowColor = '#8b5cf6'
-            ctx.shadowBlur = 20
-            ctx.fill()
-            ctx.shadowBlur = 0
-          }
-          
-          ctx.font = 'bold 14px Inter'
-          ctx.fillStyle = '#fff'
-          ctx.textAlign = 'center'
-          ctx.fillText(comp.content, comp.x + comp.width / 2, comp.y + comp.height / 2 + 5)
-          ctx.textAlign = 'left'
-          break
-          
-        case 'card':
-          ctx.fillStyle = comp.style.background || 'rgba(255,255,255,0.08)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 150, 12)
-          ctx.fill()
-          ctx.strokeStyle = isHovered ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)'
-          ctx.lineWidth = isHovered ? 2 : 1
-          ctx.stroke()
-          
-          // Card content
-          ctx.font = 'bold 18px Inter'
-          ctx.fillStyle = '#fff'
-          ctx.fillText(comp.content.slice(0, 30), comp.x + 16, comp.y + 30)
-          break
-          
-        case 'input':
-          ctx.fillStyle = 'rgba(255,255,255,0.1)'
-          ctx.beginPath()
-          ctx.roundRect(comp.x, comp.y, comp.width, comp.height || 44, 8)
-          ctx.fill()
-          ctx.strokeStyle = isHovered ? '#8b5cf6' : 'rgba(255,255,255,0.2)'
-          ctx.stroke()
-          ctx.font = '14px Inter'
-          ctx.fillStyle = 'rgba(255,255,255,0.5)'
-          ctx.fillText(comp.content || 'Type here...', comp.x + 12, comp.y + comp.height / 2 + 5)
-          break
-      }
-      
-      // Draw mouse cursor indicator
-      if (isMouseOver && comp.type === 'button') {
-        canvas.style.cursor = 'pointer'
-      } else {
-        canvas.style.cursor = 'default'
-      }
-    }
-  }, [components, mousePos, hoveredId])
-  
-  // Handle mouse events
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    // Find hovered component
-    let found: string | null = null
-    for (const comp of components) {
-      if (!comp.visible) continue
-      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
-        found = comp.id
-        break
-      }
-    }
-    setHoveredId(found)
-  }, [components])
-  
-  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    
-    for (const comp of components) {
-      if (!comp.visible) continue
-      if (x >= comp.x && x <= comp.x + comp.width && y >= comp.y && y <= comp.y + comp.height) {
-        onInteract(comp.id, comp.onClick || `clicked_${comp.type}`)
-        break
-      }
-    }
-  }, [components, onInteract])
+function ErrorDisplay({ errors }: { errors: ErrorReport[] }) {
+  if (errors.length === 0) return null
   
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full rounded-xl border border-white/10"
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
-    />
-  )
-}
-
-// ============ AI THINKING DISPLAY ============
-function AIThinking({ text, color = '#c084fc' }: { text: string; color?: string }) {
-  return (
-    <div className="bg-black/50 rounded-xl border border-white/10 p-4 h-40 overflow-auto">
-      <pre className="text-xs font-mono whitespace-pre-wrap" style={{ color }}>
-        {text || '🤖 AI thinking...'}
-      </pre>
+    <div className="space-y-2 mb-4">
+      {errors.map((error, i) => (
+        <div key={i} style={{
+          ...styles.errorBadge,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span>⚠️</span>
+          <span>[{error.type}] {error.message}</span>
+        </div>
+      ))}
     </div>
   )
 }
 
-// ============ MAIN APP ============
-export default function App() {
-  const [isGenerating, setIsGenerating] = useState(true)
-  const [aiThinking, setAiThinking] = useState('')
-  const [components, setComponents] = useState<UIComponent[]>([])
-  const [mousePos, setMousePos] = useState<Position>({ x: 0, y: 0 })
-  const [history, setHistory] = useState<UIComponent[][]>([[]])
-  
-  // Generate initial UI on mount
-  useEffect(() => {
-    generateInitialUI()
-  }, [])
-  
-  async function generateInitialUI() {
-    setIsGenerating(true)
-    setAiThinking('')
-    setComponents([])
-    
-    const systemPrompt = `You are a UI generator using Pretext and Canvas. Generate UI by outputting JSON.
+// ============================================================================
+// COMPONENT: ChatMessage
+// ============================================================================
 
-Available components:
-- header: {id, type:"header", x, y, width, height:60, style:{background}}
-- text: {id, type:"text", content:"...", x, y, width, style:{color, fontSize}}
-- button: {id, type:"button", content:"...", x, y, width:150, height:44, onClick:"prompt for AI", style:{}}
-- card: {id, type:"card", content:"...", x, y, width:300, height:150, style:{background}, children}
-- input: {id, type:"input", content:"placeholder", x, y, width, height:44}
-
-Rules:
-- All positions in pixels from top-left (0,0)
-- IDs must be unique
-- Generate a complete UI with 5-15 components
-- Include buttons that ON CLICK send prompts to AI (set onClick field with what AI should do)
-- Make it look like a modern AI UI toolkit landing page
-- Include: header with logo, hero text, feature cards, CTA buttons
-- Use dark theme colors: background #0a0a0f, accents #8b5cf6, #ec4899, #06b6d4
-
-Output ONLY valid JSON array, no markdown:
-[{"id":"1","type":"header",...}, {...}]`
-
-    try {
-      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: 'Generate a beautiful AI UI toolkit landing page with Pretext canvas rendering' }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-      
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullResponse = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr === '[DONE]') continue
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.choices?.[0]?.delta?.content) {
-                const token = data.choices[0].delta.content
-                fullResponse += token
-                setAiThinking(prev => prev + token)
-                
-                // Try to parse JSON
-                const jsonMatch = fullResponse.match(/\[.*\]/s)
-                if (jsonMatch) {
-                  try {
-                    const parsed = JSON.parse(jsonMatch[0])
-                    setComponents(parsed)
-                    setHistory(h => [...h, parsed])
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-      
-      // Final parse
-      const jsonMatch = fullResponse.match(/\[.*\]/s)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        setComponents(parsed)
-        setHistory(h => [...h, parsed])
-      }
-      
-    } catch (err) {
-      console.error(err)
-      setAiThinking('❌ Error connecting to AI')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-  
-  // Handle AI interaction
-  async function handleInteraction(componentId: string, action: string) {
-    const comp = components.find(c => c.id === componentId)
-    setAiThinking(prev => prev + `\n\n[User ${action} on ${comp?.content || componentId}]`)
-    
-    const systemPrompt = `You are controlling a Canvas UI. The user just interacted with a component.
-Current UI has these components: ${JSON.stringify(components.map(c => ({id: c.id, type: c.type, content: c.content})))}
-
-The user ${action}.
-Generate a JSON array of components to UPDATE the UI based on this interaction. 
-You can: add new components, update existing ones (change content, position, style), or remove components.
-Keep IDs consistent for components you want to update.
-
-Output ONLY valid JSON array:`
-
-    try {
-      const response = await fetch(`${LM_STUDIO_URL}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${LM_STUDIO_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'qwen3.5-27b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: action }
-          ],
-          stream: true,
-          max_tokens: 2048
-        })
-      })
-      
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullResponse = ''
-      
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6)
-            if (dataStr === '[DONE]') continue
-            try {
-              const data = JSON.parse(dataStr)
-              if (data.choices?.[0]?.delta?.content) {
-                const token = data.choices[0].delta.content
-                fullResponse += token
-                setAiThinking(prev => prev + token)
-                
-                const jsonMatch = fullResponse.match(/\[.*\]/s)
-                if (jsonMatch) {
-                  try {
-                    const parsed = JSON.parse(jsonMatch[0])
-                    setComponents(parsed)
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-      
-      const jsonMatch = fullResponse.match(/\[.*\]/s)
-      if (jsonMatch) {
-        setComponents(JSON.parse(jsonMatch[0]))
-      }
-      
-    } catch (err) {
-      console.error(err)
-    }
-  }
-  
-  // Track mouse position
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = e.currentTarget?.getBoundingClientRect()
-    if (rect) {
-      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }
-  }, [])
+function ChatMessageComponent({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'user'
   
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white" onMouseMove={handleMouseMove}>
-      {/* Header Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur border-b border-white/10 p-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            🎨 Generative UI with Pretext
-          </h1>
+    <div style={{
+      ...styles.message,
+      ...(isUser ? styles.userMessage : styles.assistantMessage),
+      alignSelf: isUser ? 'flex-end' : 'flex-start'
+    }}>
+      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+      <span className="text-xs opacity-60 mt-1 block">
+        {new Date(message.timestamp).toLocaleTimeString()}
+      </span>
+    </div>
+  )
+}
+
+// ============================================================================
+// MAIN APP
+// ============================================================================
+
+export function AutoHealingApp() {
+  const [input, setInput] = useState('')
+  const [chat, setChat] = useState<ChatMessage[]>([])
+  
+  const ui = useAutoHealingUI({
+    lmStudioUrl: 'http://100.116.54.125:1234',
+    lmStudioKey: 'sk-lm-zO7bswIc:WkHEMTUfVNkq5WYNyFOW',
+    model: 'qwen3.5-27b',
+    autoHeal: true,
+    maxRetries: 3,
+    onThinking: (thinking) => {
+      // Update last assistant message with thinking
+      setChat(prev => {
+        if (prev.length === 0) return prev
+        const last = prev[prev.length - 1]
+        if (last.role === 'assistant') {
+          return [...prev.slice(0, -1), { ...last, content: thinking }]
+        }
+        return prev
+      })
+    },
+    onComponentUpdate: (components) => {
+      console.log('Components updated:', components.length)
+    }
+  })
+
+  // Generate initial UI
+  useEffect(() => {
+    if (!ui.isGenerating && ui.components.length === 0) {
+      ui.generateUI('Create a modern landing page hero section with a gradient background, a bold headline "AI-Powered UI", a subtitle, and a call-to-action button')
+    }
+  }, [])
+
+  // Handle submit
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || ui.isGenerating) return
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: Date.now()
+    }
+    setChat(prev => [...prev, userMessage])
+    setInput('')
+
+    // Generate UI based on user request
+    await ui.generateUI(input)
+  }, [input, ui])
+
+  // Handle component click
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = e.currentTarget
+    const rect = canvas.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    // Find clicked component
+    for (const comp of [...ui.components].reverse()) {
+      if (!comp.visible) continue
+      if (x >= comp.x && x <= comp.x + comp.width &&
+          y >= comp.y && y <= comp.y + comp.height) {
+        
+        if (comp.type === 'button' && comp.onClick) {
+          // Trigger action
+          const actionMsg: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Button clicked: ${comp.content}\n\nThis would trigger action: ${comp.onClick}`,
+            timestamp: Date.now()
+          }
+          setChat(prev => [...prev, actionMsg])
+        } else {
+          const infoMsg: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Clicked: ${comp.type} - "${comp.content}" at (${Math.round(x)}, ${Math.round(y)})`,
+            timestamp: Date.now()
+          }
+          setChat(prev => [...prev, infoMsg])
+        }
+        break
+      }
+    }
+  }, [ui.components])
+
+  return (
+    <UIErrorBoundary
+      onError={(error) => ui.reportError(error)}
+      fallback={
+        <div style={styles.container}>
+          <div style={styles.header}>
+            <h1 className="text-xl font-bold">⚠️ Error Boundary Active</h1>
+          </div>
+          <div style={{ padding: '24px' }}>
+            <p className="text-gray-400">Something went wrong. The AI is healing...</p>
+          </div>
+        </div>
+      }
+    >
+      <div style={styles.container}>
+        {/* Header */}
+        <div style={styles.header}>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">
-              Mouse: ({Math.round(mousePos.x)}, {Math.round(mousePos.y)})
-            </span>
-            <button 
-              onClick={() => { setComponents([]); generateInitialUI() }}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm"
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Auto-Healing Generative UI
+            </h1>
+            {ui.isHealing && (
+              <span style={styles.successBadge}>
+                🩹 Healing...
+              </span>
+            )}
+            {ui.isGenerating && (
+              <span style={styles.successBadge}>
+                ⚡ Generating...
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              style={styles.secondaryButton}
+              onClick={() => ui.clearComponents()}
             >
-              🔄 Regenerate
+              Clear
+            </button>
+            <button
+              style={styles.secondaryButton}
+              onClick={() => ui.forceHeal()}
+              disabled={ui.errors.length === 0}
+            >
+              Force Heal
             </button>
           </div>
         </div>
-      </div>
-      
-      {/* Main Content */}
-      <div className="pt-20 p-4">
-        {/* Loading State */}
-        {isGenerating && (
-          <div className="fixed inset-0 z-40 bg-[#0a0a0f] flex items-center justify-center">
-            <div className="text-center max-w-2xl">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4">
-                🤖 AI Building Your UI
-              </h2>
-              <p className="text-gray-400 mb-6">Generating components with Pretext...</p>
-              <AIThinking text={aiThinking} />
-              <div className="mt-4 animate-pulse text-purple-400">
-                {components.length} components generated
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* AI UI Canvas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-100px)]">
-          {/* Left: AI Thinking */}
-          <div className="space-y-4">
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${isGenerating ? 'bg-purple-500 animate-pulse' : 'bg-green-500'}`} />
-                AI Brain
-              </h3>
-              <AIThinking text={aiThinking} />
-            </div>
+
+        {/* Main Content */}
+        <div style={styles.main}>
+          {/* Canvas Area */}
+          <div style={styles.canvasArea}>
+            <ErrorDisplay errors={ui.errors} />
             
-            {/* Component List */}
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2">📋 Components ({components.length})</h3>
-              <div className="space-y-2 max-h-60 overflow-auto">
-                {components.map(comp => (
-                  <div key={comp.id} className="text-xs bg-white/5 p-2 rounded flex items-center gap-2">
-                    <span className="bg-purple-600 px-2 py-0.5 rounded text-white">{comp.type}</span>
-                    <span className="truncate flex-1">{comp.content?.slice(0, 20) || comp.id}</span>
-                    <span className="text-gray-600">({comp.x},{comp.y})</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Streaming Text Demo */}
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4">
-              <h3 className="text-sm font-medium mb-2">✨ Streaming with Pretext</h3>
-              <div className="bg-black/30 p-4 rounded">
-                <StreamingPretextText 
-                  text="This text streams character by character, measured precisely with Pretext for zero DOM reflow!"
-                  font="16px Inter"
-                  maxWidth={300}
-                  color="#c084fc"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Right: Canvas Preview */}
-          <div className="lg:col-span-2">
-            <div className="bg-black/30 rounded-xl border border-white/10 p-4 h-full">
-              <h3 className="text-sm font-medium mb-2">🎨 Canvas Preview (AI Controlled)</h3>
-              <AIUIcanvas 
-                components={components}
-                mousePos={mousePos}
-                onInteract={handleInteraction}
+            <div style={styles.canvas}>
+              <CanvasRenderer
+                components={ui.components}
+                width={800}
+                height={500}
+                onClick={handleCanvasClick}
               />
+            </div>
+
+            {/* Component Debug */}
+            {ui.components.length > 0 && (
+              <details className="bg-black/30 rounded-lg p-4">
+                <summary className="text-sm text-gray-400 cursor-pointer">
+                  Component Debug ({ui.components.length})
+                </summary>
+                <pre className="text-xs text-gray-500 mt-2 overflow-auto max-h-48">
+                  {JSON.stringify(ui.components, null, 2)}
+                </pre>
+              </details>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div style={styles.sidebar}>
+            {/* Thinking Area */}
+            {ui.aiThinking && (
+              <div style={styles.thinkingArea}>
+                <div className="text-purple-400 mb-2 text-xs uppercase tracking-wider">
+                  AI Thinking
+                </div>
+                <pre className="whitespace-pre-wrap text-xs">
+                  {ui.aiThinking}
+                </pre>
+              </div>
+            )}
+
+            {/* Chat Area */}
+            <div style={styles.chatArea} className="flex flex-col gap-2">
+              <div className="text-sm text-gray-500 mb-2">
+                Chat ({chat.length})
+              </div>
+              {chat.map(msg => (
+                <ChatMessageComponent key={msg.id} message={msg} />
+              ))}
+              {chat.length === 0 && (
+                <p className="text-gray-600 text-sm italic">
+                  Ask the AI to generate or modify the UI...
+                </p>
+              )}
+            </div>
+
+            {/* Input Area */}
+            <div style={styles.inputArea}>
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Describe what UI you want..."
+                  style={styles.input}
+                  disabled={ui.isGenerating}
+                />
+                <button
+                  type="submit"
+                  style={styles.button}
+                  disabled={ui.isGenerating || !input.trim()}
+                >
+                  {ui.isGenerating ? '...' : 'Send'}
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </UIErrorBoundary>
   )
 }
+
+export default AutoHealingApp
