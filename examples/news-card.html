@@ -7,10 +7,9 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #0d1117;
+      background: #f0f4f8;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     canvas { display: block; }
@@ -42,28 +41,28 @@ const news = {
     { category: 'MILITARY', icon: '🎖️', headline: 'Code Platoon Launches AI Curriculum for Military Community', source: 'Crescendo AI', time: '16h ago' },
     { category: 'IRAN', icon: '⚠️', headline: 'Trump Threatens Iranian Civilian Infrastructure as Troops Deploy', source: 'Democracy Now', time: '8h ago' },
   ],
-  updated: '3:36 PM EDT · Mar 30, 2026',
+  updated: '3:46 PM EDT · Mar 30, 2026',
 };
 
 const CATS = [
-  { label: 'BREAKING', icon: '🔥', color: '#f85149' },
-  { label: 'AI', icon: '🤖', color: '#58a6ff' },
-  { label: 'DEFENSE', icon: '🛡️', color: '#3fb950' },
-  { label: 'CYBER', icon: '🔒', color: '#f78166' },
-  { label: 'MARKETS', icon: '📈', color: '#d29922' },
-  { label: 'MILITARY', icon: '🎖️', color: '#a371f7' },
-  { label: 'IRAN', icon: '⚠️', color: '#f97316' },
+  { label: 'BREAKING', icon: '🔥', color: '#dc2626' },
+  { label: 'AI', icon: '🤖', color: '#2563eb' },
+  { label: 'DEFENSE', icon: '🛡️', color: '#16a34a' },
+  { label: 'CYBER', icon: '🔒', color: '#7c3aed' },
+  { label: 'MARKETS', icon: '📈', color: '#ca8a04' },
+  { label: 'MILITARY', icon: '🎖️', color: '#9333ea' },
+  { label: 'IRAN', icon: '⚠️', color: '#ea580c' },
 ];
 
 function cat(tag) { return CATS.find(c => c.label === tag) || CATS[1]; }
 
-// Pretext text measurement
-function m(text, font, maxW = 360, lh = 22) {
+function m(text, font, maxW, lh) {
+  if (!maxW) maxW = 360;
+  if (!lh) lh = 22;
   try {
     const p = prepareWithSegments(text, font);
     return layoutWithLines(p, maxW, lh);
   } catch(e) {
-    // Fallback: split by words
     const words = text.split(' ');
     const lines = [];
     let current = '';
@@ -83,8 +82,8 @@ function m(text, font, maxW = 360, lh = 22) {
 }
 
 function draw(text, size, x, y, color, align, weight) {
-  if (!color) color = '#fff';
-  if (!align) align = 'center';
+  if (!color) color = '#1e293b';
+  if (!align) align = 'left';
   if (!weight) weight = 'normal';
   ctx.font = weight + ' ' + size + 'px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillStyle = color;
@@ -115,83 +114,116 @@ function rr(x, y, w, h, r) {
   ctx.closePath();
 }
 
-function panel(x, y, w, h, r) { rr(x,y,w,h,r); ctx.fillStyle='#161b22'; ctx.fill(); }
+function panel(x, y, w, h, r, fill, border) {
+  rr(x,y,w,h,r);
+  ctx.fillStyle = fill || '#ffffff'; ctx.fill();
+  if (border) {
+    rr(x,y,w,h,r);
+    ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.stroke();
+  }
+}
 
 function tag(x, y, icon, label, color) {
+  ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif';
   const labelW = ctx.measureText(label).width;
-  const pw = 8 + 16 + 6 + labelW + 10;
-  const ph = 20;
-  rr(x, y, pw, ph, 5);
-  ctx.fillStyle = color + '22'; ctx.fill();
-  rr(x, y, pw, ph, 5); ctx.strokeStyle = color + '55'; ctx.lineWidth = 0.5; ctx.stroke();
-  ctx.font = '16px sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(icon, x+6, y+15);
-  ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif'; ctx.fillStyle = color; ctx.fillText(label, x+24, y+14);
+  const pw = 8 + 14 + 6 + labelW + 8;
+  const ph = 18;
+  rr(x, y, pw, ph, 4);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
   ctx.textAlign = 'left';
-  return pw;
-}
-
-// Particles
-const particles = Array.from({length:35},()=>({x:Math.random()*W,y:Math.random()*200,r:Math.random()*1.4+0.2,ph:Math.random()*Math.PI*2,sp:Math.random()*0.3+0.05}));
-
-function drawBg() {
-  const g = ctx.createLinearGradient(0,0,0,200);
-  g.addColorStop(0,'#0a1628'); g.addColorStop(1,'#0d1117');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,200);
-  ctx.strokeStyle='rgba(255,255,255,0.03)'; ctx.lineWidth=1;
-  for(let i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,i*34);ctx.lineTo(W,i*34);ctx.stroke();}
-  for(let i=1;i<5;i++){ctx.beginPath();ctx.moveTo(i*84,0);ctx.lineTo(i*84,200);ctx.stroke();}
-  for(const p of particles){const a=0.2+Math.sin(t*p.sp+p.ph)*0.15;ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}
-}
-
-function drawBreakingBanner() {
-  const bw=W-32;
-  rr(16,14,bw,28,6); ctx.fillStyle='#f8514922'; ctx.fill();
-  rr(16,14,bw,28,6); ctx.strokeStyle='#f8514966'; ctx.lineWidth=1; ctx.stroke();
-  ctx.font='bold 10px -apple-system, BlinkMacSystemFont, sans-serif'; ctx.fillStyle='#f85149'; ctx.textAlign='left'; ctx.fillText('🔴 LIVE',24,32);
-  ctx.font='10px -apple-system, BlinkMacSystemFont, sans-serif'; ctx.fillStyle='#8b949e'; ctx.textAlign='right'; ctx.fillText(news.updated,W-20,32); ctx.textAlign='left';
+  ctx.font = '12px sans-serif'; ctx.fillText(icon, x+5, y+13);
+  ctx.font = 'bold 8px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#ffffff'; ctx.fillText(label, x+20, y+12);
+  ctx.textAlign = 'left';
+  return pw + 6;
 }
 
 function drawTopStory(y) {
-  panel(16,y,W-32,120,14);
-  const top=y+14;
-  const c=cat('BREAKING');
-  tag(28,top,c.icon,c.label,c.color);
-  const hf='bold 16px -apple-system, BlinkMacSystemFont, sans-serif';
-  const lines=m(news.topStory.headline,hf,W-56,22).lines;
-  let hly=top+28;
-  for(const line of lines){ctx.font=hf;ctx.fillStyle='#f0f6fc';ctx.textAlign='left';ctx.fillText(line.text,28,hly+line.y+16);hly+=22;}
-  ctx.font='10px -apple-system, BlinkMacSystemFont, sans-serif';ctx.fillStyle='#484f58';ctx.textAlign='left';ctx.fillText(news.topStory.source+' · '+news.topStory.time,28,top+28+lines.length*22+10);ctx.textAlign='left';
-  return 14+120;
+  const cardH = 100;
+  panel(16,y,W-32,cardH,16,'#ffffff','#e2e8f0');
+  const top = y + 14;
+  tag(28, top, '🔥', 'BREAKING', '#dc2626');
+  const hf = 'bold 17px -apple-system, BlinkMacSystemFont, sans-serif';
+  const lines = m(news.topStory.headline, hf, W-56, 24).lines;
+  let hly = top + 26;
+  for (const line of lines) {
+    ctx.font = hf;
+    ctx.fillStyle = '#0f172a';
+    ctx.textAlign = 'left';
+    ctx.fillText(line.text, 28, hly + line.y + 17);
+    hly += 24;
+  }
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#64748b'; ctx.textAlign = 'left';
+  ctx.fillText(news.topStory.source + ' · ' + news.topStory.time, 28, top + 26 + lines.length*24 + 10);
+  ctx.textAlign = 'left';
+  return cardH + 10;
 }
 
 function drawStory(y, story, idx) {
-  const cardH=72;
-  panel(16,y,W-32,cardH,12);
-  const inner=y+10;
-  const c=cat(story.category);
-  tag(28,inner,c.icon,c.label,c.color);
-  const hf='bold 13px -apple-system, BlinkMacSystemFont, sans-serif';
-  const lines=m(story.headline,hf,W-56,18).lines;
-  let hly=inner+22;
-  for(const line of lines){ctx.font=hf;ctx.fillStyle='#f0f6fc';ctx.textAlign='left';ctx.fillText(line.text,28,hly+line.y+13);hly+=18;}
-  ctx.font='10px -apple-system, BlinkMacSystemFont, sans-serif';ctx.fillStyle='#484f58';ctx.textAlign='left';ctx.fillText(story.source+' · '+story.time,28,inner+22+lines.length*18+8);ctx.textAlign='left';
-  return cardH+10;
+  const cardH = 72;
+  panel(16,y,W-32,cardH,12,'#ffffff','#e2e8f0');
+  const inner = y + 10;
+  const c = cat(story.category);
+  tag(28, inner, c.icon, c.label, c.color);
+  const hf = 'bold 13px -apple-system, BlinkMacSystemFont, sans-serif';
+  const lines = m(story.headline, hf, W-56, 18).lines;
+  let hly = inner + 22;
+  for (const line of lines) {
+    ctx.font = hf;
+    ctx.fillStyle = '#1e293b';
+    ctx.textAlign = 'left';
+    ctx.fillText(line.text, 28, hly + line.y + 13);
+    hly += 18;
+  }
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'left';
+  ctx.fillText(story.source + ' · ' + story.time, 28, inner + 22 + lines.length*18 + 8);
+  ctx.textAlign = 'left';
+  return cardH + 8;
 }
 
-const MX=16; let t=0;
+const MX = 16; let t = 0;
 
 function render() {
-  t+=0.016;
-  canvas.height=620; canvas.style.height='620px';
-  fr(0,0,W,620,'#0d1117');
-  let y=0;
-  drawBg(); y=14;
-  drawBreakingBanner(); y+=50;
-  y+=drawTopStory(y); y+=12;
-  ctx.font='bold 10px -apple-system, BlinkMacSystemFont, sans-serif';ctx.fillStyle='#484f58';ctx.textAlign='left';ctx.fillText('LATEST STORIES',MX+2,y+10);ctx.textAlign='left'; y+=20;
-  for(let i=0;i<news.stories.length;i++){y+=drawStory(y,news.stories[i],i);}
-  y+=8;
-  ctx.font='9px -apple-system, BlinkMacSystemFont, sans-serif';ctx.fillStyle='#21262d';ctx.textAlign='center';ctx.fillText('DuckBot News · Sources: Democracy Now, Aerotech, Tech Startups, TheStreet',W/2,y+8);ctx.textAlign='left';
+  t += 0.016;
+  canvas.height = 620; canvas.style.height = '620px';
+  fr(0, 0, W, 620, '#f0f4f8');
+
+  let y = 16;
+
+  // Header bar
+  fr(0, 0, W, 56, '#1e293b');
+  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left';
+  ctx.fillText('DuckBot News', 20, 34);
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'right';
+  ctx.fillText(news.updated, W-20, 34);
+  ctx.textAlign = 'left';
+
+  y = 72;
+
+  y += drawTopStory(y);
+  y += 10;
+
+  // Section label
+  ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#64748b'; ctx.textAlign = 'left';
+  ctx.fillText('LATEST STORIES', MX+2, y+10); ctx.textAlign = 'left';
+  y += 20;
+
+  for (let i = 0; i < news.stories.length; i++) {
+    y += drawStory(y, news.stories[i], i);
+  }
+
+  y += 10;
+  ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center';
+  ctx.fillText('Sources: Democracy Now, Aerotech, Tech Startups, TheStreet, Crescendo AI', W/2, y+8);
+  ctx.textAlign = 'left';
+
   requestAnimationFrame(render);
 }
 
