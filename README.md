@@ -144,6 +144,8 @@ npm run mcp
 | `generate_weather` | Animated weather card |
 | `generate_crypto` | Crypto price chart |
 | `generate_metric` | Metric/stat card |
+| `generate_scene` | Build animated scene HTML from a template |
+| `validate_text_fit` | Verify text fits width/line constraints |
 | `serve_file` | Get LAN URL |
 | `get_template` | Template info |
 

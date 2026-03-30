@@ -6,6 +6,7 @@
 
 import { generateUI, renderSpec, listComponents } from './generative-ui.js'
 import http from 'http'
+import { writeFileSync } from 'fs'
 
 const parseRequest = (body) => {
   try {
@@ -49,8 +50,54 @@ const TOOLS = [
     name: 'list_components',
     description: 'List all available UI components',
     inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'generate_scene',
+    description: 'Generate a Pretext Canvas scene HTML file from a named template',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        template: { type: 'string', enum: ['weather', 'crypto', 'orbit'] },
+        title: { type: 'string' },
+        output: { type: 'string' }
+      },
+      required: ['template']
+    }
+  },
+  {
+    name: 'validate_text_fit',
+    description: 'Validate whether text fits within a width/line constraint',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        fontSize: { type: 'number' },
+        maxWidth: { type: 'number' },
+        maxLines: { type: 'number' }
+      },
+      required: ['text', 'maxWidth']
+    }
   }
 ]
+
+async function callPretextServer(action, args) {
+  const response = await fetch('http://localhost:3458', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...args })
+  })
+  return response.json()
+}
+
+function sceneHtml(template, title = 'Pretext Scene') {
+  const palette = {
+    weather: { symbol: '☁️', color: '#a78bfa', bgTop: '#1a0a2e', bgBottom: '#0a0a0f' },
+    crypto: { symbol: '₿', color: '#f7931a', bgTop: '#0a1428', bgBottom: '#0a0a0f' },
+    orbit: { symbol: '✦', color: '#22c55e', bgTop: '#0a0a14', bgBottom: '#05050a' },
+  }[template] || { symbol: '✦', color: '#8b5cf6', bgTop: '#111827', bgBottom: '#020617' }
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:${palette.bgBottom};display:flex;justify-content:center;align-items:center;min-height:100vh}canvas{max-width:100vw;max-height:100vh}</style></head><body><canvas id="c"></canvas><script type="module">import { prepareWithSegments, layoutWithLines } from 'https://unpkg.com/@chenglou/pretext@0.0.3/dist/layout.js';const canvas=document.getElementById('c');const ctx=canvas.getContext('2d');canvas.width=500;canvas.height=500;let t=0;function lines(text,font,maxWidth,lineHeight=24){const p=prepareWithSegments(text,font);return layoutWithLines(p,maxWidth,lineHeight).lines}function drawText(text,font,x,y,color,align='center'){ctx.font=font;ctx.fillStyle=color;const ls=lines(text,font,340,28);for(const line of ls){const dx=align==='center'?x-line.width/2:align==='right'?x-line.width:x;ctx.fillText(line.text,dx,y+line.y+parseInt(font,10))}}function frame(){t+=0.016;const bg=ctx.createLinearGradient(0,0,0,500);bg.addColorStop(0,'${palette.bgTop}');bg.addColorStop(1,'${palette.bgBottom}');ctx.fillStyle=bg;ctx.fillRect(0,0,500,500);ctx.save();ctx.filter='blur(80px)';ctx.fillStyle='${palette.color}22';ctx.beginPath();ctx.arc(250+Math.sin(t)*20,180+Math.cos(t*0.7)*20,100,0,Math.PI*2);ctx.fill();ctx.restore();ctx.fillStyle='${palette.color}';ctx.font='bold 56px Inter';ctx.textAlign='center';ctx.fillText('${palette.symbol}',250,95+Math.sin(t*2)*6);drawText(${JSON.stringify(title)},'bold 34px Inter',250,120,'#ffffff');drawText('template: ${template}','16px Inter',250,175,'${palette.color}');drawText('Pretext measures. Canvas animates. AI composes.','18px Inter',250,230,'#94a3b8');for(let i=0;i<3;i++){const a=t*(i%2?1:-1)+(i*2.1);drawText(['MEASURE','LAYOUT','MOTION'][i],'14px Inter',250+Math.cos(a)*(80+i*24),250+Math.sin(a)*(80+i*24),'${palette.color}');}requestAnimationFrame(frame)}frame();</script></body></html>`
+}
 
 const IMPLEMENTATIONS = {
   async generate_ui(params) {
@@ -68,6 +115,17 @@ const IMPLEMENTATIONS = {
   
   async list_components() {
     return { components: listComponents() }
+  },
+
+  async generate_scene(params) {
+    const filename = params.output || `/tmp/${params.template}-scene-${Date.now()}.html`
+    const html = sceneHtml(params.template, params.title)
+    writeFileSync(filename, html)
+    return { file: filename, url: `http://100.68.208.113:8080/${filename.split('/').pop()}` }
+  },
+
+  async validate_text_fit(params) {
+    return await callPretextServer('validate_text_fit', params)
   }
 }
 

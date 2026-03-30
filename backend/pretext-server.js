@@ -1,221 +1,183 @@
 #!/usr/bin/env node
 
 /**
- * Pretext Server with Puppeteer
- * Uses headless Chrome for real canvas/text measurement
+ * Pretext measurement server
+ * Real Node-side text measurement via @napi-rs/canvas + @chenglou/pretext
  */
 
-import puppeteer from 'puppeteer'
+import { createCanvas, GlobalFonts } from '@napi-rs/canvas'
 import { createServer } from 'http'
+import {
+  prepare,
+  prepareWithSegments,
+  layout,
+  layoutWithLines,
+  layoutNextLine,
+  walkLineRanges,
+  clearCache,
+} from '@chenglou/pretext'
 
 const PORT = 3458
-let browser = null
 
-// Start browser once
-async function getBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({ 
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    })
-  }
-  return browser
-}
-
-// Simple pretext calculations (same as browser would do)
-function splitWords(text) {
-  return text.split(/\s+/).filter(w => w.length > 0)
-}
-
-function splitChars(text) {
-  return [...text]
-}
-
-function measureText(text, font) {
-  return text.length * (font.size * 0.6) // rough estimate
-}
-
-function wrapText(text, maxWidth, font) {
-  const words = splitWords(text)
-  const lines = []
-  let currentLine = ''
-  
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word
-    const width = measureText(testLine, font)
-    
-    if (width > maxWidth && currentLine) {
-      lines.push(currentLine)
-      currentLine = word
-    } else {
-      currentLine = testLine
+if (typeof globalThis.OffscreenCanvas === 'undefined') {
+  globalThis.OffscreenCanvas = class OffscreenCanvasPolyfill {
+    constructor(width, height) {
+      this._canvas = createCanvas(width, height)
+      this.width = width
+      this.height = height
+    }
+    getContext(type) {
+      return this._canvas.getContext(type)
     }
   }
-  
-  if (currentLine) lines.push(currentLine)
-  return lines
 }
 
-const server = createServer(async (req, res) => {
+function tryRegisterSystemFonts() {
+  const candidates = [
+    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+    '/System/Library/Fonts/Supplemental/Helvetica.ttc',
+    '/System/Library/Fonts/Supplemental/Times New Roman.ttf',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    '/System/Library/Fonts/SFNS.ttf',
+  ]
+  for (const path of candidates) {
+    try { GlobalFonts.registerFromPath(path, 'SystemUI') } catch {}
+  }
+}
+tryRegisterSystemFonts()
+
+function send(res, payload) {
+  res.end(JSON.stringify(payload))
+}
+
+function bestFont(fontSize = 16, family = 'Inter') {
+  return `${fontSize}px ${family}`
+}
+
+function findOptimalWidth(text, font, lineHeight, maxLines = 1, minWidth = 40, maxWidth = 1200) {
+  const prepared = prepare(text, font)
+  let lo = minWidth
+  let hi = maxWidth
+  let ans = maxWidth
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2)
+    const result = layout(prepared, mid, lineHeight)
+    if (result.lineCount <= maxLines) {
+      ans = mid
+      hi = mid - 1
+    } else {
+      lo = mid + 1
+    }
+  }
+  return { width: ans, ...layout(prepared, ans, lineHeight) }
+}
+
+const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Content-Type', 'application/json')
-  
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200)
-    res.end()
-    return
-  }
-  
+  if (req.method === 'OPTIONS') return res.end()
+
   if (req.method === 'GET') {
-    if (req.url === '/health') {
-      res.end(JSON.stringify({ status: 'ok', pretext: 'ready', browser: browser ? 'connected' : 'starting' }))
-      return
+    if (req.url === '/health') return send(res, { status: 'ok', service: 'pretext-server', mode: 'node-canvas' })
+    if (req.url === '/tools') {
+      return send(res, {
+        tools: ['measure_text', 'layout_lines', 'find_optimal_width', 'validate_text_fit', 'float_text', 'clear_cache'],
+      })
     }
-    if (req.url === '/help') {
-      res.end(JSON.stringify({
-        endpoints: {
-          'POST /measure': 'Measure text: { text, fontSize, maxWidth, lineHeight }',
-          'POST /lines': 'Get wrapped lines: { text, fontSize, maxWidth }',
-          'POST /shrinkwrap': 'Get tight width: { text, fontSize }',
-          'POST /float': 'Float around: { text, fontSize, maxWidth, obstacle }',
-          'POST /render': 'Render to HTML: { text, fontSize, maxWidth }',
-        }
-      }))
-      return
-    }
-    if (req.url === '/favicon.ico') {
-      res.writeHead(404)
-      res.end()
-      return
-    }
+    return send(res, { error: 'Not found' })
   }
-  
-  if (req.method === 'POST') {
-    let body = ''
-    req.on('data', chunk => body += chunk)
-    req.on('end', async () => {
-      try {
-        const data = JSON.parse(body)
-        const { action } = data
-        
-        switch (action) {
-          case 'measure': {
-            const { text, fontSize = 16, maxWidth = 300, lineHeight = 24 } = data
-            const font = { size: fontSize }
-            const lines = wrapText(text, maxWidth, font)
-            const height = lines.length * lineHeight
-            res.end(JSON.stringify({ success: true, height, lineCount: lines.length, lines }))
-            break
-          }
-          
-          case 'lines': {
-            const { text, fontSize = 16, maxWidth = 300, lineHeight = 24 } = data
-            const font = { size: fontSize }
-            const lines = wrapText(text, maxWidth, font)
-            const result = lines.map((t, i) => ({ text: t, y: i * lineHeight, width: measureText(t, font) }))
-            res.end(JSON.stringify({ success: true, lines: result, height: result.length * lineHeight }))
-            break
-          }
-          
-          case 'shrinkwrap': {
-            const { text, fontSize = 16 } = data
-            const font = { size: fontSize }
-            const words = splitWords(text)
-            let maxLen = 0
-            for (const word of words) {
-              const w = measureText(word, font)
-              if (w > maxLen) maxLen = w
-            }
-            res.end(JSON.stringify({ success: true, width: Math.ceil(maxLen) }))
-            break
-          }
-          
-          case 'float': {
-            const { text, fontSize = 16, maxWidth = 400, lineHeight = 24, obstacle } = data
-            const font = { size: fontSize }
-            const words = splitWords(text)
-            const lines = []
-            let currentLine = ''
-            let y = 0
-            
-            for (const word of words) {
-              const testLine = currentLine ? `${currentLine} ${word}` : word
-              
-              // Adjust width if we're in the obstacle zone
-              const inObs = obstacle && y >= obstacle.y && y < obstacle.y + obstacle.height
-              const effectiveMax = inObs ? maxWidth - obstacle.width - 10 : maxWidth
-              
-              const width = measureText(testLine, font)
-              
-              if (width > effectiveMax && currentLine) {
-                const x = inObs && obstacle ? obstacle.width + 10 : 0
-                lines.push({ text: currentLine, x, y, width: measureText(currentLine, font) })
-                y += lineHeight
-                currentLine = word
-              } else {
-                currentLine = testLine
-              }
-            }
-            
-            if (currentLine) {
-              const x = obstacle && y >= obstacle.y && y < obstacle.y + obstacle.height ? obstacle.width + 10 : 0
-              lines.push({ text: currentLine, x, y, width: measureText(currentLine, font) })
-            }
-            
-            res.end(JSON.stringify({ success: true, lines, height: (lines.length + 1) * lineHeight }))
-            break
-          }
-          
-          case 'render': {
-            const { text, fontSize = 16, maxWidth = 300, lineHeight = 24, style = {} } = data
-            const lines = wrapText(text, maxWidth, { size: fontSize })
-            
-            const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: ${style.background || '#0a0a0f'}; font-family: Inter, system-ui, sans-serif; }
-    .gradient-text { background: linear-gradient(to right, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-8">
-  <div class="p-8 rounded-2xl bg-white/5 border border-white/10" style="max-width: ${maxWidth}px">
-    ${lines.map((line, i) => `
-      <div style="font-size: ${fontSize}px; line-height: ${lineHeight}px; height: ${lineHeight}px; background: ${style.debug && i % 2 === 0 ? 'rgba(168,85,247,0.1)' : 'transparent'}">
-        ${line}
-      </div>
-    `).join('')}
-  </div>
-</body>
-</html>`
-            
-            res.end(JSON.stringify({ success: true, html, lines, height: lines.length * lineHeight }))
-            break
-          }
-          
-          default:
-            res.end(JSON.stringify({ error: 'Unknown action', hint: 'POST /help' }))
+
+  if (req.method !== 'POST') return send(res, { error: 'Use POST' })
+
+  let body = ''
+  req.on('data', (c) => (body += c))
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body || '{}')
+      const action = data.action || data.tool
+      const fontSize = data.fontSize ?? 16
+      const family = data.family || 'Inter'
+      const font = data.font || bestFont(fontSize, family)
+      const maxWidth = data.maxWidth ?? 300
+      const lineHeight = data.lineHeight ?? Math.round(fontSize * 1.5)
+
+      switch (action) {
+        case 'measure':
+        case 'measure_text': {
+          const prepared = prepare(data.text || '', font)
+          return send(res, { success: true, font, maxWidth, lineHeight, ...layout(prepared, maxWidth, lineHeight) })
         }
-      } catch (e) {
-        res.end(JSON.stringify({ error: e.message }))
+
+        case 'lines':
+        case 'layout_lines': {
+          const prepared = prepareWithSegments(data.text || '', font)
+          const result = layoutWithLines(prepared, maxWidth, lineHeight)
+          return send(res, { success: true, font, maxWidth, lineHeight, ...result })
+        }
+
+        case 'shrinkwrap':
+        case 'find_optimal_width': {
+          if (data.maxLines) {
+            return send(res, { success: true, font, ...findOptimalWidth(data.text || '', font, lineHeight, data.maxLines, data.minWidth ?? 40, data.maxWidth ?? 1200) })
+          }
+          const prepared = prepareWithSegments(data.text || '', font)
+          let width = 0
+          walkLineRanges(prepared, 10000, (line) => { if (line.width > width) width = line.width })
+          return send(res, { success: true, font, width: Math.ceil(width) })
+        }
+
+        case 'validate':
+        case 'validate_text_fit': {
+          const prepared = prepare(data.text || '', font)
+          const result = layout(prepared, maxWidth, lineHeight)
+          const fits = result.lineCount <= (data.maxLines ?? 1) && result.height <= (data.maxHeight ?? Number.MAX_SAFE_INTEGER)
+          return send(res, {
+            success: true,
+            fits,
+            font,
+            maxWidth,
+            lineHeight,
+            maxLines: data.maxLines ?? 1,
+            maxHeight: data.maxHeight ?? null,
+            ...result,
+          })
+        }
+
+        case 'float':
+        case 'float_text': {
+          const prepared = prepareWithSegments(data.text || '', font)
+          const obstacle = data.obstacle || { x: 0, y: 0, width: 120, height: 120 }
+          const lines = []
+          let cursor = { segmentIndex: 0, graphemeIndex: 0 }
+          let y = 0
+          while (true) {
+            const inObs = y >= obstacle.y && y < obstacle.y + obstacle.height
+            const width = inObs ? maxWidth - obstacle.width - 10 : maxWidth
+            const line = layoutNextLine(prepared, cursor, width)
+            if (!line) break
+            lines.push({ text: line.text, x: inObs ? obstacle.width + 10 : 0, y, width: line.width })
+            cursor = line.end
+            y += lineHeight
+          }
+          return send(res, { success: true, lines, height: y, obstacle, font })
+        }
+
+        case 'clear':
+        case 'clear_cache': {
+          clearCache()
+          return send(res, { success: true })
+        }
+
+        default:
+          return send(res, { error: 'Unknown action', available: ['measure_text', 'layout_lines', 'find_optimal_width', 'validate_text_fit', 'float_text', 'clear_cache'] })
       }
-    })
-    return
-  }
-  
-  res.end(JSON.stringify({ error: 'Use POST' }))
+    } catch (error) {
+      return send(res, { success: false, error: error.message })
+    }
+  })
 })
 
 server.listen(PORT, () => {
   console.log(`⚡ Pretext Server running on http://localhost:${PORT}`)
-  console.log(`   Ready for text measurement!`)
-})
-
-process.on('SIGINT', async () => {
-  console.log('\n👋 Stopping...')
-  if (browser) await browser.close()
-  server.close()
-  process.exit(0)
+  console.log('   Tools: measure_text, layout_lines, find_optimal_width, validate_text_fit, float_text, clear_cache')
 })
