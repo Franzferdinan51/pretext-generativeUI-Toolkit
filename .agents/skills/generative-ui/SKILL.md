@@ -1,128 +1,138 @@
 ---
 name: generative-ui
-description: Generate UI cards and websites instantly using Pretext for smart text measurement. No API calls needed - runs locally.
+description: Generate UI cards and websites using Pretext + Canvas. Weather, crypto, metrics, plants, any dashboard.
 metadata: {"openclaw": {"emoji": "🎨", "requires": {"bins": ["node"]}}}
 ---
 
-# 🎨 Generative UI Skill
+# 🎨 Pretext Canvas Skill
 
-Generate visual UI components **instantly** using Pretext for smart text measurement.
+Generate beautiful UI components via **Pretext** (text measurement) + **Canvas** (rendering). AI controls every pixel with pure math.
+
+## Quick Start
+
+### CLI
+```bash
+# Generate weather card
+pretext-canvas weather "72F sunny Dayton Ohio"
+
+# Generate crypto chart
+pretext-canvas crypto "Bitcoin $67000 24h up"
+
+# Generate metric card
+pretext-canvas metric "99.9% uptime positive"
+
+# Serve on LAN (for phone access)
+pretext-canvas serve /tmp/weather.html
+```
+
+### MCP Server
+```bash
+# Start MCP server
+node backend/mcp-server.js &
+
+# Call via HTTP
+curl -X POST http://localhost:3457 -H "Content-Type: application/json" \
+  -d '{"tool":"generate_weather","args":{"temp":"72","location":"Dayton"}}'
+```
+
+## Available Types
+
+### 🌤️ Weather Card
+```bash
+pretext-canvas weather "68F partly cloudy Huber Heights humidity 45 wind 7mph"
+```
+
+### 💰 Crypto Chart
+```bash
+pretext-canvas crypto "Bitcoin $67000 24h change +2.3%"
+pretext-canvas crypto "Ethereum $3400 positive"
+```
+
+### 📊 Metric Card
+```bash
+pretext-canvas metric "99.9% uptime positive trend"
+pretext-canvas metric "10000 users active"
+```
+
+### 🌿 Plant Dashboard
+See: `/tmp/plant-check.html`
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `generate_weather` | Animated weather card |
+| `generate_crypto` | Crypto price chart |
+| `generate_metric` | Metric/stat card |
+| `serve_file` | Get LAN URL |
+| `get_template` | Template info |
+| `list_generated` | Available types |
 
 ## Architecture
 
 ```
-User Request → Pretext Server (text measurement) → HTML Generator → Browser
-     ↓                    ↓
-  Natural         - measureText()
-  Language        - getLines()
-     ↓            - shrinkwrap()
-  Card Type       - floatAround()
+User Request → Parser (extract data) → Template (Pretext+Canvas) → HTML
+     ↓                                    ↓
+  Natural                          Canvas draws
+  Language                         at exact
+     ↓                            Pretext
+  "72F"  ──────────────────────→ positions
 ```
-
-## Quick Start
-
-### 1. Start Pretext Server (if not running)
-```bash
-cd ~/.openclaw/workspace/skills/generative-ui
-node backend/pretext-server.js &
-```
-
-### 2. Generate UI
-```bash
-node ~/.openclaw/workspace/skills/generative-ui/backend/pretext-generator.js "weather 72F sunny"
-```
-
-## Available Card Types
-
-| Type | Command | Example |
-|------|---------|---------|
-| ☀️ **Weather** | `weather 72F sunny Dayton` | Current conditions |
-| 📊 **Metric** | `99.9% uptime metric` | Stats with trends |
-| 📦 **Product** | `wireless headphones $99` | Product cards |
-| 💰 **Pricing** | `pro plan $29 month` | Pricing tiers |
-| ✨ **Feature** | `AI powered search feature` | Feature highlights |
-| 🚀 **CTA** | `signup cta button` | Call to action |
-| ❌ **Error** | `error notification failed` | Alerts/notifications |
-| ⏱️ **Countdown** | `launch countdown timer` | Event countdowns |
-| 👤 **Avatar** | `user avatar profile` | Profile cards |
-| 🏷️ **Badge** | `new badge` | Labels/tags |
-
-## Pretext Text Measurement API
-
-The Pretext Server (port 3458) provides:
-
-```bash
-# Measure text height
-curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
-  -d '{"action":"measure","text":"Hello World","fontSize":24,"maxWidth":300}'
-
-# Get wrapped lines
-curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
-  -d '{"action":"lines","text":"Long text here","fontSize":18,"maxWidth":200}'
-
-# Get tightest width (shrinkwrap)
-curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
-  -d '{"action":"shrinkwrap","text":"Button","fontSize":16}'
-
-# Float text around obstacle
-curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
-  -d '{"action":"float","text":"Content here","fontSize":16,"maxWidth":400,"obstacle":{"x":0,"y":0,"width":100,"height":100}}'
-```
-
-## Tips for Best Results
-
-1. **Include specific data** - Numbers, prices, locations
-2. **Specify the type** - Use trigger words like "weather", "metric", "product"
-3. **Add context** - "sunny Dayton" not just "weather"
-4. **Chain requests** - Generate multiple cards for dashboards
 
 ## Files
 
 ```
 ~/.openclaw/workspace/skills/generative-ui/
-├── SKILL.md              ← This file
+├── SKILL.md                    ← This file
 ├── backend/
-│   ├── fast-generator.js     ← Simple generator (no server needed)
-│   ├── pretext-generator.js   ← Pretext-enhanced (needs server)
-│   ├── pretext-server.js     ← Text measurement server
-│   ├── generative-ui.js      ← Full AI generator (MiniMax API)
-│   ├── cli.js               ← CLI tool
-│   └── mcp-server.js         ← MCP server
+│   ├── cli.js                  ← CLI tool (pretext-canvas)
+│   ├── mcp-server.js           ← MCP server (port 3457)
+│   ├── pretext-server.js       ← Pretext measurement API (port 3458)
+│   ├── pretext-generator.js     ← Pretext-enhanced generator
+│   ├── fast-generator.js       ← Simple HTML generator
+│   └── generative-ui.js        ← Full AI generator
+└── examples/
+    ├── pretext-weather-canvas.html
+    └── dragon-whip.html
 ```
 
-## Examples
+## Live URLs (Tailscale)
 
-### Generate Weather Card
-```bash
-node backend/pretext-generator.js "weather for Huber Heights 74F partly cloudy 45 humidity"
+- Weather: http://100.68.208.113:8080/pretext-weather-glam.html
+- Dragon Whip: http://100.68.208.113:8080/dragon-whip.html
+- Plant Check: http://100.68.208.113:8080/plant-check.html
+
+## What Pretext Does
+
+Pretext measures text positions WITHOUT DOM reflow:
+
+```js
+import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+
+// 1. Pretext measures (fast, cached)
+const prepared = prepareWithSegments(text, 'bold 48px Inter')
+const { lines } = layoutWithLines(prepared, 400, 32)
+// lines = [{text, y, width}] for every line
+
+// 2. Canvas draws at exact positions
+ctx.fillText(line.text, 250, y + line.y)
 ```
 
-### Generate Metric Card
-```bash
-node backend/pretext-generator.js "99.9 percent uptime metric positive trend"
-```
+**No CSS. No HTML elements. Pure math.**
 
-### Generate Product Card
-```bash
-node backend/pretext-generator.js "wireless headphones 149 dollars"
-```
+## Examples Built
 
-### Generate Full Dashboard
-```bash
-node backend/pretext-generator.js "weather 72F" > /tmp/weather.html
-node backend/pretext-generator.js "10000 users metric" > /tmp/users.html
-node backend/pretext-generator.js "99.9 uptime metric" > /tmp/uptime.html
-```
+| Example | File | Theme |
+|---------|------|-------|
+| Weather | `/tmp/pretext-weather-glam.html` | Purple aurora |
+| Bitcoin | `/tmp/bitcoin.html` | Orange/green |
+| Dragon Whip | `/tmp/dragon-whip.html` | Red RPG |
+| Plant Health | `/tmp/plant-check.html` | Green grow |
+| Metric | `/tmp/metric.html` | Purple glow |
 
-## Server Management
+## Duckets' Words
 
-```bash
-# Start server
-node backend/pretext-server.js &
+> "I fucking love this new tool we created here this is amazing!"
+> "We will use this pretext setup for way more than this, it's so powerful"
 
-# Check status
-curl http://localhost:3458/health
-
-# Stop server
-pkill -f pretext-server
-```
+**Pretext + Canvas = The future of AI UI** 🎨🦆
