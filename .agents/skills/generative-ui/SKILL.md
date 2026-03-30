@@ -1,156 +1,128 @@
 ---
 name: generative-ui
-description: Generate real UI websites and components on-the-fly using AI. Input a description → Get a complete website with Nav, Hero, Features, Pricing, FAQ, CTA, Footer. Powered by Pretext + A2UI + GenerativeUI patterns.
+description: Generate UI cards and websites instantly using Pretext for smart text measurement. No API calls needed - runs locally.
 metadata: {"openclaw": {"emoji": "🎨", "requires": {"bins": ["node"]}}}
 ---
 
-# Generative UI Skill
+# 🎨 Generative UI Skill
 
-Generate complete, production-ready websites and UI components using AI.
-
-## What This Skill Does
-
-Transforms natural language descriptions into fully functional websites with:
-- Navigation, Hero, Features, Stats, Pricing, FAQ, CTA, Footer
-- Responsive design with dark mode styling
-- A2UI declarative JSON output
-- Pretext layout engine integration
-
-## Usage
-
-### CLI Command
-```bash
-generative-ui "Build a landing page for my AI startup"
-generative-ui "E-commerce site for selling candles"
-generative-ui "Portfolio for a freelance developer"
-```
-
-### Programmatic API
-```javascript
-import { generateUI } from './backend/generative-ui.js'
-
-const result = await generateUI({
-  description: "SaaS landing page for a developer tool",
-  model: "MiniMax-M2.7",
-  sections: ["nav", "hero", "features", "pricing", "faq", "cta", "footer"]
-})
-
-console.log(result.spec)     // A2UI JSON spec
-console.log(result.html)     // Rendered HTML
-console.log(result.components) // Component count
-```
-
-## Input Schema
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `description` | string | Yes | What to build |
-| `model` | string | No | AI model (default: MiniMax-M2.7) |
-| `sections` | string[] | No | Which sections to include |
-| `style` | string | No | Design style (dark/light) |
-| `brand` | string | No | Brand name/logo |
-
-## Output Schema
-
-```typescript
-interface GenerationResult {
-  spec: A2UISpec           // Declarative JSON spec
-  html: string             // Rendered HTML
-  components: number        // Count of components
-  sections: string[]        // Sections generated
-  metadata: {
-    model: string
-    generationTime: number // ms
-    tokenUsage: number
-  }
-}
-```
-
-## Supported Sections
-
-| Section | Description |
-|---------|-------------|
-| `nav` | Navigation with logo + links |
-| `hero` | Hero with headline + CTAs |
-| `features` | 6 feature cards grid |
-| `stats` | 4 metrics with trends |
-| `pricing` | 3 pricing tiers |
-| `faq` | 5 Q&A items |
-| `cta` | Call-to-action |
-| `footer` | Link categories |
-
-## Examples
-
-### Generate Full Website
-```bash
-generative-ui "Modern SaaS landing page"
-```
-
-### Generate Specific Sections
-```bash
-generative-ui --sections hero,features,pricing "Developer tool landing"
-```
-
-### With Brand
-```bash
-generative-ui --brand "Acme Corp" "Enterprise dashboard"
-```
+Generate visual UI components **instantly** using Pretext for smart text measurement.
 
 ## Architecture
 
 ```
-User Input → AI Agent Pipeline → A2UI Spec → React/HTML Output
-                ↓
-         MiniMax M2.7
-                ↓
-    ┌────────────┼────────────┐
-    ↓            ↓            ↓
-  Pretext    Skills     Generative
-  Layout     System     UI Types
+User Request → Pretext Server (text measurement) → HTML Generator → Browser
+     ↓                    ↓
+  Natural         - measureText()
+  Language        - getLines()
+     ↓            - shrinkwrap()
+  Card Type       - floatAround()
 ```
 
-## MCP Server
+## Quick Start
 
-This skill also provides an MCP server for agent integration:
+### 1. Start Pretext Server (if not running)
+```bash
+cd ~/.openclaw/workspace/skills/generative-ui
+node backend/pretext-server.js &
+```
+
+### 2. Generate UI
+```bash
+node ~/.openclaw/workspace/skills/generative-ui/backend/pretext-generator.js "weather 72F sunny"
+```
+
+## Available Card Types
+
+| Type | Command | Example |
+|------|---------|---------|
+| ☀️ **Weather** | `weather 72F sunny Dayton` | Current conditions |
+| 📊 **Metric** | `99.9% uptime metric` | Stats with trends |
+| 📦 **Product** | `wireless headphones $99` | Product cards |
+| 💰 **Pricing** | `pro plan $29 month` | Pricing tiers |
+| ✨ **Feature** | `AI powered search feature` | Feature highlights |
+| 🚀 **CTA** | `signup cta button` | Call to action |
+| ❌ **Error** | `error notification failed` | Alerts/notifications |
+| ⏱️ **Countdown** | `launch countdown timer` | Event countdowns |
+| 👤 **Avatar** | `user avatar profile` | Profile cards |
+| 🏷️ **Badge** | `new badge` | Labels/tags |
+
+## Pretext Text Measurement API
+
+The Pretext Server (port 3458) provides:
 
 ```bash
-# Start MCP server
-generative-ui --mcp
+# Measure text height
+curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
+  -d '{"action":"measure","text":"Hello World","fontSize":24,"maxWidth":300}'
 
-# Or use the standalone MCP
-node backend/mcp-server.js
+# Get wrapped lines
+curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
+  -d '{"action":"lines","text":"Long text here","fontSize":18,"maxWidth":200}'
+
+# Get tightest width (shrinkwrap)
+curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
+  -d '{"action":"shrinkwrap","text":"Button","fontSize":16}'
+
+# Float text around obstacle
+curl -X POST http://localhost:3458 -H "Content-Type: application/json" \
+  -d '{"action":"float","text":"Content here","fontSize":16,"maxWidth":400,"obstacle":{"x":0,"y":0,"width":100,"height":100}}'
 ```
 
-### MCP Tools
+## Tips for Best Results
 
-| Tool | Description |
-|------|-------------|
-| `generate_ui` | Generate UI from description |
-| `render_spec` | Render A2UI spec to HTML |
-| `list_components` | List available components |
-| `preview` | Generate preview URL |
-
-## Troubleshooting
-
-**Empty output?**
-- Check API key is set
-- Verify network connectivity
-- Try shorter description
-
-**Bad quality?**
-- Add more detail to description
-- Specify sections explicitly
-- Include competitor/reference URLs
-
-**Slow generation?**
-- Use smaller model (MiniMax-M2.7 is fast)
-- Generate fewer sections
-- Check API rate limits
+1. **Include specific data** - Numbers, prices, locations
+2. **Specify the type** - Use trigger words like "weather", "metric", "product"
+3. **Add context** - "sunny Dayton" not just "weather"
+4. **Chain requests** - Generate multiple cards for dashboards
 
 ## Files
 
-- `{baseDir}/SKILL.md` - This file
-- `{baseDir}/../backend/generative-ui.js` - Main API
-- `{baseDir}/../backend/mcp-server.js` - MCP server
-- `{baseDir}/../backend/cli.js` - CLI tool
-- `{baseDir}/../AGENTS.md` - Agent configuration
+```
+~/.openclaw/workspace/skills/generative-ui/
+├── SKILL.md              ← This file
+├── backend/
+│   ├── fast-generator.js     ← Simple generator (no server needed)
+│   ├── pretext-generator.js   ← Pretext-enhanced (needs server)
+│   ├── pretext-server.js     ← Text measurement server
+│   ├── generative-ui.js      ← Full AI generator (MiniMax API)
+│   ├── cli.js               ← CLI tool
+│   └── mcp-server.js         ← MCP server
+```
+
+## Examples
+
+### Generate Weather Card
+```bash
+node backend/pretext-generator.js "weather for Huber Heights 74F partly cloudy 45 humidity"
+```
+
+### Generate Metric Card
+```bash
+node backend/pretext-generator.js "99.9 percent uptime metric positive trend"
+```
+
+### Generate Product Card
+```bash
+node backend/pretext-generator.js "wireless headphones 149 dollars"
+```
+
+### Generate Full Dashboard
+```bash
+node backend/pretext-generator.js "weather 72F" > /tmp/weather.html
+node backend/pretext-generator.js "10000 users metric" > /tmp/users.html
+node backend/pretext-generator.js "99.9 uptime metric" > /tmp/uptime.html
+```
+
+## Server Management
+
+```bash
+# Start server
+node backend/pretext-server.js &
+
+# Check status
+curl http://localhost:3458/health
+
+# Stop server
+pkill -f pretext-server
+```
