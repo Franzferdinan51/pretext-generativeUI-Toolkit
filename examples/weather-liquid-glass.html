@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Liquid Glass Weather — Huber Heights</title>
+  <title>Weather — Huber Heights</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #080818;
+      background: #0d1117;
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -20,19 +20,17 @@
 <body>
 <canvas id="c"></canvas>
 <script>
-// ── CANVAS SETUP ─────────────────────────────────────────
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const W = 480;
+const W = 440;
 canvas.width = W;
 canvas.style.width = W + 'px';
 
-// ── WEATHER DATA (real from Open-Meteo) ─────────────────
 const weather = {
   location: 'Huber Heights, OH',
-  updated: 'Updated 1:15 PM EDT',
+  updated: '1:15 PM EDT',
   current: { temp_f: 70, feels_f: 67, humidity: 55, cloud: 6, condition: 'Clear', icon: '☀️' },
-  wind: { mph: 17, direction: 'WSW', deg: 221 },
+  wind: { mph: 17, direction: 'WSW' },
   pressure: { hpa: 1018.8, inHg: 30.09 },
   uv: 3.5, dewpoint_f: 54, visibility: '10 mi',
   today: { high_f: 75, low_f: 60 },
@@ -52,70 +50,29 @@ const weather = {
   outlook: [
     { day: 'Tomorrow',   condition: 'Partly Cloudy', icon: '⛅',  high: 71, low: 55, precip: '20%' },
     { day: 'Wednesday',  condition: 'Chance Rain',   icon: '🌧️', high: 65, low: 50, precip: '60%' },
-    { day: 'Thursday',  condition: 'Mostly Sunny',    icon: '☀️',  high: 68, low: 48, precip: '5%'  },
+    { day: 'Thursday',  condition: 'Mostly Sunny',   icon: '☀️',  high: 68, low: 48, precip: '5%'  },
   ]
 };
 
-// ── PALETTE ────────────────────────────────────────────
-const P = {
-  skyTop:    '#0a1a4a',
-  skyMid:    '#1a4a8a',
-  skyBot:    '#2980b9',
-  sunCore:   '#ffe066',
-  sunGlow:   '#f39c12',
-  tintR: 180, tintG: 200, tintB: 255,
-};
-
-// ── TEXT HELPERS (Canvas 2D — zero dependencies) ───────
-function setFont(size, weight = 'normal') {
+function tx(size, weight = 'normal') {
   ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
 }
-
-function textWidth(text, size, weight) {
-  setFont(size, weight);
+function tw(text, size, weight) {
+  tx(size, weight);
   return ctx.measureText(text).width;
 }
-
-function drawText(text, size, x, y, color = '#fff', align = 'center', weight = 'normal') {
-  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+function dt(text, size, x, y, color, align = 'center', weight = 'normal') {
+  tx(size, weight);
   ctx.fillStyle = color;
   ctx.textAlign = align;
-  ctx.textBaseline = 'top';
-  let dx = x;
-  if (align === 'center') dx = x;
-  else if (align === 'right') { ctx.textAlign = 'right'; dx = x; }
-  ctx.fillText(text, dx, y);
+  ctx.fillText(text, x, y);
   ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
 }
-
-// Wrapped text helper
-function drawWrapped(text, size, x, y, maxW, color, align = 'center', weight = 'normal') {
-  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+function fillRect(x, y, w, h, color) {
   ctx.fillStyle = color;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'top';
-  let dx = align === 'center' ? x - maxW / 2 : align === 'right' ? x - maxW : x;
-  const words = text.split(' ');
-  let line = '', lineY = y;
-  for (const word of words) {
-    const test = line ? line + ' ' + word : word;
-    if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line.trim(), dx, lineY);
-      line = word;
-      lineY += size + 4;
-    } else {
-      line = test;
-    }
-  }
-  if (line) ctx.fillText(line.trim(), dx, lineY);
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
+  ctx.fillRect(x, y, w, h);
 }
-
-// ── LIQUID GLASS ───────────────────────────────────────
-function glass(x, y, w, h, r = 14, blur = 14, op = 0.08) {
-  ctx.save();
+function roundRect(x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -127,332 +84,270 @@ function glass(x, y, w, h, r = 14, blur = 14, op = 0.08) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
-  ctx.clip();
-
-  // Blurred tinted fill
-  ctx.filter = `blur(${blur}px)`;
-  ctx.fillStyle = `rgba(${P.tintR},${P.tintG},${P.tintB},${op})`;
-  ctx.fillRect(x, y, w, h);
-  ctx.filter = 'none';
-
-  // Top specular highlight
-  const hg = ctx.createLinearGradient(x, y, x, y + h * 0.5);
-  hg.addColorStop(0, `rgba(255,255,255,${op * 2.6})`);
-  hg.addColorStop(0.4, `rgba(255,255,255,${op * 0.6})`);
-  hg.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = hg;
-  ctx.fillRect(x, y, w, h * 0.5);
-
-  // Animated shimmer streak
-  const sw = w * 0.3;
-  const sp = (t * 0.25 % 1) * (w + sw) - sw;
-  const sg = ctx.createLinearGradient(x + sp, y, x + sp + sw, y + h * 0.35);
-  sg.addColorStop(0, 'rgba(255,255,255,0)');
-  sg.addColorStop(0.5, `rgba(255,255,255,${op * 3})`);
-  sg.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = sg;
-  ctx.fillRect(x + sp, y, sw, h * 0.35);
-
-  ctx.restore();
-
-  // Border
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.strokeStyle = `rgba(200,215,255,0.18)`;
+}
+function card(x, y, w, h, r = 16) {
+  roundRect(x, y, w, h, r);
+  ctx.fillStyle = '#161b22';
+  ctx.fill();
+  roundRect(x, y, w, h, r);
+  ctx.strokeStyle = '#21262d';
   ctx.lineWidth = 1;
   ctx.stroke();
-  ctx.restore();
 }
 
-// ── STAT BLOCK ─────────────────────────────────────────
-function stat(x, y, w, h, label, value, sub) {
-  glass(x, y, w, h, 12, 12, 0.07);
-  drawText(label, 10, x + w / 2, y + 14, '#64748b', 'center', 'bold');
-  drawText(value, 24, x + w / 2, y + 30, '#ffffff', 'center', 'bold');
-  if (sub) drawText(sub, 10, x + w / 2, y + 56, '#475569', 'center');
-}
-
-// ── WEATHER EFFECTS ────────────────────────────────────
-const stars = Array.from({ length: 55 }, () => ({
-  x: Math.random() * W,
-  y: Math.random() * W * 0.5,
-  r: Math.random() * 1.4 + 0.3,
-  phase: Math.random() * Math.PI * 2,
-  speed: Math.random() * 0.4 + 0.1
+// Stars and clouds
+const stars = Array.from({length: 40}, () => ({
+  x: Math.random() * W, y: Math.random() * W * 0.45,
+  r: Math.random() * 1.2 + 0.2,
+  phase: Math.random() * Math.PI * 2, speed: Math.random() * 0.3 + 0.05
 }));
-
 const clouds = [
-  { x: 50,  y: 60, scale: 1.1, speed:  0.13, op: 0.11 },
-  { x: 260, y: 42, scale: 0.8, speed: -0.09, op: 0.08 },
-  { x: 385, y: 100, scale: 0.95, speed:  0.11, op: 0.09 },
-  { x: 140, y: 120, scale: 0.65, speed: -0.07, op: 0.06 },
+  {x: 20, y: 50, sc: 1.0, spd: 0.10, op: 0.08},
+  {x: 220, y: 35, sc: 0.75, spd: -0.07, op: 0.06},
+  {x: 340, y: 85, sc: 0.9, spd: 0.09, op: 0.07},
 ];
-
-const rays = Array.from({ length: 14 }, (_, i) => ({
-  angle: (i / 14) * Math.PI * 2,
-  length: 150 + Math.random() * 70,
-  phase: (i / 14) * Math.PI * 2,
-  w: 2 + Math.random() * 2.5
+const rays = Array.from({length: 10}, (_, i) => ({
+  ang: (i/10) * Math.PI * 2, len: 130 + Math.random() * 50,
+  ph: (i/10) * Math.PI * 2, w: 2 + Math.random() * 2
 }));
 
-function cloud(cx, cy, sc) {
+function cloudShape(cx, cy, sc) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(sc, sc);
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.arc(0, 0, 28, 0, Math.PI * 2);
-  ctx.arc(27, -7, 21, 0, Math.PI * 2);
-  ctx.arc(48, 0, 23, 0, Math.PI * 2);
-  ctx.arc(18, 11, 17, 0, Math.PI * 2);
-  ctx.arc(39, 9, 19, 0, Math.PI * 2);
+  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.arc(24, -6, 18, 0, Math.PI * 2);
+  ctx.arc(42, 0, 20, 0, Math.PI * 2);
+  ctx.arc(16, 10, 14, 0, Math.PI * 2);
+  ctx.arc(34, 8, 16, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
-function background() {
-  // Sky gradient
-  const sky = ctx.createLinearGradient(0, 0, 0, W * 0.62);
-  sky.addColorStop(0, P.skyTop);
-  sky.addColorStop(0.55, P.skyMid);
-  sky.addColorStop(1, P.skyBot);
+function drawBg() {
+  const sky = ctx.createLinearGradient(0, 0, 0, W * 0.52);
+  sky.addColorStop(0, '#0a1628');
+  sky.addColorStop(0.5, '#1a3a6a');
+  sky.addColorStop(1, '#2a5a9a');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, W * 0.62);
+  ctx.fillRect(0, 0, W, W * 0.52);
 
-  // Sun glow rings
-  const sx = W * 0.73, sy = W * 0.17;
-  const sp = 1 + Math.sin(t * 1.5) * 0.05;
-  for (let i = 5; i >= 1; i--) {
-    ctx.save();
-    ctx.filter = `blur(${i * 14}px)`;
-    ctx.fillStyle = `rgba(255,200,60,${0.07 / i})`;
-    ctx.beginPath();
-    ctx.arc(sx, sy, 48 * i * sp, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  const sx = W * 0.72, sy = W * 0.16, sp = 1 + Math.sin(t * 1.2) * 0.04;
+
+  // Sun glow
+  for (let i = 4; i >= 1; i--) {
+    ctx.save(); ctx.filter = `blur(${i * 12}px)`;
+    ctx.fillStyle = `rgba(255, 210, 80, ${0.06 / i})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 40 * i * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
+  ctx.save(); ctx.filter = 'blur(8px)';
+  ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(sx, sy, 36 * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 
-  // Sun core
-  ctx.save();
-  ctx.filter = 'blur(10px)';
-  ctx.fillStyle = P.sunCore;
-  ctx.beginPath();
-  ctx.arc(sx, sy, 42 * sp, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // Sun rays
-  ctx.save();
-  ctx.translate(sx, sy);
+  // Rays
+  ctx.save(); ctx.translate(sx, sy);
   for (const r of rays) {
-    const a = 0.06 + Math.sin(t * 0.7 + r.phase) * 0.04;
-    ctx.strokeStyle = `rgba(255,225,110,${a})`;
-    ctx.lineWidth = r.w;
-    ctx.lineCap = 'round';
+    ctx.strokeStyle = `rgba(255, 225, 100, ${0.05 + Math.sin(t * 0.6 + r.ph) * 0.03})`;
+    ctx.lineWidth = r.w; ctx.lineCap = 'round';
     ctx.beginPath();
-    const len = r.length * (1 + Math.sin(t + r.phase) * 0.07);
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(r.angle) * len, Math.sin(r.angle) * len);
+    const len = r.len * (1 + Math.sin(t + r.ph) * 0.06);
+    ctx.moveTo(0, 0); ctx.lineTo(Math.cos(r.ang) * len, Math.sin(r.ang) * len);
     ctx.stroke();
-  }
-  ctx.restore();
+  } ctx.restore();
 
   // Clouds
   for (const c of clouds) {
-    c.x += c.speed;
-    if (c.x > W + 120) c.x = -120;
-    ctx.save();
-    ctx.globalAlpha = c.op;
-    cloud(c.x, c.y, c.scale);
-    ctx.restore();
+    c.x += c.spd;
+    if (c.x > W + 100) c.x = -100;
+    ctx.save(); ctx.globalAlpha = c.op; cloudShape(c.x, c.y, c.sc); ctx.restore();
   }
 
   // Stars
   for (const s of stars) {
-    const a = 0.3 + Math.sin(t * s.speed + s.phase) * 0.3;
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(t * s.speed + s.phase) * 0.2})`;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
   }
 
   // Wind streaks
-  for (let i = 0; i < 5; i++) {
-    const yp = W * 0.28 + i * 24 + Math.sin(t * 0.5 + i) * 4;
-    const xp = ((t * 75 + i * 195) % (W + 80)) - 40;
-    ctx.save();
-    ctx.globalAlpha = 0.03 + Math.sin(t + i) * 0.015;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(xp, yp);
-    ctx.lineTo(xp + 35 + Math.sin(t * 2 + i) * 8, yp);
-    ctx.stroke();
+  for (let i = 0; i < 3; i++) {
+    const yp = W * 0.3 + i * 22 + Math.sin(t * 0.4 + i) * 3;
+    const xp = ((t * 60 + i * 150) % (W + 60)) - 30;
+    ctx.save(); ctx.globalAlpha = 0.04;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(xp, yp); ctx.lineTo(xp + 30 + Math.sin(t * 2 + i) * 6, yp); ctx.stroke();
     ctx.restore();
   }
 }
 
-// ── LAYOUT ─────────────────────────────────────────────
 const MX = 16, MW = W - MX * 2;
-const GAP = 10;
-let y = 14;
+const GAP = 8;
+let y = 0;
 
-function next(h) { const ry = y; y += h + GAP; return ry; }
-function row4(w) { return (MW - GAP * 3) / 4; }
+function ny(h) { const ry = y; y += h; return ry; }
+function gap() { y += GAP; }
 
-// ── MAIN RENDER ────────────────────────────────────────
+const CARD_X = MX;
+const CARD_W = MW;
+
+function divider(x1, x2, yy) {
+  ctx.fillStyle = '#21262d';
+  ctx.fillRect(x1, yy, x2 - x1, 1);
+}
+
+// ── RENDER ────────────────────────────────────────────
 let t = 0;
 
 function render() {
   t += 0.016;
-  y = 14;
+  y = 0;
 
-  const H = 820;
-  canvas.height = H;
-  canvas.style.height = H + 'px';
+  const totalH = 730;
+  canvas.height = totalH;
+  canvas.style.height = totalH + 'px';
 
-  // Base fill
-  ctx.fillStyle = '#080818';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, totalH);
 
-  background();
+  drawBg();
 
-  // ── LOCATION ─────────────────────────────────────────
-  const locY = next(46);
-  glass(MX, locY, MW, 46, 14, 10, 0.06);
-  drawText(weather.location, 15, W / 2, locY + 10, '#e2e8f0', 'center', 'bold');
-  drawText(weather.updated, 10, W / 2, locY + 32, '#475569');
-
-  // ── MAIN TEMP ────────────────────────────────────────
-  const mainY = next(168);
-  glass(MX, mainY, MW, 168, 20, 16, 0.07);
-  const pulse = Math.sin(t * 1.2) * 1.5;
-  const tempY = mainY + 120 + pulse;
-  // Glow copy
+  // Main card
+  const cardTop = W * 0.38;
   ctx.save();
-  ctx.filter = 'blur(8px)';
-  setFont(98, 'bold');
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${weather.current.temp_f}°`, W / 2, tempY);
+  ctx.translate(0, cardTop);
+  y = 0;
+
+  // ── LOCATION ──
+  gap();
+  const locY = ny(36);
+  dt(weather.location, 14, W / 2, locY + 14, '#8b949e', 'center', 'bold');
+  gap();
+  const updY = ny(18);
+  dt(weather.updated, 10, W / 2, updY + 8, '#484f58');
+
+  // ── MAIN TEMP ──
+  gap();
+  const tmpY = ny(96);
+  const pulse = Math.sin(t * 1.2) * 1;
+  ctx.save();
+  ctx.filter = 'blur(6px)';
+  dt(`${weather.current.temp_f}°`, 88, W / 2, tmpY + 70 + pulse, 'rgba(255,255,255,0.15)', 'center', 'bold');
   ctx.restore();
-  // Main temp
-  setFont(98, 'bold');
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.fillText(`${weather.current.temp_f}°`, W / 2, tempY);
-  drawText(weather.current.condition, 26, W / 2, mainY + 148, '#e2e8f0', 'center', 'bold');
-  drawText(`Feels like ${weather.current.feels_f}°F`, 12, W / 2, mainY + 180, '#64748b');
+  dt(`${weather.current.temp_f}°`, 88, W / 2, tmpY + 70 + pulse, '#f0f6fc', 'center', 'bold');
 
-  // ── STATS ROW 1 ─────────────────────────────────────
-  const s1Y = next(76);
-  const sw = row4();
-  stat(MX, s1Y, sw, 76, 'HUMIDITY', `${weather.current.humidity}%`, null);
-  stat(MX + sw + GAP, s1Y, sw, 76, 'WIND', `${weather.wind.mph} mph`, weather.wind.direction);
-  stat(MX + (sw + GAP) * 2, s1Y, sw, 76, 'PRESSURE', `${weather.pressure.hpa.toFixed(0)} hPa`, `${weather.pressure.inHg.toFixed(1)} inHg`);
-  stat(MX + (sw + GAP) * 3, s1Y, sw, 76, 'UV INDEX', `${weather.uv}`, weather.uv < 3 ? 'Low' : weather.uv < 6 ? 'Moderate' : 'High');
+  const condY = ny(30);
+  dt(weather.current.condition, 22, W / 2, condY + 12, '#f0f6fc', 'center', 'bold');
+  gap();
+  const flY = ny(18);
+  dt(`Feels like ${weather.current.feels_f}°`, 12, W / 2, flY + 6, '#6e7681');
 
-  // ── STATS ROW 2 ─────────────────────────────────────
-  const s2Y = next(76);
-  stat(MX, s2Y, sw, 76, 'DEW POINT', `${weather.dewpoint_f}°F`, null);
-  stat(MX + sw + GAP, s2Y, sw, 76, 'VISIBILITY', weather.visibility, null);
-  stat(MX + (sw + GAP) * 2, s2Y, sw, 76, 'PRECIP TODAY', `${weather.precip_mm} mm`, '0.00 in');
-  stat(MX + (sw + GAP) * 3, s2Y, sw, 76, 'CLOUDS', `${weather.current.cloud}%`, null);
+  // ── STATS ROW 1 ──
+  gap();
+  const s1Y = ny(60);
+  const sw = (CARD_W - GAP * 3) / 4;
+  const stY = s1Y + 10;
 
-  // ── HIGH/LOW ────────────────────────────────────────
-  const hlY = next(54);
-  glass(MX, hlY, MW, 54, 12, 10, 0.06);
+  function statBox(sx, label, val, sub) {
+    ctx.fillStyle = '#0d1117';
+    fillRect(sx, stY, sw, 50, '#0d1117');
+    dt(label, 9, sx + sw / 2, stY + 8, '#484f58', 'center', 'bold');
+    dt(val, 18, sx + sw / 2, stY + 26, '#f0f6fc', 'center', 'bold');
+    if (sub) dt(sub, 9, sx + sw / 2, stY + 42, '#6e7681', 'center');
+  }
+
+  statBox(MX, 'HUMIDITY', `${weather.current.humidity}%`, null);
+  statBox(MX + sw + GAP, 'WIND', `${weather.wind.mph} mph`, weather.wind.direction);
+  statBox(MX + (sw + GAP) * 2, 'PRESSURE', `${weather.pressure.hpa.toFixed(0)} hPa`, `${weather.pressure.inHg.toFixed(1)} in`);
+  statBox(MX + (sw + GAP) * 3, 'UV INDEX', `${weather.uv}`, weather.uv < 3 ? 'Low' : weather.uv < 6 ? 'Moderate' : 'High');
+
+  // ── STATS ROW 2 ──
+  gap();
+  const s2Y = ny(50);
+  const st2Y = s2Y + 10;
+  statBox(MX, 'DEW POINT', `${weather.dewpoint_f}°F`, null);
+  statBox(MX + sw + GAP, 'VISIBILITY', weather.visibility, null);
+  statBox(MX + (sw + GAP) * 2, 'PRECIP', `${weather.precip_mm} mm`, '0.00 in');
+  statBox(MX + (sw + GAP) * 3, 'CLOUDS', `${weather.current.cloud}%`, null);
+
+  // ── HIGH / LOW ──
+  gap();
+  const hlY = ny(44);
+  ctx.fillStyle = '#161b22';
+  fillRect(MX, hlY, CARD_W, 36, '#161b22');
+
   const mid = W / 2;
+  dt('HIGH', 9, MX + 40, hlY + 10, '#f85149', 'center', 'bold');
+  dt(`${weather.today.high_f}°`, 20, MX + 40, hlY + 24, '#f85149', 'center', 'bold');
 
-  // High
-  setFont(10); ctx.fillStyle = '#f87171'; ctx.textAlign = 'center'; ctx.fillText('HIGH', MX + 44, hlY + 14);
-  setFont(22, 'bold'); ctx.fillStyle = '#f87171'; ctx.textAlign = 'center'; ctx.fillText(`${weather.today.high_f}°`, MX + 44, hlY + 30);
+  divider(mid - 20, mid + 20, hlY + 18);
 
-  // Separator
-  ctx.fillStyle = '#1e293b'; ctx.fillRect(mid - 18, hlY + 10, 1, 34);
+  dt('LOW', 9, mid, hlY + 10, '#58a6ff', 'center', 'bold');
+  dt(`${weather.today.low_f}°`, 20, mid, hlY + 24, '#58a6ff', 'center', 'bold');
 
-  // Low
-  setFont(10); ctx.fillStyle = '#60a5fa'; ctx.textAlign = 'center'; ctx.fillText('LOW', mid + 18, hlY + 14);
-  setFont(22, 'bold'); ctx.fillStyle = '#60a5fa'; ctx.textAlign = 'center'; ctx.fillText(`${weather.today.low_f}°`, mid + 18, hlY + 30);
+  divider(mid + 60, mid + 140, hlY + 18);
+  divider(mid + 160, mid + 220, hlY + 18);
 
-  // Separator
-  ctx.fillStyle = '#1e293b'; ctx.fillRect(mid + 78, hlY + 10, 1, 34);
+  dt('SUNRISE', 8, mid + 105, hlY + 8, '#d29922', 'center', 'bold');
+  dt(weather.sunrise, 13, mid + 105, hlY + 24, '#d29922', 'center', 'bold');
 
-  // Sunrise
-  setFont(9, 'bold'); ctx.fillStyle = '#fbbf24'; ctx.textAlign = 'center'; ctx.fillText('SUNRISE', mid + 112, hlY + 12);
-  setFont(16, 'bold'); ctx.fillStyle = '#fbbf24'; ctx.textAlign = 'center'; ctx.fillText(weather.sunrise, mid + 112, hlY + 30);
+  dt('SUNSET', 8, W - MX - 50, hlY + 8, '#f97316', 'center', 'bold');
+  dt(weather.sunset, 13, W - MX - 50, hlY + 24, '#f97316', 'center', 'bold');
 
-  // Sunset
-  setFont(9, 'bold'); ctx.fillStyle = '#fb923c'; ctx.textAlign = 'right'; ctx.fillText('SUNSET', W - MX, hlY + 12);
-  setFont(16, 'bold'); ctx.fillStyle = '#fb923c'; ctx.textAlign = 'right'; ctx.fillText(weather.sunset, W - MX, hlY + 30);
+  // ── HOURLY FORECAST ──
+  gap();
+  const hfY = ny(26);
+  dt("HOURLY FORECAST", 10, W / 2, hfY + 8, '#484f58', 'center', 'bold');
 
-  // ── HOURLY FORECAST ──────────────────────────────────
-  const hfY = next(192);
-  glass(MX, hfY, MW, 192, 14, 12, 0.06);
-  setFont(11, 'bold'); ctx.fillStyle = '#64748b'; ctx.textAlign = 'center'; ctx.fillText("TODAY'S FORECAST", W / 2, hfY + 16);
+  gap();
+  const hfBoxY = ny(86);
+  ctx.fillStyle = '#0d1117';
+  fillRect(MX, hfBoxY, CARD_W, 76, '#0d1117');
 
   const n = weather.hourly.length;
-  const itemW = (MW - 8) / n;
-  const startX = MX + 4;
+  const itemW = (CARD_W - 4) / n;
+  const startX = MX + 2;
   for (let i = 0; i < n; i++) {
     const h = weather.hourly[i];
     const ix = startX + i * itemW + itemW / 2;
-    const iy = hfY + 34;
-    const bob = Math.sin(t * 2.5 + i * 0.5) * 2;
-
-    // Icon glow
-    ctx.save();
-    ctx.filter = 'blur(8px)';
-    setFont(22);
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.textAlign = 'center';
-    ctx.fillText(h.icon, ix, iy + bob);
-    ctx.restore();
-
-    // Icon
-    setFont(22);
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.fillText(h.icon, ix, iy + bob);
-
-    drawText(h.hour, 10, ix, iy + 24, '#64748b');
-    drawText(`${h.temp_f}°`, 15, ix, iy + 42, '#e2e8f0', 'center', 'bold');
-    drawText(h.precip, 10, ix, iy + 60, parseInt(h.precip) > 30 ? '#6474b8' : '#334155');
+    const iy = hfBoxY + 10;
+    const bob = Math.sin(t * 2 + i * 0.4) * 1.5;
+    dt(h.icon, 20, ix, iy + bob, '#f0f6fc', 'center');
+    dt(h.hour, 9, ix, iy + 26, '#6e7681');
+    dt(`${h.temp_f}°`, 14, ix, iy + 42, '#f0f6fc', 'center', 'bold');
+    const precipColor = parseInt(h.precip) > 30 ? '#58a6ff' : '#3d444d';
+    dt(h.precip, 9, ix, iy + 58, precipColor);
   }
 
-  // ── 3-DAY OUTLOOK ────────────────────────────────────
-  const outY = next(120);
-  glass(MX, outY, MW, 120, 14, 12, 0.06);
-  setFont(11, 'bold'); ctx.fillStyle = '#64748b'; ctx.textAlign = 'center'; ctx.fillText('3-DAY OUTLOOK', W / 2, outY + 16);
+  // ── 3-DAY OUTLOOK ──
+  gap();
+  const outTitleY = ny(26);
+  dt("3-DAY OUTLOOK", 10, W / 2, outTitleY + 8, '#484f58', 'center', 'bold');
 
-  const od = (MW - 8) / 3;
+  gap();
+  const outY = ny(90);
+  ctx.fillStyle = '#0d1117';
+  fillRect(MX, outY, CARD_W, 80, '#0d1117');
+
+  const od = (CARD_W - 4) / 3;
   for (let i = 0; i < weather.outlook.length; i++) {
     const o = weather.outlook[i];
-    const ox = MX + 8 + i * od + od / 2;
-    const oy = outY + 38;
+    const ox = MX + 4 + i * od + od / 2;
+    const oy = outY + 10;
 
-    drawText(o.day, 11, ox, oy, '#94a3b8', 'center', 'bold');
-
-    // Icon glow
-    ctx.save(); ctx.filter = 'blur(6px)'; setFont(30); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.textAlign = 'center'; ctx.fillText(o.icon, ox, oy + 30); ctx.restore();
-    setFont(30); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(o.icon, ox, oy + 30);
-
-    drawWrapped(o.condition, 10, ox, oy + 48, od - 16, '#475569');
-    drawText(`${o.high}° / ${o.low}°`, 13, ox, oy + 68, '#e2e8f0', 'center', 'bold');
-    drawText(`Rain ${o.precip}`, 10, ox, oy + 86, parseInt(o.precip) > 40 ? '#60a5fa' : '#475569');
+    dt(o.day, 10, ox, oy, '#8b949e', 'center', 'bold');
+    dt(o.icon, 24, ox, oy + 18, '#f0f6fc', 'center');
+    const condLines = o.condition.split(' ');
+    for (let li = 0; li < condLines.length; li++) {
+      dt(condLines[li], 9, ox, oy + 42 + li * 12, '#6e7681');
+    }
+    dt(`${o.high}° / ${o.low}°`, 13, ox, oy + 62, '#f0f6fc', 'center', 'bold');
   }
 
-  // ── BOTTOM TAGLINE ────────────────────────────────────
-  drawText('Open-Meteo · Canvas 2D · Huber Heights, OH', 9, W / 2, y + 4, '#1e293b');
+  // ── BOTTOM ──
+  gap();
+  dt('Open-Meteo · Huber Heights, OH', 9, W / 2, y + 4, '#21262d');
+
+  ctx.restore();
 
   requestAnimationFrame(render);
 }
