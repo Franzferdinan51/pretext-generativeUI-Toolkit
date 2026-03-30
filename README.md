@@ -5,44 +5,38 @@
 </p>
 
 <p align="center">
-  For OpenClaw agents • CLI • MCP • SKILL.md
+  For OpenClaw agents • CLI • MCP • SKILL.md • Real-time UI Generation
 </p>
 
 ---
 
 ## 🚀 Quick Start
 
-### Web UI
+### Web UI (Demo)
 ```bash
 npm install
 npm run dev
 # → http://localhost:3456
 ```
 
-### CLI (Generate from terminal)
+### CLI (Terminal)
 ```bash
 npm run cli -- "SaaS landing page"
 npm run cli -- --sections nav,hero,pricing "Developer tool"
 npm run cli -- --brand "Acme" "E-commerce site"
 ```
 
-### MCP Server (For AI agents)
+### MCP Server (For AI Agents)
 ```bash
 npm run mcp
 # → http://localhost:3457
-```
-
-### OpenClaw Skill
-```bash
-# Skill is at: .agents/skills/generative-ui/SKILL.md
-# OpenClaw will auto-discover it
 ```
 
 ---
 
 ## 🎯 What This Does
 
-Transforms **natural language descriptions** into **complete websites**:
+Transforms **natural language** into **complete websites**:
 
 ```
 "SaaS landing page for developer tools"
@@ -51,110 +45,58 @@ Transforms **natural language descriptions** into **complete websites**:
     ↓
 {A2UI JSON Spec}
     ↓
-{Rendered HTML + Components}
+{Rendered Website}
 ```
 
-### What Gets Generated:
+---
+
+## 📦 What Gets Generated
+
 | Section | Content |
 |---------|---------|
 | `nav` | Logo + navigation links |
 | `hero` | Headline + subtitle + CTAs |
-| `features` | 6 feature cards |
+| `features` | 6 feature cards with emojis |
 | `stats` | 4 metrics with trends |
 | `pricing` | 3 tiers (Free/Pro/Enterprise) |
 | `faq` | 5 Q&A items |
 | `cta` | Call-to-action |
-| `footer` | Link categories |
+| `footer` | Link categories + copyright |
 
 ---
 
 ## 🤖 OpenClaw Integration
 
 ### SKILL.md
-Located at: `.agents/skills/generative-ui/SKILL.md`
+Location: `.agents/skills/generative-ui/SKILL.md`
 
-OpenClaw agents can use this as a tool:
+OpenClaw auto-discovers and teaches agents:
 
 ```
 Agent: "Build a landing page for my AI startup"
 → generative-ui skill executes
-→ Returns complete website
+→ Returns complete website (A2UI JSON + HTML)
 ```
 
 ### MCP Server
-AI agents can call via MCP protocol:
+AI agents connect via JSON-RPC 2.0:
 
-```javascript
-// MCP tool call
-{
-  name: "generate_ui",
-  arguments: {
-    description: "E-commerce site for candles",
-    brand: "Lumière",
-    sections: ["nav", "hero", "features", "pricing", "footer"]
-  }
-}
-```
-
-### CLI for Agents
 ```bash
-# Via exec tool
-generative-ui "Portfolio for freelancer"
-generative-ui --output html "SaaS dashboard"
+npm run mcp
+# Endpoints:
+# GET  /health    - Health check
+# GET  /tools     - List tools  
+# POST /mcp       - MCP protocol
 ```
 
----
+#### MCP Tools
+| Tool | Description |
+|------|-------------|
+| `generate_ui` | Generate website from description |
+| `render_spec` | Render A2UI spec to HTML |
+| `list_components` | List available components |
 
-## 📦 CLI Usage
-
-### Generate Website
-```bash
-generative-ui "Modern SaaS landing page"
-```
-
-### Options
-```bash
---sections <list>   Sections (nav,hero,features,pricing,faq,cta,footer)
---brand <name>      Brand name
---style <style>     dark or light
---output <format>    json, spec, or html
-```
-
-### Examples
-```bash
-# Full website
-generative-ui "AI startup landing page"
-
-# Specific sections
-generative-ui --sections nav,hero,pricing "Developer tool"
-
-# With brand
-generative-ui --brand "Acme Corp" "E-commerce"
-
-# HTML output
-generative-ui --output html "Portfolio"
-```
-
----
-
-## 🔧 MCP Server
-
-### Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/tools` | GET | List available tools |
-| `/mcp` | POST | MCP protocol |
-
-### Tools Available
-```javascript
-generate_ui({ description, sections, brand, style })
-render_spec({ spec })
-list_components()
-preview({ spec, port })
-```
-
-### Connect to LM Studio
+#### Connect to OpenClaw
 ```json
 {
   "mcpServers": {
@@ -166,41 +108,78 @@ preview({ spec, port })
 }
 ```
 
+### CLI for Exec Tool
+```bash
+# Via OpenClaw exec tool
+generative-ui "Portfolio for freelancer"
+generative-ui --output html "SaaS dashboard"
+```
+
+---
+
+## 🔧 CLI Usage
+
+```bash
+# Full website
+generative-ui "Modern SaaS landing page"
+
+# Specific sections
+generative-ui --sections nav,hero,pricing "Developer tool"
+
+# With brand
+generative-ui --brand "Acme Corp" "E-commerce"
+
+# HTML output
+generative-ui --output html "Portfolio"
+
+# List components
+generative-ui --list-components
+```
+
+### Options
+```
+--sections <list>    Sections (nav,hero,features,pricing,faq,cta,footer)
+--brand <name>      Brand name
+--style <style>    dark or light (default: dark)
+--output <format>   json, spec, or html (default: json)
+--list-components   Show available components
+```
+
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    User / Agent                         │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  Interface (pick one)                                  │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  │
-│  │   CLI   │  │   MCP   │  │   SKILL │  │   REST  │  │
-│  │   🖥️   │  │   🤖   │  │   📝   │  │   🌐   │  │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  │
-└───────┼─────────────┼─────────────┼─────────────┼───────┘
-        ↓             ↓             ↓             ↓
-┌─────────────────────────────────────────────────────────┐
-│              generative-ui.js (Core API)                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
-│  │  generateUI │  │ renderSpec  │  │listComponents│     │
-│  └──────┬──────┘  └─────────────┘  └─────────────┘     │
-│         ↓                                               │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │              MiniMax M2.7 API                    │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│                    A2UI Output                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
-│  │  JSON    │  │   HTML   │  │  React   │            │
-│  │  Spec    │  │ Render   │  │  Comps   │            │
-│  └──────────┘  └──────────┘  └──────────┘            │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                    User / Agent                      │
+└─────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────┐
+│  Interface (pick one)                               │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │
+│  │   CLI   │  │   MCP   │  │  SKILL │  │  REST  │ │
+│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬───┘ │
+└───────┼────────────┼───────────┼────────────┼─────┘
+        ↓             ↓           ↓            ↓
+┌─────────────────────────────────────────────────────┐
+│              generative-ui.js (Core API)             │
+│  ┌──────────────┐  ┌──────────────┐               │
+│  │ generateUI() │  │ renderSpec() │               │
+│  └──────┬───────┘  └──────────────┘               │
+│         ↓                                            │
+│  ┌──────────────────────────────────────────────┐  │
+│  │           MiniMax M2.7 API                   │  │
+│  │  JSON-only generation • Fallback on failure   │  │
+│  └──────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────┐
+│                    A2UI Output                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐         │
+│  │  JSON    │  │   HTML   │  │  React  │         │
+│  │  Spec    │  │  Render  │  │  Comps  │         │
+│  └──────────┘  └──────────┘  └──────────┘         │
+└─────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -209,27 +188,53 @@ preview({ spec, port })
 
 ```
 pretext-generative-ui-toolkit/
-├── README.md                    # This file
-├── package.json                # npm config + CLI bin
-├── src/
-│   └── webui/
-│       └── App.tsx            # Web UI (React)
+├── README.md
+├── package.json
+│
+├── src/webui/
+│   └── App.tsx              # React web UI
+│
 ├── backend/
-│   ├── generative-ui.js       # Core API
-│   ├── cli.js                 # CLI tool
-│   └── mcp-server.js          # MCP server
-└── .agents/
-    └── skills/
-        └── generative-ui/
-            └── SKILL.md       # OpenClaw skill
+│   ├── generative-ui.js      # Core API (ESM)
+│   ├── cli.js                # CLI tool
+│   └── mcp-server.js         # MCP server
+│
+├── .agents/skills/
+│   └── generative-ui/
+│       └── SKILL.md          # OpenClaw skill
+│
+└── AGENTS.md                # Agent config
 ```
+
+---
+
+## ⚡ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Generation** | MiniMax M2.7 API |
+| **Layout** | Pretext (~0.09ms text measurement) |
+| **UI Spec** | A2UI JSON |
+| **Styling** | Tailwind CSS |
+| **Theme** | Dark mode (Stripe/Linear aesthetic) |
+
+---
+
+## 🎨 Features
+
+- **8 UI Components**: Nav, Hero, Card, Metric, Pricing, FAQ, CTA, Footer
+- **Responsive Design**: Mobile-first with Tailwind
+- **Dark Mode**: Purple/pink gradients on black
+- **Real-time Generation**: Progress shown step-by-step
+- **Fallback on Failure**: Always produces output
+- **JSON-First**: Strict parsing with auto-fix
+- **OpenClaw Ready**: SKILL.md + MCP + CLI
 
 ---
 
 ## 🔌 OpenClaw Config
 
-Add to `~/.openclaw/openclaw.json`:
-
+### Skill Enable
 ```json
 {
   "skills": {
@@ -242,8 +247,7 @@ Add to `~/.openclaw/openclaw.json`:
 }
 ```
 
-Or in workspace `openclaw.json`:
-
+### Workspace Skills
 ```json
 {
   "skills": {
@@ -260,12 +264,18 @@ Or in workspace `openclaw.json`:
 
 | Resource | Link |
 |----------|------|
-| **OpenClaw Docs** | https://docs.openclaw.ai |
+| **OpenClaw** | https://docs.openclaw.ai |
 | **Skills Guide** | https://docs.openclaw.ai/tools/skills |
 | **CopilotKit** | https://github.com/CopilotKit/OpenGenerativeUI |
 | **renderify** | https://github.com/webllm/renderify |
 | **A2UI** | https://github.com/google/A2UI |
 | **Pretext** | https://github.com/chenglou/pretext |
+
+---
+
+## 📜 License
+
+MIT
 
 ---
 
