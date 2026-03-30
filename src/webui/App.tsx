@@ -1,13 +1,61 @@
 // ============================================================
-// A2UI + PRETEXT - FULL WEBSITE GENERATOR
+// A2UI + PRETEXT - FULL WEBSITE GENERATOR v2
+// With proper creative brief for quality output
 // ============================================================
-import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
+import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 
 interface A2UIElement { type: string; props: Record<string, any>; children?: string[] }
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
+
+// ============================================
+// CREATIVE BRIEF - THE FOUNDATION
+// ============================================
+const CREATIVE_BRIEF = `
+You are building a landing page for a B2B SaaS product called "PretextFlow" - a text layout engine for developers.
+
+BRAND VOICE: Professional, innovative, developer-focused. Think Stripe/Linear/Vercel energy.
+
+STYLE: Dark mode, minimal, lots of whitespace. Purple/pink gradient accents on black backgrounds.
+
+TARGET AUDIENCE: Developers, technical leads, CTOs who want fast UI rendering without layout reflows.
+
+KEY MESSAGES:
+- "Zero layout reflow. Pure math."
+- "~0.09ms per measurement"
+- "Replace getBoundingClientRect forever"
+- "Works with React, Vue, Svelte, or raw JS"
+
+COLOR PALETTE:
+- Background: #0a0a0f (near black)
+- Surface: rgba(255,255,255,0.05)
+- Border: rgba(255,255,255,0.1)
+- Primary gradient: purple-400 to pink-400
+- Text: white, gray-300, gray-400
+- Accent: purple-500, pink-500
+
+EMOJI USAGE: Use sparingly - 1-2 per section max. Prefer icons or none.
+
+COPY QUALITY: 
+- Headlines: Benefit-driven, not feature lists
+- Descriptions: Technical but accessible
+- CTAs: Action-oriented, specific
+- Make it sound like a real product, not generated gibberish
+
+WEBSITE SECTIONS TO BUILD (in order):
+1. NAV - Simple logo + 4 nav links + CTA button
+2. HERO - Badge + H1 + subtitle + description + 2 CTAs
+3. FEATURES - 6 cards showcasing capabilities  
+4. STATS - 4 impressive metrics with trends
+5. HOW IT WORKS - 3-step process
+6. CODE EXAMPLE - Show the API in action
+7. PRICING - 3 tiers (Free/Pro/Enterprise)
+8. FAQ - 5 common questions
+9. CTA - Final conversion push
+10. FOOTER - 4 link categories + copyright
+`
 
 // ============================================
 // PRETEXT LAYOUT ENGINE
@@ -65,51 +113,74 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 // ============================================
 // COMPONENTS
 // ============================================
-const Nav = ({ logo, links }: any) => <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 border-b border-white/10"><span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span><div className="flex gap-6">{links?.map((l: string, i: number) => <a key={i} href="#" className="text-gray-400 hover:text-white">{l}</a>)}</div><button className="px-6 py-2 rounded-xl bg-purple-600 font-bold">Get Started</button></nav>
+const Nav = ({ logo, links }: any) => <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 border-b border-white/10"><span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span><div className="flex gap-6">{links?.map((l: string, i: number) => <a key={i} href="#" className="text-gray-400 hover:text-white text-sm">{l}</a>)}</div><button className="px-5 py-2 rounded-xl bg-purple-600 font-bold text-sm">Get Started</button></nav>
 
-const Hero = ({ badge, title, subtitle, desc, pBtn, sBtn }: any) => <section className="py-32 px-8 text-center bg-gradient-to-b from-purple-900/30 to-[#0a0a0f]">{badge && <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 mb-8">{badge}</span>}<h1 className="text-6xl font-black mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h1>{subtitle && <p className="text-2xl text-gray-300 mb-4">{subtitle}</p>}{desc && <p className="text-gray-400 max-w-2xl mx-auto mb-12">{desc}</p>}<div className="flex gap-4 justify-center">{pBtn && <button className="px-10 py-4 rounded-2xl font-bold bg-purple-600">{pBtn}</button>}{sBtn && <button className="px-10 py-4 rounded-2xl font-bold bg-white/10">{sBtn}</button>}</div></section>
+const Hero = ({ badge, title, subtitle, desc, pBtn, sBtn }: any) => <section className="py-32 px-8 text-center bg-gradient-to-b from-purple-900/20 via-black to-[#0a0a0f]">{badge && <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 mb-6">{badge}</span>}<h1 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent leading-tight">{title}</h1>{subtitle && <p className="text-xl text-gray-300 mb-4 max-w-2xl mx-auto">{subtitle}</p>}{desc && <p className="text-gray-500 max-w-xl mx-auto mb-10 text-sm">{desc}</p>}<div className="flex gap-4 justify-center">{pBtn && <button className="px-8 py-4 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/25">{pBtn}</button>}{sBtn && <button className="px-8 py-4 rounded-xl font-bold bg-white/10 hover:bg-white/15 border border-white/10">{sBtn}</button>}</div></section>
 
-const Section = ({ title, sub, children }: any) => <section className="py-24 px-8"><div className="max-w-6xl mx-auto">{title && <h2 className="text-4xl font-black text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>}{sub && <p className="text-gray-400 text-center mb-12">{sub}</p>}{children}</div></section>
+const Section = ({ title, sub, children }: any) => <section className="py-20 px-8"><div className="max-w-6xl mx-auto">{title && <h2 className="text-3xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>}{sub && <p className="text-gray-500 text-center mb-12 text-sm">{sub}</p>}{children}</div></section>
 
-const Grid = ({ cols, children }: any) => <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${cols || 3}, minmax(0, 1fr))` }}>{children}</div>
+const Grid = ({ cols, children }: any) => <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${cols || 3}, minmax(0, 1fr))` }}>{children}</div>
 
-const Card = ({ emoji, title, desc }: any) => <div className="p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10"><div className="text-4xl mb-4">{emoji}</div><h3 className="text-xl font-bold mb-2">{title}</h3>{desc && <p className="text-gray-400">{desc}</p>}</div>
+const Card = ({ emoji, title, desc }: any) => <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] transition-all"><div className="text-2xl mb-3">{emoji}</div><h3 className="text-lg font-semibold mb-2">{title}</h3>{desc && <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>}</div>
 
-const Metric = ({ val, label, trend }: any) => <div className="text-center p-8 rounded-3xl bg-white/5 border border-white/10"><div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{val}</div><div className="text-gray-400 uppercase text-sm">{label}</div>{trend && <div className="text-green-400 text-sm mt-2">{trend}</div>}</div>
+const Metric = ({ val, label, trend }: any) => <div className="text-center p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08]"><div className="text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">{val}</div><div className="text-gray-500 uppercase text-xs tracking-wider">{label}</div>{trend && <div className="text-green-400/80 text-xs mt-2">{trend}</div>}</div>
 
-const Pricing = ({ tier, price, period, features, highlight, btn }: any) => <div className={`p-8 rounded-3xl ${highlight ? 'bg-purple-600/20 border-2 border-purple-500/50' : 'bg-white/5 border-white/10'}`}><div className="text-sm font-bold text-purple-400 mb-2">{tier}</div><div className="flex items-baseline gap-1 mb-4"><span className="text-5xl font-black">{price}</span>{period && <span className="text-gray-500">/{period}</span>}</div><ul className="space-y-3 mb-8">{features?.map((f: string, i: number) => <li key={i} className="flex items-center gap-2 text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}</ul><button className={`w-full py-4 rounded-2xl font-bold ${highlight ? 'bg-purple-600' : 'bg-white/10'}`}>{btn || 'Get Started'}</button></div>
+const Step = ({ num, title, desc }: any) => <div className="flex gap-4"><div className="w-10 h-10 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center font-bold text-purple-400 shrink-0">{num}</div><div><h4 className="font-semibold mb-1">{title}</h4><p className="text-gray-500 text-sm">{desc}</p></div></div>
 
-const FAQ = ({ q, a }: any) => <div className="p-6 rounded-2xl bg-white/5 border border-white/10"><h4 className="font-bold mb-2">{q}</h4>{a && <p className="text-gray-400">{a}</p>}</div>
+const CodeBlock = ({ code, lang }: any) => <div className="rounded-xl bg-black/60 border border-white/10 overflow-hidden"><div className="flex gap-1.5 px-4 py-3 border-b border-white/5"><div className="w-3 h-3 rounded-full bg-red-500/60"></div><div className="w-3 h-3 rounded-full bg-yellow-500/60"></div><div className="w-3 h-3 rounded-full bg-green-500/60"></div><span className="ml-2 text-xs text-gray-500">{lang || 'typescript'}</span></div><pre className="p-4 text-sm overflow-x-auto"><code className="text-gray-300">{code}</code></pre></div>
 
-const CTA = ({ title, sub, btn }: any) => <section className="py-32 px-8 text-center bg-gradient-to-br from-purple-900/30 to-pink-900/30"><h2 className="text-5xl font-black mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>{sub && <p className="text-gray-400 mb-12">{sub}</p>}<button className="px-14 py-5 rounded-2xl font-bold text-xl bg-purple-600 shadow-xl">{btn || 'Start Free Trial'}</button></section>
+const Pricing = ({ tier, price, period, features, highlight, btn }: any) => <div className={`p-6 rounded-2xl ${highlight ? 'bg-gradient-to-b from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30' : 'bg-white/[0.03] border border-white/[0.08]'} relative`}>{highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-purple-500 rounded-full text-xs font-bold">POPULAR</div>}<div className="text-sm font-bold text-purple-400 mb-1">{tier}</div><div className="flex items-baseline gap-1 mb-4"><span className="text-4xl font-black">{price}</span>{period && <span className="text-gray-500 text-sm">/{period}</span>}</div><ul className="space-y-2.5 mb-6">{features?.map((f: string, i: number) => <li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><span className="text-green-400/80">✓</span> {f}</li>)}</ul><button className={`w-full py-3 rounded-xl font-semibold text-sm ${highlight ? 'bg-purple-600 hover:bg-purple-500' : 'bg-white/10 hover:bg-white/15'}`}>{btn || 'Get Started'}</button></div>
 
-const Footer = ({ links, copy }: any) => <footer className="py-16 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-12">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-bold mb-4 text-purple-400">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-500 text-sm border-t border-white/5 pt-8">{copy || '© 2026'}</div></div></footer>
+const FAQ = ({ q, a }: any) => <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.08]"><h4 className="font-semibold mb-2 text-sm">{q}</h4>{a && <p className="text-gray-500 text-sm leading-relaxed">{a}</p>}</div>
+
+const CTA = ({ title, sub, btn }: any) => <section className="py-24 px-8 text-center bg-gradient-to-br from-purple-900/20 to-pink-900/20"><h2 className="text-4xl font-black mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>{sub && <p className="text-gray-400 mb-8 max-w-lg mx-auto text-sm">{sub}</p>}<button className="px-10 py-4 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 shadow-lg shadow-purple-500/25">{btn || 'Start Free Trial'}</button></section>
+
+const Footer = ({ links, copy }: any) => <footer className="py-12 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-8">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-semibold mb-3 text-purple-400 text-sm">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-600 text-xs border-t border-white/5 pt-8">{copy}</div></div></footer>
 
 // ============================================
-// FALLBACK (shows immediately)
+// FALLBACK SPEC (High quality)
 // ============================================
 const FALLBACK_SPEC: A2UISpec = {
   version: "0.8",
   root: "app",
   elements: {
-    nav: { type: "Nav", props: { logo: "📐 Pretext+UI", links: ["Features", "Pricing", "Docs", "Community"] }},
-    hero: { type: "Hero", props: { badge: "🚀 Zero Reflow", title: "Build Amazing UIs", subtitle: "With Pretext + A2UI", desc: "Create stunning user interfaces that are safe, fast, and beautiful. Pretext measures text at ~0.09ms without DOM access.", pBtn: "Start Building", sBtn: "Learn More" }},
-    featSection: { type: "Section", props: { title: "Features", sub: "Everything you need" }, children: ["featGrid"]},
+    nav: { type: "Nav", props: { logo: "⚡ PretextFlow", links: ["Docs", "Features", "Pricing", "GitHub"] }},
+    hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement\nWithout Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.", pBtn: "Start Free", sBtn: "View Docs" }},
+    featSection: { type: "Section", props: { title: "Why PretextFlow?", sub: "The modern way to handle text layout" }, children: ["featGrid"]},
     featGrid: { type: "Grid", props: { cols: 3 }, children: ["f1", "f2", "f3", "f4", "f5", "f6"]},
-    f1: { type: "Card", props: { emoji: "⚡", title: "Lightning Fast", desc: "~0.09ms per measurement" }},
-    f2: { type: "Card", props: { emoji: "🛡️", title: "Secure", desc: "No executable code" }},
-    f3: { type: "Card", props: { emoji: "🤖", title: "AI-Powered", desc: "Any LLM can generate" }},
-    f4: { type: "Card", props: { emoji: "🌐", title: "Cross-Platform", desc: "React, Flutter, more" }},
-    f5: { type: "Card", props: { emoji: "🔄", title: "Incrementally Updatable", desc: "Progressive rendering" }},
-    f6: { type: "Card", props: { emoji: "📦", title: "Open Standard", desc: "Google A2UI" }},
-    statsSection: { type: "Section", props: { title: "By The Numbers" }, children: ["statsGrid"]},
+    f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement. Cached results. No DOM access." }},
+    f2: { type: "Card", props: { emoji: "🔒", title: "Secure by Design", desc: "No eval. No code execution. Pure declarative JSON." }},
+    f3: { type: "Card", props: { emoji: "🌍", title: "Universal", desc: "Works with React, Vue, Svelte, or vanilla JS." }},
+    f4: { type: "Card", props: { emoji: "📱", title: "Any Surface", desc: "Render to DOM, Canvas, SVG, or game engines." }},
+    f5: { type: "Card", props: { emoji: "🎯", title: "Precise", desc: "Uses the browser's own font engine as ground truth." }},
+    f6: { type: "Card", props: { emoji: "♿", title: "Accessible", desc: "Built-in support for RTL languages and screen readers." }},
+    statsSection: { type: "Section", props: { title: "Numbers Don't Lie" }, children: ["statsGrid"]},
     statsGrid: { type: "Grid", props: { cols: 4 }, children: ["m1", "m2", "m3", "m4"]},
     m1: { type: "Metric", props: { val: "0.09ms", label: "Per Call" }},
-    m2: { type: "Metric", props: { val: "0", label: "DOM Reflow" }},
-    m3: { type: "Metric", props: { val: "100%", label: "Cached" }},
-    m4: { type: "Metric", props: { val: "∞", label: "Languages" }},
-    cta: { type: "CTA", props: { title: "Ready to Build?", sub: "Start creating amazing UIs today.", btn: "Get Started Free" }},
-    footer: { type: "Footer", props: { links: { Product: ["Features", "Pricing"], Resources: ["Docs", "GitHub"], Company: ["About", "Blog"], Legal: ["Privacy", "Terms"]}, copy: "© 2026 Pretext + A2UI" }}
+    m2: { type: "Metric", props: { val: "10M+", label: "Calls/Day" }},
+    m3: { type: "Metric", props: { val: "99.99%", label: "Uptime" }},
+    m4: { type: "Metric", props: { val: "4.9/5", label: "Dev Rating" }},
+    howSection: { type: "Section", props: { title: "How It Works", sub: "Three steps to layout bliss" }, children: ["howGrid"]},
+    howGrid: { type: "Grid", props: { cols: 3 }, children: ["s1", "s2", "s3"]},
+    s1: { type: "Step", props: { num: "1", title: "Install", desc: "npm install @pretextflow/core" }},
+    s2: { type: "Step", props: { num: "2", title: "Measure", desc: "pretext.measure(text, width)" }},
+    s3: { type: "Step", props: { num: "3", title: "Render", desc: "Use positions in Canvas, SVG, or DOM" }},
+    codeSection: { type: "Section", props: { title: "Simple API", sub: "One function. Infinite possibilities." }, children: ["code"]},
+    code: { type: "CodeBlock", props: { lang: "typescript", code: "import { prepare, layout } from '@pretextflow/core'\n\nconst text = 'Hello, PretextFlow!'\nconst prepared = prepare(text, '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(`Height: ${height}px`) // ~21px\n// No DOM access. No reflow. Pure math." }},
+    pricingSection: { type: "Section", props: { title: "Simple Pricing", sub: "Start free. Scale as you grow." }, children: ["pricingGrid"]},
+    pricingGrid: { type: "Grid", props: { cols: 3 }, children: ["p1", "p2", "p3"]},
+    p1: { type: "Pricing", props: { tier: "Hobby", price: "$0", features: ["100K calls/month", "Community support", "1 project"]}},
+    p2: { type: "Pricing", props: { tier: "Pro", price: "$29", period: "mo", features: ["Unlimited calls", "Priority support", "10 projects", "Analytics"], highlight: true, btn: "Start Trial"}},
+    p3: { type: "Pricing", props: { tier: "Enterprise", price: "Custom", features: ["Everything in Pro", "Dedicated support", "Unlimited projects", "SLA guarantee"]}},
+    faqSection: { type: "Section", props: { title: "FAQ", sub: "Common questions, clear answers" }, children: ["faqGrid"]},
+    faqGrid: { type: "Grid", props: { cols: 2 }, children: ["faq1", "faq2", "faq3", "faq4", "faq5"]},
+    faq1: { type: "FAQ", props: { q: "What makes it so fast?", a: "Pretext uses the browser's native font engine to measure text once, then caches everything. Subsequent calls are pure arithmetic." }},
+    faq2: { type: "FAQ", props: { q: "Does it work with TypeScript?", a: "Yes! Full TypeScript support with types included. Works in Node.js and browsers." }},
+    faq3: { type: "FAQ", props: { q: "Can I use it for game development?", a: "Absolutely. Pretext outputs raw coordinates, making it perfect for Canvas, WebGL, and game UI systems." }},
+    faq4: { type: "FAQ", props: { q: "Is there a React integration?", a: "Yes, we have official React bindings plus examples for Vue, Svelte, and Solid." }},
+    faq5: { type: "FAQ", props: { q: "What about RTL languages?", a: "Full support for Arabic, Hebrew, and other RTL scripts built in." }},
+    cta: { type: "CTA", props: { title: "Ready to go fast?", sub: "Join thousands of developers who eliminated layout thrashing.", btn: "Get Started Free" }},
+    footer: { type: "Footer", props: { links: { Product: ["Features", "Pricing", "Changelog"], Developers: ["Docs", "API", "Examples", "Status"], Company: ["About", "Blog", "Careers"], Legal: ["Privacy", "Terms", "Security"]}, copy: "© 2026 PretextFlow. Built for developers who care about performance." }}
   }
 }
 
@@ -129,6 +200,8 @@ function renderSpec(spec: A2UISpec): ReactNode {
       case "Grid": return <Grid key={id} {...props}>{children?.map((c: string) => render(c))}</Grid>
       case "Card": return <Card key={id} {...props} />
       case "Metric": return <Metric key={id} {...props} />
+      case "Step": return <Step key={id} {...props} />
+      case "CodeBlock": return <CodeBlock key={id} {...props} />
       case "Pricing": return <Pricing key={id} {...props} />
       case "FAQ": return <FAQ key={id} {...props} />
       case "CTA": return <CTA key={id} {...props} />
@@ -140,89 +213,104 @@ function renderSpec(spec: A2UISpec): ReactNode {
 }
 
 // ============================================
-// AGENTS WITH PROPER GUIDANCE
+// AGENTS WITH BRIEF
 // ============================================
 const AGENTS = {
-  // Generate NAVIGATION
-  nav: { name: "Nav", prompt: `You are an expert UI designer. Create a navigation bar with logo and links.
+  nav: { name: "Nav", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON in this exact format (no other text):
-{"nav":{"type":"Nav","props":{"logo":"🚀 BrandName","links":["Features","Pricing","About","Contact"]}}
+Generate ONLY the navigation bar JSON:
+{"nav":{"type":"Nav","props":{"logo":"⚡ PretextFlow","links":["Docs","Features","Pricing","GitHub"]}}}
 
-Return ONLY the JSON, nothing else.` },
+Return ONLY valid JSON, nothing else. No markdown.` },
   
-  // Generate HERO
-  hero: { name: "Hero", prompt: `You are an expert UI designer. Create an epic hero section.
+  hero: { name: "Hero", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON in this exact format:
-{"hero":{"type":"Hero","props":{"badge":"🚀 Tagline","title":"Main Headline That Converts","subtitle":"Supporting message","desc":"Detailed description of what you offer and why it matters. Make it compelling.","pBtn":"Primary CTA Text","sBtn":"Secondary CTA Text"}}}
+Generate ONLY the hero section JSON. Make the headline benefit-driven and compelling:
 
-Make the headline bold and compelling. Return ONLY JSON.` },
+{"hero":{"type":"Hero","props":{"badge":"🚀 ZERO LAYOUT REFLOW","title":"Text Measurement Without Limits","subtitle":"Pure math. No DOM. No jank.","desc":"PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.","pBtn":"Start Free","sBtn":"View Docs"}}}
+
+Return ONLY valid JSON, nothing else. No markdown.` },
   
-  // Generate FEATURES
-  features: { name: "Features", prompt: `You are an expert UI designer. Create a features section with 6 feature cards.
+  features: { name: "Features", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"featSection":{"type":"Section","props":{"title":"Our Features","subtitle":"Everything you need"},"featGrid":{"type":"Grid","props":{"cols":3},"children":["f1","f2","f3","f4","f5","f6"]},"f1":{"type":"Card","props":{"emoji":"⚡","title":"Feature One","desc":"Description of feature one"}}},"f2":{"type":"Card","props":{"emoji":"🎨","title":"Feature Two","desc":"Description of feature two"}}},"f3":{"type":"Card","props":{"emoji":"🤖","title":"Feature Three","desc":"Description of feature three"}}},"f4":{"type":"Card","props":{"emoji":"🔒","title":"Feature Four","desc":"Description of feature four"}}},"f5":{"type":"Card","props":{"emoji":"🌟","title":"Feature Five","desc":"Description of feature five"}}},"f6":{"type":"Card","props":{"emoji":"💎","title":"Feature Six","desc":"Description of feature six"}}}}
+Generate ONLY the features section JSON. 6 cards highlighting capabilities:
 
-Return ONLY JSON.` },
+{"featSection":{"type":"Section","props":{"title":"Why PretextFlow?","subtitle":"The modern way to handle text layout"},"featGrid":{"type":"Grid","props":{"cols":3},"children":["f1","f2","f3","f4","f5","f6"]}},"f1":{"type":"Card","props":{"emoji":"⚡","title":"Blazing Fast","desc":"~0.09ms per measurement. Cached results. No DOM access."}},"f2":{"type":"Card","props":{"emoji":"🔒","title":"Secure by Design","desc":"No eval. No code execution. Pure declarative JSON."}},"f3":{"type":"Card","props":{"emoji":"🌍","title":"Universal","desc":"Works with React, Vue, Svelte, or vanilla JS."}},"f4":{"type":"Card","props":{"emoji":"📱","title":"Any Surface","desc":"Render to DOM, Canvas, SVG, or game engines."}},"f5":{"type":"Card","props":{"emoji":"🎯","title":"Precise","desc":"Uses the browser's own font engine as ground truth."}},"f6":{"type":"Card","props":{"emoji":"♿","title":"Accessible","desc":"Built-in support for RTL languages and screen readers."}}}
+
+Return ONLY valid JSON, nothing else.` },
   
-  // Generate STATS
-  stats: { name: "Stats", prompt: `You are an expert UI designer. Create a stats/metrics section with 4 impressive metrics.
+  stats: { name: "Stats", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"statsSection":{"type":"Section","props":{"title":"By The Numbers"},"statsGrid":{"type":"Grid","props":{"cols":4},"children":["m1","m2","m3","m4"]},"m1":{"type":"Metric","props":{"val":"100K+","label":"Active Users","trend":"+15%"}},"m2":{"type":"Metric","props":{"val":"99.99%","label":"Uptime","trend":"Guaranteed"}},"m3":{"type":"Metric","props":{"val":"50M+","label":"Tasks Done","trend":"+5M"}},"m4":{"type":"Metric","props":{"val":"4.9/5","label":"Rating","trend":"Excellent"}}}
+Generate ONLY the stats/metrics section JSON:
 
-Return ONLY JSON.` },
+{"statsSection":{"type":"Section","props":{"title":"Numbers Don't Lie"},"statsGrid":{"type":"Grid","props":{"cols":4},"children":["m1","m2","m3","m4"]}},"m1":{"type":"Metric","props":{"val":"0.09ms","label":"Per Call"}},"m2":{"type":"Metric","props":{"val":"10M+","label":"Calls/Day"}},"m3":{"type":"Metric","props":{"val":"99.99%","label":"Uptime"}},"m4":{"type":"Metric","props":{"val":"4.9/5","label":"Dev Rating"}}}
+
+Return ONLY valid JSON, nothing else.` },
   
-  // Generate PRICING
-  pricing: { name: "Pricing", prompt: `You are an expert UI designer. Create a pricing section with 3 tiers.
+  how: { name: "How It Works", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"pricingSection":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free, scale as you grow"},"pricingGrid":{"type":"Grid","props":{"cols":3},"children":["p1","p2","p3"]},"p1":{"type":"Pricing","props":{"tier":"Starter","price":"$0","features":["5 projects","Basic support","1GB storage"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$29","period":"month","features":["Unlimited projects","Priority support","100GB storage","Team collaboration"],"highlight":true,"btn":"Start Free Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","features":["Everything in Pro","Dedicated support","Unlimited storage"]}}}
+Generate ONLY the "How It Works" section with 3 steps:
 
-Return ONLY JSON.` },
+{"howSection":{"type":"Section","props":{"title":"How It Works","subtitle":"Three steps to layout bliss"},"howGrid":{"type":"Grid","props":{"cols":3},"children":["s1","s2","s3"]}},"s1":{"type":"Step","props":{"num":"1","title":"Install","desc":"npm install @pretextflow/core"}},"s2":{"type":"Step","props":{"num":"2","title":"Measure","desc":"pretext.measure(text, width)"}},"s3":{"type":"Step","props":{"num":"3","title":"Render","desc":"Use positions in Canvas, SVG, or DOM"}}}
+
+Return ONLY valid JSON, nothing else.` },
   
-  // Generate FAQ
-  faq: { name: "FAQ", prompt: `You are an expert UI designer. Create an FAQ section with 5 questions and answers.
+  code: { name: "Code Example", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"faqSection":{"type":"Section","props":{"title":"Common Questions"},"faq1":{"type":"FAQ","props":{"q":"What is this product?","a":"A detailed answer explaining what the product is and how it helps users."}},"faq2":{"type":"FAQ","props":{"q":"How do I get started?","a":"Step-by-step guide on how to begin using the product."}},"faq3":{"type":"FAQ","props":{"q":"Is there a free trial?","a":"Yes, explain the free trial details and duration."}},"faq4":{"type":"FAQ","props":{"q":"What payment methods do you accept?","a":"List of accepted payment methods."}},"faq5":{"type":"FAQ","props":{"q":"Can I cancel anytime?","a":"Yes, explain the cancellation policy."}}}
+Generate ONLY the code example section:
 
-Return ONLY JSON.` },
+{"codeSection":{"type":"Section","props":{"title":"Simple API","subtitle":"One function. Infinite possibilities."},"code":{"type":"CodeBlock","props":{"lang":"typescript","code":"import { prepare, layout } from '@pretextflow/core'\n\nconst text = 'Hello, PretextFlow!'\nconst prepared = prepare(text, '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(\`Height: \${height}px\`) // ~21px\n// No DOM access. No reflow. Pure math."}}}
+
+Return ONLY valid JSON, nothing else.` },
   
-  // Generate CTA
-  cta: { name: "CTA", prompt: `You are an expert UI designer. Create a final call-to-action section.
+  pricing: { name: "Pricing", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"cta":{"type":"CTA","props":{"title":"Ready to Get Started?","sub":"Join thousands of happy customers. Start your free trial today.","btn":"Start Free Trial Now"}}}
+Generate ONLY the pricing section JSON:
 
-Return ONLY JSON.` },
+{"pricingSection":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free. Scale as you grow."},"pricingGrid":{"type":"Grid","props":{"cols":3},"children":["p1","p2","p3"]}},"p1":{"type":"Pricing","props":{"tier":"Hobby","price":"$0","features":["100K calls/month","Community support","1 project"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$29","period":"mo","features":["Unlimited calls","Priority support","10 projects","Analytics"],"highlight":true,"btn":"Start Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","features":["Everything in Pro","Dedicated support","Unlimited projects","SLA guarantee"]}}}
+
+Return ONLY valid JSON, nothing else.` },
   
-  // Generate FOOTER
-  footer: { name: "Footer", prompt: `You are an expert UI designer. Create a footer with link categories.
+  faq: { name: "FAQ", prompt: `${CREATIVE_BRIEF}
 
-Generate ONLY valid JSON:
-{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Integrations","Changelog"],"Company":["About","Blog","Careers","Contact"],"Resources":["Documentation","API","Community","Support"],"Legal":["Privacy","Terms","Cookies"]},"copy":"© 2026 Your Brand. All rights reserved."}}}
+Generate ONLY the FAQ section JSON:
 
-Return ONLY JSON.` }
+{"faqSection":{"type":"Section","props":{"title":"FAQ","subtitle":"Common questions, clear answers"},"faqGrid":{"type":"Grid","props":{"cols":2},"children":["faq1","faq2","faq3","faq4","faq5"]}},"faq1":{"type":"FAQ","props":{"q":"What makes it so fast?","a":"Pretext uses the browser's native font engine to measure text once, then caches everything. Subsequent calls are pure arithmetic."}},"faq2":{"type":"FAQ","props":{"q":"Does it work with TypeScript?","a":"Yes! Full TypeScript support with types included. Works in Node.js and browsers."}},"faq3":{"type":"FAQ","props":{"q":"Can I use it for game development?","a":"Absolutely. Pretext outputs raw coordinates, making it perfect for Canvas, WebGL, and game UI systems."}},"faq4":{"type":"FAQ","props":{"q":"Is there a React integration?","a":"Yes, we have official React bindings plus examples for Vue, Svelte, and Solid."}},"faq5":{"type":"FAQ","props":{"q":"What about RTL languages?","a":"Full support for Arabic, Hebrew, and other RTL scripts built in."}}}
+
+Return ONLY valid JSON, nothing else.` },
+  
+  cta: { name: "CTA", prompt: `${CREATIVE_BRIEF}
+
+Generate ONLY the final CTA section JSON:
+
+{"cta":{"type":"CTA","props":{"title":"Ready to go fast?","subtitle":"Join thousands of developers who eliminated layout thrashing.","btn":"Get Started Free"}}}
+
+Return ONLY valid JSON, nothing else.` },
+  
+  footer: { name: "Footer", prompt: `${CREATIVE_BRIEF}
+
+Generate ONLY the footer JSON:
+
+{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Changelog"],"Developers":["Docs","API","Examples","Status"],"Company":["About","Blog","Careers"],"Legal":["Privacy","Terms","Security"]},"copy":"© 2026 PretextFlow. Built for developers who care about performance."}}}
+
+Return ONLY valid JSON, nothing else.` }
 }
 
 // ============================================
 // MAIN APP
 // ============================================
 export default function App() {
-  const [spec, setSpec] = useState<A2UISpec>(FALLBACK_SPEC) // Show fallback immediately
+  const [spec, setSpec] = useState<A2UISpec>(FALLBACK_SPEC)
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
-  const [phase, setPhase] = useState('AI Enhancing...')
+  const [phase, setPhase] = useState('Enhancing...')
   const [progress, setProgress] = useState(0)
   
   async function callAPI(prompt: string) {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
-      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'user', content: prompt }], max_tokens: 1500 })
+      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'user', content: prompt }], max_tokens: 1200 })
     })
     const data = await res.json()
     return data.choices?.[0]?.message?.content || ''
@@ -236,7 +324,7 @@ export default function App() {
   
   async function enhanceWithAI() {
     setIsGenerating(true)
-    setLogs(['Starting AI enhancement...'])
+    setLogs(['✨ Enhancing with AI...'])
     const elements: Record<string, A2UIElement> = {}
     const keys = Object.keys(AGENTS)
     
@@ -250,18 +338,17 @@ export default function App() {
         const text = await callAPI(agent.prompt)
         const parsed = parseJSON(text)
         
-        if (parsed && parsed.elements) {
+        if (parsed?.elements) {
           Object.assign(elements, parsed.elements)
-          setLogs(prev => [...prev.slice(-5), `✅ ${agent.name}: OK`])
-        } else if (parsed && parsed.nav) {
-          // Handle single-element responses
+          setLogs(prev => [...prev.slice(-4), `✅ ${agent.name}`])
+        } else if (parsed && Object.keys(parsed).length > 0) {
           Object.assign(elements, parsed)
-          setLogs(prev => [...prev.slice(-5), `✅ ${agent.name}: OK`])
+          setLogs(prev => [...prev.slice(-4), `✅ ${agent.name}`])
         } else {
-          setLogs(prev => [...prev.slice(-5), `⚠️ ${agent.name}: No valid JSON`])
+          setLogs(prev => [...prev.slice(-4), `⚠️ ${agent.name}: skipped`])
         }
       } catch (err) {
-        setLogs(prev => [...prev.slice(-5), `❌ ${agent.name}: Failed`])
+        setLogs(prev => [...prev.slice(-4), `❌ ${agent.name}: failed`])
       }
     }
     
@@ -269,9 +356,8 @@ export default function App() {
       setSpec({ version: "0.8", root: "app", elements })
     }
     
-    setPhase('Complete!')
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-5), `✅ Enhancement complete!`])
+    setLogs(prev => [...prev.slice(-4), `✅ Done!`])
   }
   
   useEffect(() => { enhanceWithAI() }, [])
@@ -283,37 +369,26 @@ export default function App() {
         <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-purple-500/20 px-6 py-3">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-2">
-              <span className="text-xl">📐</span>
-              <span className="font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Pretext + A2UI</span>
+              <span className="text-lg">⚡</span>
+              <span className="font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">PretextFlow</span>
             </div>
             <div className="flex items-center gap-3">
-              {!isGenerating && <span className="text-xs text-green-400">✨ Enhanced</span>}
+              {!isGenerating && <span className="text-xs text-green-400/80">✨ Enhanced</span>}
               {isGenerating && <span className="text-xs text-purple-400">{phase}</span>}
-              <button onClick={enhanceWithAI} disabled={isGenerating} className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold disabled:opacity-50">
+              <button onClick={enhanceWithAI} disabled={isGenerating} className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-purple-500 transition">
                 {isGenerating ? '⏳' : '✨'}
               </button>
             </div>
           </div>
         </header>
         
-        <main className="pt-16">
-          {/* Progress bar when generating */}
-          {isGenerating && (
-            <div className="sticky top-[52px] z-40 h-1 bg-white/10">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${progress}%` }} />
-            </div>
-          )}
-          
-          {/* Logs */}
-          {isGenerating && logs.length > 0 && (
-            <div className="fixed bottom-4 right-4 bg-black/80 rounded-lg p-3 max-w-xs">
-              <pre className="text-xs text-gray-400">{logs.join('\n')}</pre>
-            </div>
-          )}
-          
-          {/* Rendered content */}
-          {renderSpec(spec)}
-        </main>
+        {/* Progress */}
+        {isGenerating && <div className="fixed top-[52px] left-0 right-0 z-40 h-0.5 bg-white/10"><div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${progress}%` }} /></div>}
+        
+        {/* Logs */}
+        {isGenerating && logs.length > 0 && <div className="fixed bottom-4 right-4 bg-black/80 rounded-lg p-3 max-w-[200px]"><pre className="text-xs text-gray-500">{logs.join('\n')}</pre></div>}
+        
+        <main className="pt-16">{renderSpec(spec)}</main>
       </div>
     </ErrorBoundary>
   )
