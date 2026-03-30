@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
 import { prepare, layout } from '@chenglou/pretext'
 import { defineCatalog } from '@json-render/core'
 import { defineRegistry, Renderer } from '@json-render/react'
-import { VisibilityProvider, StateProvider } from '@json-render/react'
+import { JSONUIProvider } from '@json-render/react'
 import { schema } from '@json-render/react/schema'
 import { z } from 'zod'
 
@@ -469,7 +469,7 @@ export default function App() {
   
   return (
     <ErrorBoundary>
-      <StateProvider>
+      <JSONUIProvider registry={registry}>
         <div className="min-h-screen bg-[#0a0a0f] text-white">
           {/* Header */}
           <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10 px-6 py-4">
@@ -559,8 +559,7 @@ export default function App() {
             )}
           </main>
         </div>
-      </VisibilityProvider>
-      </StateProvider>
+      </JSONUIProvider>
     </ErrorBoundary>
   )
 }
