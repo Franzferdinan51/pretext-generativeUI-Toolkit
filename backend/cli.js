@@ -2,11 +2,9 @@
 
 /**
  * Generative UI CLI
- * Command-line interface for generating websites
  */
 
-const { generateUI, renderSpec, listComponents } = require('./generative-ui.js')
-const { parseArgs } = require('util')
+import { generateUI, renderSpec, listComponents } from './generative-ui.js'
 
 const DEFAULT_SECTIONS = ['nav', 'hero', 'features', 'stats', 'pricing', 'faq', 'cta', 'footer']
 
@@ -29,7 +27,6 @@ async function main() {
     process.exit(0)
   }
   
-  // Parse options
   let description = ''
   let sections = DEFAULT_SECTIONS
   let brand = null
@@ -68,12 +65,7 @@ async function main() {
   
   try {
     const startTime = Date.now()
-    const result = await generateUI({
-      description,
-      sections,
-      brand,
-      style
-    })
+    const result = await generateUI({ description, sections, brand, style })
     const elapsed = Date.now() - startTime
     
     console.log('✅ Generation complete!')
@@ -106,13 +98,13 @@ Generate websites and UI components using AI.
 
 Usage:
   generative-ui "description"          Generate website
-  generative-ui [options] "desc"     With options
+  generative-ui [options] "desc"       With options
 
 Options:
   --sections <list>    Comma-separated sections (default: all)
   --brand <name>      Brand name/logo
   --style <style>     dark or light (default: dark)
-  --output <format>   json, spec, or html (default: json)
+  --output <format>    json, spec, or html (default: json)
   --list-components    List available components
   --help, -h          Show this help
   --version, -v       Show version
@@ -122,9 +114,6 @@ Examples:
   generative-ui --sections nav,hero,pricing "Developer tool"
   generative-ui --brand "Acme" "E-commerce site"
   generative-ui --output html "Portfolio"
-
-Sections:
-  nav, hero, features, stats, pricing, faq, cta, footer
 `)
 }
 

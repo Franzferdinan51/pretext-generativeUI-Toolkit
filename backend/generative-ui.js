@@ -23,38 +23,10 @@ const COMPONENTS = {
   Footer: { description: 'Footer with link categories' }
 }
 
-// Agent prompts
-const AGENTS = {
-  architect: {
-    system: `You are an expert UI architect. Design the structure of a website.
-Output ONLY valid JSON in this format:
-{"sections":[{"type":"nav"},{"type":"hero"},{"type":"features"},{"type":"pricing"}]}
-
-Choose sections based on the description provided.`
-  },
-  
-  designer: {
-    system: `You are an expert UI designer. Create a dark, modern design spec.
-Use purple/pink gradients on black backgrounds.
-Output ONLY valid JSON with styling.`
-  },
-  
-  generator: {
-    system: `You are an expert UI generator. Create A2UI JSON spec.
-
-Return ONLY valid JSON in this format (no markdown, no explanation):
-{"version":"0.8","root":"app","elements":{"nav":{"type":"Nav","props":{"logo":"Brand","links":["A","B"]}},"hero":{"type":"Hero","props":{"badge":"Tag","title":"Headline","subtitle":"Sub","desc":"Desc","pBtn":"CTA1","sBtn":"CTA2"}}} }
-
-Include ALL these sections: nav, hero, features (6 cards), stats (4 metrics), pricing (3 tiers), faq (5 items), cta, footer.
-
-Make content realistic and compelling. Use specific numbers, real-sounding copy.`
-  }
-}
-
 /**
  * Main generation function
  */
-async function generateUI(options = {}) {
+export async function generateUI(options = {}) {
   const {
     description = '',
     sections = ['nav', 'hero', 'features', 'stats', 'pricing', 'faq', 'cta', 'footer'],
@@ -152,7 +124,6 @@ async function callAI(prompt, model = DEFAULT_MODEL) {
  * Parse JSON from AI response
  */
 function parseResponse(text) {
-  // Try to extract JSON from response
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) return null
   
@@ -166,14 +137,11 @@ function parseResponse(text) {
 /**
  * Render A2UI spec to HTML
  */
-function renderSpecToHTML(spec) {
+export function renderSpec(spec) {
   if (!spec?.elements) {
     return '<div class="error">Failed to generate UI</div>'
   }
   
-  const elements = spec.elements
-  
-  // Build HTML string
   let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -190,8 +158,7 @@ function renderSpecToHTML(spec) {
 <body class="text-white min-h-screen">
 `
   
-  // Render each element
-  for (const [id, element] of Object.entries(elements)) {
+  for (const [id, element] of Object.entries(spec.elements)) {
     html += renderElement(element) + '\n'
   }
   
@@ -233,15 +200,12 @@ function renderElement(element) {
   <div class="max-w-6xl mx-auto">
     ${props.title ? `<h2 class="text-3xl font-black text-center mb-3 gradient-text">${props.title}</h2>` : ''}
     ${props.sub ? `<p class="text-gray-500 text-center mb-12 text-sm">${props.sub}</p>` : ''}
-    ${children ? `<div>${children}</div>` : ''}
   </div>
 </section>`
     
     case 'Grid':
       const cols = props.cols || 3
-      return `<div class="grid gap-6" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
-  ${children ? children : ''}
-</div>`
+      return `<div class="grid gap-6" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))"></div>`
     
     case 'Card':
       return `<div class="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] transition-all">
@@ -255,15 +219,6 @@ function renderElement(element) {
   <div class="text-4xl font-black gradient-text mb-1">${props.val || ''}</div>
   <div class="text-gray-500 uppercase text-xs tracking-wider">${props.label || ''}</div>
   ${props.trend ? `<div class="text-green-400/80 text-xs mt-2">${props.trend}</div>` : ''}
-</div>`
-    
-    case 'Step':
-      return `<div class="flex gap-4">
-  <div class="w-10 h-10 rounded-full gradient-bg flex items-center justify-center font-bold shrink-0">${props.num || ''}</div>
-  <div>
-    <h4 class="font-semibold mb-1">${props.title || ''}</h4>
-    <p class="text-gray-500 text-sm">${props.desc || ''}</p>
-  </div>
 </div>`
     
     case 'Pricing':
@@ -313,35 +268,17 @@ function renderElement(element) {
   </div>
 </footer>`
     
-    case 'Grid':
-      return `<div class="grid gap-6" style="grid-template-columns: repeat(${props.cols || 3}, minmax(0, 1fr))"></div>`
-    
     default:
-      return `<!-- Unknown element type: ${type} -->`
+      return `<!-- ${type} -->`
   }
 }
 
 /**
  * List available components
  */
-function listComponents() {
+export function listComponents() {
   return Object.entries(COMPONENTS).map(([name, info]) => ({
     name,
     ...info
   }))
-}
-
-/**
- * Render a spec object to HTML (exported for MCP)
- */
-function renderSpec(spec) {
-  return renderSpecToHTML(spec)
-}
-
-// Export functions
-module.exports = {
-  generateUI,
-  renderSpec,
-  listComponents,
-  COMPONENTS
 }
