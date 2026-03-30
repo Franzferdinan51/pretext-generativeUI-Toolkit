@@ -37,14 +37,19 @@ export async function generateUI(options = {}) {
   
   const startTime = Date.now()
   
-  // Build the prompt
-  const prompt = buildPrompt(description, brand, sections)
+  // Build the prompt - CRITICAL: Force JSON only
+  const prompt = buildPrompt(description, brand, sections, style)
   
-  // Call AI
+  // Call AI with STRICT instructions
   const response = await callAI(prompt, model)
   
-  // Parse JSON
-  const spec = parseResponse(response)
+  // Parse JSON - try harder
+  let spec = parseResponse(response)
+  
+  // If parse failed, try fallback generation
+  if (!spec) {
+    spec = generateFallbackSpec(description, brand, sections)
+  }
   
   // Render to HTML
   const html = renderSpecToHTML(spec)
@@ -67,29 +72,37 @@ export async function generateUI(options = {}) {
 }
 
 /**
- * Build generation prompt
+ * Build STRICT prompt - JSON ONLY
  */
-function buildPrompt(description, brand, sections) {
-  const brandPart = brand ? `Brand: ${brand}` : ''
+function buildPrompt(description, brand, sections, style) {
+  const brandPart = brand ? `Brand: ${brand}` : 'Brand: YourBrand'
   
-  return `Generate a complete website for: ${description}
+  return `CRITICAL: You must return ONLY valid JSON. No text before or after. No markdown. No explanations.
+
+Generate a complete website for: ${description}
 ${brandPart}
 
-Style: ${style} mode, modern, professional (Stripe/Linear/Vercel aesthetic)
+STYLE: ${style} mode, modern, professional (Stripe/Linear/Vercel aesthetic)
 Colors: Purple/pink gradients on black (#0a0a0f)
 
-Include these sections:
-${sections.join(', ')}
+Return EXACTLY this JSON structure (replace ... with real content):
 
-For features: include 6 feature cards with emojis
-For stats: 4 metrics with impressive numbers
-For pricing: 3 tiers (Free, Pro, Enterprise)
-For faq: 5 common questions with answers
+{"version":"0.8","root":"app","elements":{}}
 
-Return ONLY valid JSON A2UI spec format:
-{"version":"0.8","root":"app","elements":{"nav":{"type":"Nav","props":{...}},"hero":{"type":"Hero","props":{...}}}}
+The elements object must contain ALL of these sections:
+${sections.includes('nav') ? `"nav":{"type":"Nav","props":{"logo":"[BRAND LOGO]","links":["[Link1]","[Link2]","[Link3]","[Link4]"}}` : ''}
+${sections.includes('hero') ? `"hero":{"type":"Hero","props":{"badge":"[BADGE TEXT]","title":"[HEADLINE]","subtitle":"[SUBTITLE]","desc":"[DESCRIPTION]","pBtn":"[PRIMARY CTA]","sBtn":"[SECONDARY CTA]"}}` : ''}
+${sections.includes('features') ? `"featSection":{"type":"Section","props":{"title":"[FEATURES TITLE]","sub":"[FEATURES SUBTITLE]"},"children":["featGrid"]},"featGrid":{"type":"Grid","props":{"cols":3},"children":["f1","f2","f3","f4","f5","f6"]},"f1":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 1 TITLE]","desc":"[FEATURE 1 DESC]"}},"f2":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 2 TITLE]","desc":"[FEATURE 2 DESC]"}},"f3":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 3 TITLE]","desc":"[FEATURE 3 DESC]"}},"f4":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 4 TITLE]","desc":"[FEATURE 4 DESC]"}},"f5":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 5 TITLE]","desc":"[FEATURE 5 DESC]"}},"f6":{"type":"Card","props":{"emoji":"[EMOJI]","title":"[FEATURE 6 TITLE]","desc":"[FEATURE 6 DESC]"}}` : ''}
+${sections.includes('stats') ? `"statsSection":{"type":"Section","props":{"title":"[STATS TITLE]"},"children":["statsGrid"]},"statsGrid":{"type":"Grid","props":{"cols":4},"children":["m1","m2","m3","m4"]},"m1":{"type":"Metric","props":{"val":"[NUMBER]","label":"[LABEL 1]"}},"m2":{"type":"Metric","props":{"val":"[NUMBER]","label":"[LABEL 2]"}},"m3":{"type":"Metric","props":{"val":"[NUMBER]","label":"[LABEL 3]"}},"m4":{"type":"Metric","props":{"val":"[NUMBER]","label":"[LABEL 4]"}}` : ''}
+${sections.includes('pricing') ? `"pricingSection":{"type":"Section","props":{"title":"[PRICING TITLE]","sub":"[PRICING SUBTITLE]"},"children":["pricingGrid"]},"pricingGrid":{"type":"Grid","props":{"cols":3},"children":["p1","p2","p3"]},"p1":{"type":"Pricing","props":{"tier":"[TIER 1]","price":"[PRICE]","features":["[FEAT1]","[FEAT2]","[FEAT3]"]}},"p2":{"type":"Pricing","props":{"tier":"[TIER 2]","price":"[PRICE]","period":"[PERIOD]","features":["[FEAT1]","[FEAT2]","[FEAT3]","[FEAT4]"],"highlight":true,"btn":"[CTA]"}},"p3":{"type":"Pricing","props":{"tier":"[TIER 3]","price":"[PRICE]","features":["[FEAT1]","[FEAT2]","[FEAT3]","[FEAT4]","[FEAT5]"]}}` : ''}
+${sections.includes('faq') ? `"faqSection":{"type":"Section","props":{"title":"[FAQ TITLE]","sub":"[FAQ SUBTITLE]"},"children":["faqGrid"]},"faqGrid":{"type":"Grid","props":{"cols":2},"children":["faq1","faq2","faq3","faq4","faq5"]},"faq1":{"type":"FAQ","props":{"q":"[QUESTION 1]","a":"[ANSWER 1]"}},"faq2":{"type":"FAQ","props":{"q":"[QUESTION 2]","a":"[ANSWER 2]"}},"faq3":{"type":"FAQ","props":{"q":"[QUESTION 3]","a":"[ANSWER 3]"}},"faq4":{"type":"FAQ","props":{"q":"[QUESTION 4]","a":"[ANSWER 4]"}},"faq5":{"type":"FAQ","props":{"q":"[QUESTION 5]","a":"[ANSWER 5]"}}` : ''}
+${sections.includes('cta') ? `"cta":{"type":"CTA","props":{"title":"[CTA TITLE]","sub":"[CTA SUBTITLE]","btn":"[BUTTON TEXT]"}}` : ''}
+${sections.includes('footer') ? `"footer":{"type":"Footer","props":{"links":{"Product":["[LINK1]","[LINK2]"],"Resources":["[LINK3]","[LINK4]"],"Company":["[LINK5]","[LINK6]"],"Legal":["[LINK7]","[LINK8]"]},"copy":"[COPYRIGHT]"}}` : ''}
+}
 
-Make it sound like a real product, not generic copy.`
+IMPORTANT: Replace all [BRACKET CONTENT] with REAL, SPECIFIC content. No placeholders. No generic text. Make it sound like a real product.
+
+Return ONLY the JSON. Start with {. End with }.`
 }
 
 /**
@@ -105,10 +118,12 @@ async function callAI(prompt, model = DEFAULT_MODEL) {
     body: JSON.stringify({
       model,
       messages: [
+        { role: 'system', content: 'You are a JSON-only generator. Return ONLY valid JSON. No text, no markdown, no explanations.' },
         { role: 'user', content: prompt }
       ],
-      max_tokens: 2000,
-      temperature: 0.7
+      max_tokens: 2500,
+      temperature: 0.3,
+      repeat_penalty: 1.2
     })
   })
   
@@ -121,17 +136,107 @@ async function callAI(prompt, model = DEFAULT_MODEL) {
 }
 
 /**
- * Parse JSON from AI response
+ * Parse JSON from AI response - with fallbacks
  */
 function parseResponse(text) {
-  const match = text.match(/\{[\s\S]*\}/)
-  if (!match) return null
+  if (!text) return null
+  
+  // Clean up common issues
+  let cleaned = text.trim()
+  
+  // Remove markdown code blocks
+  cleaned = cleaned.replace(/```json\s*/gi, '')
+  cleaned = cleaned.replace(/```\s*/g, '')
+  cleaned = cleaned.replace(/^json\s*/gi, '')
+  
+  // Find JSON object
+  const match = cleaned.match(/\{[\s\S]*\}/)
+  if (!match) {
+    console.log('[parseResponse] No JSON found in:', cleaned.substring(0, 100))
+    return null
+  }
   
   try {
     return JSON.parse(match[0])
-  } catch {
-    return null
+  } catch (e) {
+    // Try to fix common JSON issues
+    const fixed = match[0]
+      .replace(/,\s*}/g, '}')  // trailing commas
+      .replace(/,\s*]/g, ']')  // trailing comma in arrays
+      .replace(/'/g, '"')       // single quotes to double
+    
+    try {
+      return JSON.parse(fixed)
+    } catch (e2) {
+      console.log('[parseResponse] JSON parse failed after fix')
+      return null
+    }
   }
+}
+
+/**
+ * Fallback spec generator - when AI fails
+ */
+function generateFallbackSpec(description, brand, sections) {
+  const brandName = brand || 'YourBrand'
+  
+  const elements = {}
+  
+  if (sections.includes('nav')) {
+    elements.nav = { type: 'Nav', props: { logo: `⚡ ${brandName}`, links: ['Features', 'Pricing', 'Docs', 'GitHub'] }}
+  }
+  
+  if (sections.includes('hero')) {
+    elements.hero = { type: 'Hero', props: { badge: '🚀 New', title: description || 'Build Amazing UIs', subtitle: 'With AI-powered generation', desc: 'Create stunning user interfaces in seconds using natural language.', pBtn: 'Get Started', sBtn: 'Learn More' }}
+  }
+  
+  if (sections.includes('features')) {
+    elements.featSection = { type: 'Section', props: { title: 'Features', sub: 'Everything you need' }, children: ['featGrid'] }
+    elements.featGrid = { type: 'Grid', props: { cols: 3 }, children: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'] }
+    elements.f1 = { type: 'Card', props: { emoji: '⚡', title: 'Fast', desc: 'Generate UIs in seconds' }}
+    elements.f2 = { type: 'Card', props: { emoji: '🔒', title: 'Secure', desc: 'Safe and reliable' }}
+    elements.f3 = { type: 'Card', props: { emoji: '🌍', title: 'Universal', desc: 'Works everywhere' }}
+    elements.f4 = { type: 'Card', props: { emoji: '📱', title: 'Responsive', desc: 'All screen sizes' }}
+    elements.f5 = { type: 'Card', props: { emoji: '🎨', title: 'Beautiful', desc: 'Modern design' }}
+    elements.f6 = { type: 'Card', props: { emoji: '💎', title: 'Premium', desc: 'High quality' }}
+  }
+  
+  if (sections.includes('stats')) {
+    elements.statsSection = { type: 'Section', props: { title: 'By The Numbers' }, children: ['statsGrid'] }
+    elements.statsGrid = { type: 'Grid', props: { cols: 4 }, children: ['m1', 'm2', 'm3', 'm4'] }
+    elements.m1 = { type: 'Metric', props: { val: '10K+', label: 'Users' }}
+    elements.m2 = { type: 'Metric', props: { val: '99.9%', label: 'Uptime' }}
+    elements.m3 = { type: 'Metric', props: { val: '4.9/5', label: 'Rating' }}
+    elements.m4 = { type: 'Metric', props: { val: '24/7', label: 'Support' }}
+  }
+  
+  if (sections.includes('pricing')) {
+    elements.pricingSection = { type: 'Section', props: { title: 'Pricing', sub: 'Simple plans' }, children: ['pricingGrid'] }
+    elements.pricingGrid = { type: 'Grid', props: { cols: 3 }, children: ['p1', 'p2', 'p3'] }
+    elements.p1 = { type: 'Pricing', props: { tier: 'Free', price: '$0', features: ['Basic features', 'Community support'] }}
+    elements.p2 = { type: 'Pricing', props: { tier: 'Pro', price: '$29', period: 'mo', features: ['All features', 'Priority support', 'Advanced options'], highlight: true, btn: 'Start Trial' }}
+    elements.p3 = { type: 'Pricing', props: { tier: 'Enterprise', price: 'Custom', features: ['Everything', 'Dedicated support', 'Custom solutions'] }}
+  }
+  
+  if (sections.includes('faq')) {
+    elements.faqSection = { type: 'Section', props: { title: 'FAQ' }, children: ['faqGrid'] }
+    elements.faqGrid = { type: 'Grid', props: { cols: 2 }, children: ['faq1', 'faq2', 'faq3', 'faq4', 'faq5'] }
+    elements.faq1 = { type: 'FAQ', props: { q: 'How does it work?', a: 'Simply describe what you want and our AI generates it.' }}
+    elements.faq2 = { type: 'FAQ', props: { q: 'Is it free?', a: 'We offer a free tier with basic features.' }}
+    elements.faq3 = { type: 'FAQ', props: { q: 'What can I build?', a: 'Landing pages, dashboards, portfolios, and more.' }}
+    elements.faq4 = { type: 'FAQ', props: { q: 'Is it secure?', a: 'Yes, we use industry-standard security.' }}
+    elements.faq5 = { type: 'FAQ', props: { q: 'Need help?', a: 'Our support team is available 24/7.' }}
+  }
+  
+  if (sections.includes('cta')) {
+    elements.cta = { type: 'CTA', props: { title: 'Ready to Start?', sub: 'Join thousands of happy users.', btn: 'Get Started Free' }}
+  }
+  
+  if (sections.includes('footer')) {
+    elements.footer = { type: 'Footer', props: { links: { Product: ['Features', 'Pricing'], Resources: ['Docs', 'API'], Company: ['About', 'Contact'], Legal: ['Privacy', 'Terms']}, copy: `© ${new Date().getFullYear()} ${brandName}` }}
+  }
+  
+  return { version: '0.8', root: 'app', elements }
 }
 
 /**
