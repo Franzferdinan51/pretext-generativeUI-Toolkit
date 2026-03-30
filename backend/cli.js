@@ -8,7 +8,7 @@ import { generateUI, renderSpec, listComponents } from './generative-ui.js'
 import { writeFileSync, readFileSync } from 'fs'
 
 const DEFAULT_SECTIONS = ['nav', 'hero', 'features', 'stats', 'pricing', 'faq', 'cta', 'footer']
-const SCENE_TEMPLATES = ['weather', 'crypto', 'orbit', 'plant', 'osrs']
+const SCENE_TEMPLATES = ['weather', 'crypto', 'orbit', 'plant', 'osrs', 'council', 'ascii']
 
 function buildSceneHtml(template, title = 'Pretext Scene') {
   const palette = {
@@ -17,6 +17,8 @@ function buildSceneHtml(template, title = 'Pretext Scene') {
     orbit: { symbol: '✦', color: '#22c55e', bgTop: '#0a0a14', bgBottom: '#05050a' },
     plant: { symbol: '🌿', color: '#22c55e', bgTop: '#0a1a0a', bgBottom: '#0a0a0f' },
     osrs: { symbol: '⚔️', color: '#f97316', bgTop: '#1a0a0a', bgBottom: '#0a0a0f' },
+    council: { symbol: '🏛️', color: '#a78bfa', bgTop: '#111827', bgBottom: '#030712' },
+    ascii: { symbol: '⌘', color: '#4ade80', bgTop: '#07130a', bgBottom: '#020704' },
   }[template] || { symbol: '✦', color: '#8b5cf6', bgTop: '#111827', bgBottom: '#020617' }
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:${palette.bgBottom};display:flex;justify-content:center;align-items:center;min-height:100vh}canvas{max-width:100vw;max-height:100vh}</style></head><body><canvas id="c"></canvas><script type="module">import { prepareWithSegments, layoutWithLines } from 'https://unpkg.com/@chenglou/pretext@0.0.3/dist/layout.js';const canvas=document.getElementById('c');const ctx=canvas.getContext('2d');const W=500,H=500;canvas.width=W;canvas.height=H;let t=0;function measure(text,font,maxWidth=340,lineHeight=26){const p=prepareWithSegments(text,font);return layoutWithLines(p,maxWidth,lineHeight).lines}function drawText(text,font,x,y,color,align='center'){ctx.font=font;ctx.fillStyle=color;for(const line of measure(text,font)){const dx=align==='center'?x-line.width/2:align==='right'?x-line.width:x;ctx.fillText(line.text,dx,y+line.y+parseInt(font,10))}}function frame(){t+=0.016;const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'${palette.bgTop}');bg.addColorStop(1,'${palette.bgBottom}');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.save();ctx.filter='blur(80px)';ctx.fillStyle='${palette.color}22';ctx.beginPath();ctx.arc(250+Math.sin(t)*20,180+Math.cos(t*0.7)*20,100,0,Math.PI*2);ctx.fill();ctx.restore();ctx.font='bold 56px Inter';ctx.textAlign='center';ctx.fillStyle='${palette.color}';ctx.fillText('${palette.symbol}',250,95+Math.sin(t*2)*6);drawText(${JSON.stringify(title)},'bold 34px Inter',250,120,'#ffffff');drawText('template: ${template}','16px Inter',250,175,'${palette.color}');drawText('measure → animate → render','18px Inter',250,230,'#94a3b8');for(let i=0;i<4;i++){const a=t*(i%2?1:-1)+(i*1.57);drawText(['MEASURE','LAYOUT','MOTION','SCENE'][i],'13px Inter',250+Math.cos(a)*(80+i*18),250+Math.sin(a)*(80+i*18),'${palette.color}');}requestAnimationFrame(frame)}frame();</script></body></html>`

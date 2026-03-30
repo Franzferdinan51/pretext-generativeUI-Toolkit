@@ -286,6 +286,64 @@ const SkillsSection = () => (
   </section>
 )
 
+const demoSceneUrl = (name: string) => `http://100.68.208.113:8080/${name}-scene-demo.html`
+
+const SceneTemplatesSection = () => (
+  <section className="py-16 px-8 bg-black/30">
+    <div className="max-w-6xl mx-auto">
+      <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">🎬 Scene Templates</h2>
+      <p className="text-gray-500 text-center mb-8 text-sm">Active typography scenes powered by Pretext + Canvas</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          ['🌤️', 'weather', 'Aurora weather dashboard'],
+          ['₿', 'crypto', 'Finance / token scenes'],
+          ['🌿', 'plant', 'Grow monitor overlays'],
+          ['⚔️', 'osrs', 'Game economy / item charts'],
+          ['🏛️', 'council', 'Consensus / voting scenes'],
+          ['⌘', 'ascii', 'Retro / terminal visuals'],
+          ['✦', 'orbit', 'Motion typography demo'],
+        ].map(([emoji, name, desc]) => (
+          <a key={name} href={demoSceneUrl(name)} target="_blank" rel="noreferrer" className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] transition-all block">
+            <div className="text-3xl mb-2">{emoji}</div>
+            <h4 className="font-semibold mb-1 text-sm text-white">{name}</h4>
+            <p className="text-xs text-gray-500 mb-3">{desc}</p>
+            <code className="text-[11px] text-purple-300 block mb-2">generative-ui scene {name}</code>
+            <span className="text-[11px] text-cyan-300">Open live demo ↗</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+)
+
+const VerificationSection = () => (
+  <section className="py-16 px-8 bg-gradient-to-br from-emerald-900/10 to-cyan-900/10">
+    <div className="max-w-6xl mx-auto">
+      <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">✅ Verification Workflow</h2>
+      <p className="text-gray-500 text-center mb-8 text-sm">Generation is normalized and verified before we trust it</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          ['1', 'Structure', 'Normalize generated A2UI specs and inject a root container when missing.'],
+          ['2', 'Measure', 'Use Pretext server tools like measure_text, layout_lines, and validate_text_fit.'],
+          ['3', 'Ship', 'Run npm run verify and verify:generated before calling output done.'],
+        ].map(([num, title, desc]) => (
+          <div key={num} className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold mb-3">{num}</div>
+            <h3 className="font-semibold mb-2">{title}</h3>
+            <p className="text-sm text-gray-500">{desc}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-8 rounded-xl bg-black/50 border border-white/10 p-4 overflow-x-auto">
+        <pre className="text-xs text-gray-300"><code>{`npm run verify
+npm run cli -- scene orbit "Pretext Motion Demo"
+npm run cli -- verify-html /tmp/orbit-scene-demo.html
+npm run verify:generated -- /tmp/plant.html http://localhost:8080`}</code></pre>
+      </div>
+    </div>
+  </section>
+)
+
 // ============================================
 // FALLBACK SPEC
 // ============================================
@@ -518,7 +576,7 @@ export default function App() {
         
         <main className="pt-16">
           {spec ? (
-            <>{renderSpec(spec)}<GenerativeUIShowcase /><PipelineDiagram /><SkillsSection /></>
+            <>{renderSpec(spec)}<GenerativeUIShowcase /><PipelineDiagram /><SceneTemplatesSection /><VerificationSection /><SkillsSection /></>
           ) : (
             <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
               <div className="text-center">

@@ -80,7 +80,7 @@ A reusable foundation for active typography scenes:
 - text nodes with measured layout
 - obstacle nodes for future text-flow around objects
 - motion primitives: `float`, `orbit`, `pulse`, `drift`
-- starter templates: `weather`, `crypto`, `orbit`
+- starter templates: `weather`, `crypto`, `orbit`, `plant`, `osrs`, `council`, `ascii`
 
 Core exports:
 - `measureSceneText()`

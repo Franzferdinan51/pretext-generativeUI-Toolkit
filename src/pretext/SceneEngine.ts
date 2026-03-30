@@ -158,5 +158,45 @@ export function sceneTemplates() {
         { id: 'ring3', kind: 'text', text: { id: 'ring3', text: 'CANVAS', font: '14px Inter', x: 250, y: 250, color: '#22c55e', align: 'center' }, motion: { kind: 'orbit', speed: 1.4, radius: 150, phase: 2.4 } },
       ],
     } as SceneDefinition,
+    plant: {
+      width: 500,
+      height: 900,
+      background: { top: '#0a1a0a', bottom: '#0a0a0f' },
+      nodes: [
+        { id: 'plant-title', kind: 'text', text: { id: 'plant-title', text: 'Plant Health Check', font: 'bold 28px Inter', x: 250, y: 60, color: '#22c55e', align: 'center' } },
+        { id: 'plant-score', kind: 'text', text: { id: 'plant-score', text: '85', font: 'bold 72px Inter', x: 250, y: 180, color: '#22c55e', align: 'center' }, motion: { kind: 'pulse', speed: 1.7 } },
+        { id: 'plant-vpd', kind: 'text', text: { id: 'plant-vpd', text: 'VPD 0.89 kPa', font: '18px Inter', x: 250, y: 300, color: '#facc15', align: 'center' } },
+      ],
+    } as SceneDefinition,
+    osrs: {
+      width: 500,
+      height: 900,
+      background: { top: '#1a0a0a', bottom: '#0a0a0f' },
+      nodes: [
+        { id: 'osrs-title', kind: 'text', text: { id: 'osrs-title', text: 'Dragon Whip', font: 'bold 32px Inter', x: 250, y: 70, color: '#f97316', align: 'center' } },
+        { id: 'osrs-price', kind: 'text', text: { id: 'osrs-price', text: '18.2M', font: 'bold 64px Inter', x: 250, y: 170, color: '#ffffff', align: 'center' } },
+        { id: 'osrs-change', kind: 'text', text: { id: 'osrs-change', text: '▼ -2.1%', font: 'bold 18px Inter', x: 250, y: 240, color: '#ef4444', align: 'center' } },
+      ],
+    } as SceneDefinition,
+    council: {
+      width: 500,
+      height: 700,
+      background: { top: '#111827', bottom: '#030712' },
+      nodes: [
+        { id: 'council-title', kind: 'text', text: { id: 'council-title', text: 'AI Council', font: 'bold 32px Inter', x: 250, y: 70, color: '#a78bfa', align: 'center' } },
+        { id: 'council-consensus', kind: 'text', text: { id: 'council-consensus', text: 'Consensus: 84%', font: 'bold 48px Inter', x: 250, y: 170, color: '#22c55e', align: 'center' }, motion: { kind: 'pulse', speed: 1.5 } },
+        { id: 'council-status', kind: 'text', text: { id: 'council-status', text: '5 agents aligned • 1 dissenting note', font: '16px Inter', x: 250, y: 250, color: '#cbd5e1', align: 'center' } },
+      ],
+    } as SceneDefinition,
+    ascii: {
+      width: 500,
+      height: 700,
+      background: { top: '#07130a', bottom: '#020704' },
+      nodes: [
+        { id: 'ascii-title', kind: 'text', text: { id: 'ascii-title', text: 'ASCII SIGNAL', font: 'bold 28px monospace', x: 250, y: 60, color: '#22c55e', align: 'center' } },
+        { id: 'ascii-core', kind: 'text', text: { id: 'ascii-core', text: '< PRETEXT >', font: 'bold 42px monospace', x: 250, y: 180, color: '#86efac', align: 'center' } },
+        { id: 'ascii-noise', kind: 'text', text: { id: 'ascii-noise', text: '||||| //// \\\\ ---- +++++', font: '18px monospace', x: 250, y: 280, color: '#4ade80', align: 'center' }, motion: { kind: 'drift', amplitude: 10, speed: 1.2 } },
+      ],
+    } as SceneDefinition,
   }
 }
