@@ -21,17 +21,15 @@ npm run dev
 
 ### CLI (Pretext Canvas)
 ```bash
-# Weather card
-npm run cli -- weather "72F sunny Dayton Ohio"
+# Full website generation
+npm run cli -- "SaaS landing page"
 
-# Crypto chart
-npm run cli -- crypto "Bitcoin $67000 24h up"
+# Animated Pretext scenes
+npm run cli -- scene weather "Storm Dashboard"
+npm run cli -- scene orbit "Pretext Motion Demo"
 
-# Metric card
-npm run cli -- metric "99.9% uptime positive"
-
-# Serve on LAN
-npm run cli -- serve /tmp/weather.html
+# Verify generated HTML
+npm run cli -- verify-html /tmp/orbit-scene.html
 ```
 
 ### MCP Server (Pretext Canvas)
