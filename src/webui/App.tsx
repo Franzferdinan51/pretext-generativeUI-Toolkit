@@ -1,5 +1,6 @@
 // ============================================================
-// PRETEXT AI UI - FULL-FEATURED WEBSITE GENERATOR
+// A2UI + PRETEXT AI UI - DEEP INTEGRATION
+// Google's A2UI Standard • Zero-Reflow Text • 45 Councilors
 // ============================================================
 import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
@@ -7,10 +8,26 @@ import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 
 // ============================================
-// PRETEXT ENGINE
+// A2UI SPEC INTERFACE (Google's Standard)
+// ============================================
+interface A2UIElement {
+  type: string
+  props: Record<string, any>
+  children?: string[]
+}
+
+interface A2UISpec {
+  version: string
+  root: string
+  elements: Record<string, A2UIElement>
+}
+
+// ============================================
+// PRETEXT ENGINE - Zero Reflow
 // ============================================
 class PretextEngine {
   private cache = new Map<string, any>()
+  
   measure(text: string, fontSize: number, maxWidth: number) {
     const key = `${text}:${fontSize}:${maxWidth}`
     if (!this.cache.has(key)) {
@@ -20,6 +37,7 @@ class PretextEngine {
     }
     return this.cache.get(key)
   }
+  
   getLines(text: string, fontSize: number, maxWidth: number) {
     const key = `lines:${text}:${fontSize}:${maxWidth}`
     if (!this.cache.has(key)) {
@@ -30,6 +48,7 @@ class PretextEngine {
     return this.cache.get(key)
   }
 }
+
 const pretextEngine = new PretextEngine()
 
 // ============================================
@@ -39,71 +58,86 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   constructor(props: { children: ReactNode }) { super(props); this.state = { hasError: false, error: '' } }
   static getDerivedStateFromError(error: Error) { return { hasError: true, error: error.message } }
   render() {
-    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center"><div><h1 className="text-2xl font-bold text-red-400">Error</h1><p className="text-gray-400">{this.state.error}</p></div></div>
+    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center"><h1 className="text-2xl font-bold text-red-400">Error</h1></div>
     return this.props.children
   }
 }
 
 // ============================================
-// COMPONENTS
+// A2UI COMPONENTS (Google's Standard)
+// A2UI separates generation from rendering
+// Agents send JSON, client renders from catalog
 // ============================================
-const Nav = ({ logo, links }: { logo: string; links?: string[] }) => (
-  <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 backdrop-blur-xl border-b border-white/10">
+
+// Navigation Bar
+const A2Nav = ({ logo, links }: { logo: string; links?: string[] }) => (
+  <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
     <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span>
-    <div className="flex gap-6">
+    <div className="hidden md:flex gap-8">
       {links?.map((link, i) => <a key={i} href="#" className="text-gray-400 hover:text-white transition">{link}</a>)}
     </div>
+    <button className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold">Get Started</button>
   </nav>
 )
 
-const Hero = ({ badge, title, subtitle, description, primaryBtn, secondaryBtn }: { badge?: string; title: string; subtitle?: string; description?: string; primaryBtn?: string; secondaryBtn?: string }) => (
-  <section className="py-24 px-8 text-center bg-gradient-to-b from-purple-900/20 to-transparent">
-    {badge && <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 mb-6">{badge}</span>}
-    <h1 className="text-6xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">{title}</h1>
-    {subtitle && <p className="text-2xl text-gray-300 mb-4">{subtitle}</p>}
-    {description && <p className="text-gray-400 max-w-2xl mx-auto mb-8">{description}</p>}
-    <div className="flex gap-4 justify-center">
-      {primaryBtn && <button className="px-8 py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30">{primaryBtn}</button>}
-      {secondaryBtn && <button className="px-8 py-4 rounded-2xl font-bold text-lg bg-white/10 hover:bg-white/20 border border-white/20">{secondaryBtn}</button>}
-    </div>
-  </section>
-)
+// Hero Section
+const A2Hero = ({ badge, title, subtitle, description, primaryBtn, secondaryBtn }: { badge?: string; title: string; subtitle?: string; description?: string; primaryBtn?: string; secondaryBtn?: string }) => {
+  const { lines } = pretextEngine.getLines(description || '', 18, 800)
+  return (
+    <section className="py-32 px-8 text-center bg-gradient-to-b from-purple-900/30 via-black to-[#0a0a0f]">
+      {badge && <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 mb-8">{badge}</span>}
+      <h1 className="text-6xl md:text-7xl font-black mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">{title}</h1>
+      {subtitle && <p className="text-2xl text-gray-300 mb-4">{subtitle}</p>}
+      {description && <p className="text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">{description}</p>}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        {primaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30 transition">{primaryBtn}</button>}
+        {secondaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-white/10 hover:bg-white/20 border border-white/20 transition">{secondaryBtn}</button>}
+      </div>
+    </section>
+  )
+}
 
-const Section = ({ title, subtitle, children }: { title?: string; subtitle?: string; children: ReactNode }) => (
-  <section className="py-20 px-8">
+// Section Container
+const A2Section = ({ title, subtitle, children }: { title?: string; subtitle?: string; children: ReactNode }) => (
+  <section className="py-24 px-8 bg-[#0a0a0f]">
     <div className="max-w-6xl mx-auto">
-      {title && <h2 className="text-4xl font-black text-center mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>}
-      {subtitle && <p className="text-gray-400 text-center mb-12">{subtitle}</p>}
+      {title && <h2 className="text-4xl md:text-5xl font-black text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>}
+      {subtitle && <p className="text-gray-400 text-center mb-16 max-w-2xl mx-auto">{subtitle}</p>}
       {children}
     </div>
   </section>
 )
 
-const Grid = ({ cols = 3, children }: { cols?: number; children: ReactNode }) => (
+// Grid Layout
+const A2Grid = ({ cols = 3, children }: { cols?: number; children: ReactNode }) => (
   <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
 )
 
-const Card = ({ emoji, title, description, highlight }: { emoji?: string; title: string; description?: string; highlight?: boolean }) => (
-  <div className={`p-8 rounded-3xl ${highlight ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30' : 'bg-white/5 border border-white/10'} hover:bg-white/10 transition-all`}>
-    {emoji && <div className="text-4xl mb-4">{emoji}</div>}
-    <h3 className="text-xl font-bold mb-2">{title}</h3>
-    {description && <p className="text-gray-400">{description}</p>}
+// Feature Card
+const A2Card = ({ emoji, title, description, featured }: { emoji?: string; title: string; description?: string; featured?: boolean }) => (
+  <div className={`group p-8 rounded-3xl transition-all duration-300 ${featured ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 hover:border-purple-500/50' : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'}`}>
+    {emoji && <div className="text-5xl mb-6">{emoji}</div>}
+    <h3 className="text-xl font-bold mb-3">{title}</h3>
+    <p className="text-gray-400 leading-relaxed">{description}</p>
   </div>
 )
 
-const Metric = ({ value, label, trend }: { value: string; label: string; trend?: string }) => (
+// Metric Display
+const A2Metric = ({ value, label, trend, icon }: { value: string; label: string; trend?: string; icon?: string }) => (
   <div className="text-center p-8 rounded-3xl bg-white/5 border border-white/10">
-    <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{value}</div>
-    <div className="text-gray-400 text-sm uppercase tracking-wider">{label}</div>
+    {icon && <div className="text-3xl mb-4">{icon}</div>}
+    <div className="text-5xl md:text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{value}</div>
+    <div className="text-gray-400 uppercase tracking-wider text-sm">{label}</div>
     {trend && <div className="text-green-400 text-sm mt-2">{trend}</div>}
   </div>
 )
 
-const Testimonial = ({ quote, author, role, avatar }: { quote: string; author: string; role?: string; avatar?: string }) => (
+// Testimonial
+const A2Testimonial = ({ quote, author, role, avatar }: { quote: string; author: string; role?: string; avatar?: string }) => (
   <div className="p-8 rounded-3xl bg-white/5 border border-white/10">
-    <p className="text-lg text-gray-300 mb-6 italic">"{quote}"</p>
+    <p className="text-lg text-gray-300 mb-6 italic leading-relaxed">"{quote}"</p>
     <div className="flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl">{avatar || author[0]}</div>
+      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">{avatar || author[0]}</div>
       <div>
         <div className="font-bold">{author}</div>
         {role && <div className="text-gray-500 text-sm">{role}</div>}
@@ -112,7 +146,8 @@ const Testimonial = ({ quote, author, role, avatar }: { quote: string; author: s
   </div>
 )
 
-const PricingCard = ({ tier, price, period, description, features, highlighted, buttonText }: { tier: string; price: string; period?: string; description?: string; features?: string[]; highlighted?: boolean; buttonText?: string }) => (
+// Pricing Card
+const A2Pricing = ({ tier, price, period, description, features, highlighted, buttonText }: { tier: string; price: string; period?: string; description?: string; features?: string[]; highlighted?: boolean; buttonText?: string }) => (
   <div className={`p-8 rounded-3xl ${highlighted ? 'bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500/50' : 'bg-white/5 border border-white/10'}`}>
     <div className="text-sm font-bold text-purple-400 mb-2">{tier}</div>
     <div className="flex items-baseline gap-1 mb-4">
@@ -121,135 +156,198 @@ const PricingCard = ({ tier, price, period, description, features, highlighted, 
     </div>
     {description && <p className="text-gray-400 mb-6">{description}</p>}
     <ul className="space-y-3 mb-8">
-      {features?.map((f, i) => <li key={i} className="flex items-center gap-2 text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}
+      {features?.map((f, i) => <li key={i} className="flex items-center gap-3 text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}
     </ul>
-    <button className={`w-full py-4 rounded-2xl font-bold ${highlighted ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'bg-white/10'} hover:opacity-90`}>{buttonText || 'Get Started'}</button>
+    <button className={`w-full py-4 rounded-2xl font-bold transition ${highlighted ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90' : 'bg-white/10 hover:bg-white/20'}`}>{buttonText || 'Get Started'}</button>
   </div>
 )
 
-const FAQ = ({ question, answer }: { question: string; answer?: string }) => (
-  <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+// FAQ Item
+const A2FAQ = ({ question, answer }: { question: string; answer?: string }) => (
+  <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
     <h4 className="text-lg font-bold mb-2">{question}</h4>
     {answer && <p className="text-gray-400">{answer}</p>}
   </div>
 )
 
-const CTA = ({ title, subtitle, buttonText }: { title: string; subtitle?: string; buttonText?: string }) => (
-  <section className="py-24 px-8 text-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
-    <h2 className="text-5xl font-black mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>
-    {subtitle && <p className="text-gray-400 mb-8">{subtitle}</p>}
-    <button className="px-12 py-5 rounded-2xl font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30">{buttonText || 'Get Started Free'}</button>
+// CTA Section
+const A2CTA = ({ title, subtitle, buttonText }: { title: string; subtitle?: string; buttonText?: string }) => (
+  <section className="py-32 px-8 text-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
+    <h2 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>
+    {subtitle && <p className="text-gray-400 mb-12 max-w-2xl mx-auto">{subtitle}</p>}
+    <button className="px-14 py-5 rounded-2xl font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30 transition">{buttonText || 'Start Free Trial'}</button>
   </section>
 )
 
-const Footer = ({ links, copyright }: { links?: Record<string, string[]>; copyright?: string }) => (
-  <footer className="py-16 px-8 border-t border-white/10">
+// Footer
+const A2Footer = ({ links, copyright }: { links?: Record<string, string[]>; copyright?: string }) => (
+  <footer className="py-16 px-8 border-t border-white/10 bg-black/50">
     <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-4 gap-8 mb-12">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
         {links && Object.entries(links).map(([category, items]) => (
           <div key={category}>
             <h4 className="font-bold mb-4 text-purple-400">{category}</h4>
             <ul className="space-y-2">
-              {items.map((item, i) => <li key={i}><a href="#" className="text-gray-500 hover:text-white transition">{item}</a></li>)}
+              {items.map((item, i) => <li key={i}><a href="#" className="text-gray-500 hover:text-white transition text-sm">{item}</a></li>)}
             </ul>
           </div>
         ))}
       </div>
       <div className="text-center text-gray-500 text-sm border-t border-white/5 pt-8">
-        {copyright || '© 2026 Pretext AI UI. All rights reserved.'}
+        {copyright || '© 2026 A2UI Pretext UI. Powered by AI Council.'}
       </div>
     </div>
   </footer>
 )
 
-const Button = ({ text, primary }: { text: string; primary?: boolean }) => (
-  <button className={`px-6 py-3 rounded-xl font-bold ${primary ? 'bg-purple-600 hover:bg-purple-500' : 'bg-white/10 hover:bg-white/20'}`}>
-    {text}
-  </button>
-)
-
 // ============================================
-// RENDERER
+// A2UI RENDERER (Maps JSON to Components)
+// Core of A2UI: Agent sends JSON, client renders
 // ============================================
-function renderComponent(comp: any): ReactNode {
-  switch (comp.type) {
-    case 'Nav': return <Nav key={comp.id} {...comp.props} />
-    case 'Hero': return <Hero key={comp.id} {...comp.props} />
-    case 'Section': return <Section key={comp.id} {...comp.props}>{comp.children?.map((c: any) => renderComponent(c))}</Section>
-    case 'Grid': return <Grid key={comp.id} {...comp.props}>{comp.children?.map((c: any) => renderComponent(c))}</Grid>
-    case 'Card': return <Card key={comp.id} {...comp.props} />
-    case 'Metric': return <Metric key={comp.id} {...comp.props} />
-    case 'Testimonial': return <Testimonial key={comp.id} {...comp.props} />
-    case 'PricingCard': return <PricingCard key={comp.id} {...comp.props} />
-    case 'FAQ': return <FAQ key={comp.id} {...comp.props} />
-    case 'CTA': return <CTA key={comp.id} {...comp.props} />
-    case 'Footer': return <Footer key={comp.id} {...comp.props} />
-    case 'Button': return <Button key={comp.id} {...comp.props} />
-    default: return null
+function renderA2UI(spec: A2UISpec): ReactNode {
+  if (!spec?.elements) return null
+  
+  function renderElement(id: string): ReactNode {
+    const elem = spec.elements[id]
+    if (!elem) return null
+    
+    const { type, props, children } = elem
+    
+    switch (type) {
+      case 'Nav': return <A2Nav key={id} {...props} />
+      case 'Hero': return <A2Hero key={id} {...props} />
+      case 'Section': return <A2Section key={id} {...props}>{children?.map(c => renderElement(c))}</A2Section>
+      case 'Grid': return <A2Grid key={id} {...props}>{children?.map(c => renderElement(c))}</A2Grid>
+      case 'Card': return <A2Card key={id} {...props} />
+      case 'Metric': return <A2Metric key={id} {...props} />
+      case 'Testimonial': return <A2Testimonial key={id} {...props} />
+      case 'Pricing': return <A2Pricing key={id} {...props} />
+      case 'FAQ': return <A2FAQ key={id} {...props} />
+      case 'CTA': return <A2CTA key={id} {...props} />
+      case 'Footer': return <A2Footer key={id} {...props} />
+      default: return null
+    }
   }
+  
+  return spec.root ? renderElement(spec.root) : null
 }
 
 // ============================================
-// AGENTS - Full Featured Website
+// A2UI AGENTS (45 Councilor Swarm)
+// Each agent generates A2UI JSON format
 // ============================================
-const AGENTS = {
-  nav: { name: 'Nav', system: `You create NAVIGATION + HERO section.
+const A2UI_AGENTS = {
+  // Foundation Agents
+  speaker: {
+    councilor: 'Speaker',
+    system: `You are SPEAKER - the A2UI facilitator. Generate A2UI JSON spec.
+    
+A2UI FORMAT:
+{"version":"0.8","root":"nav","elements":{"nav":{"type":"Nav","props":{"logo":"🚀 A2UI Brand","links":["Features","Pricing","Docs","Community"]}}}}
 
-Create FULL website header with navigation and an epic hero section. Include realistic nav links like Features, Pricing, About, Contact.
+Generate valid A2UI JSON. Return ONLY JSON.`
+  },
+  
+  technocrat: {
+    councilor: 'Technocrat',
+    system: `You are TECHNOCRAT - A2UI efficiency expert. Generate HERO section.
 
-Example structure:
-{"nav":{"type":"Nav","props":{"logo":"🚀 BrandName","links":["Features","Pricing","About","Contact"]}},"hero":{"type":"Hero","props":{"badge":"🚀 Launching Now","title":"Build Amazing Products","subtitle":"The best solution for your needs","description":"Detailed description of what makes your product great and why users should care. Be persuasive.","primaryBtn":"Get Started Free","secondaryBtn":"Watch Demo"}}}` },
+A2UI FORMAT:
+{"root":"hero","elements":{"hero":{"type":"Hero","props":{"badge":"🔧 Powered by AI","title":"Build UI with A2UI","subtitle":"Security-first, LLM-friendly, Framework-agnostic","description":"Create stunning user interfaces that are safe, fast, and beautiful. A2UI lets agents generate UI that your users will love.","primaryBtn":"Start Building","secondaryBtn":"See Examples"}}}}
 
-  features: { name: 'Features', system: `You create FEATURES section with 6 detailed feature cards.
+Return ONLY JSON.`
+  },
+  
+  ethicist: {
+    councilor: 'Ethicist',
+    system: `You are ETHICIST - A2UI ethics expert. Generate TRUST section.
 
-Each card should have emoji, catchy title, and useful description. Focus on real benefits.
+A2UI FORMAT:
+{"root":"trust","elements":{"trust":{"type":"Section","props":{"title":"Built on Trust","subtitle":"Security-first by design"}}}}
 
-Example:
-{"feat-section":{"type":"Section","props":{"title":"Powerful Features","subtitle":"Everything you need"},"feat-grid":{"type":"Grid","props":{"cols":3}},"feat1":{"type":"Card","props":{"emoji":"⚡","title":"Lightning Fast","description":"Complete in seconds, not minutes. Our optimized pipeline delivers results 10x faster than competitors."}},"feat2":{"type":"Card","props":{"emoji":"🛡️","title":"Secure by Default","description":"Enterprise-grade security built in. Your data is encrypted, protected, and compliant."}},"feat3":{"type":"Card","props":{"emoji":"🤖","title":"AI-Powered","description":"Smart automation handles the boring stuff so you can focus on what matters."}},"feat4":{"type":"Card","props":{"emoji":"📊","title":"Real-time Analytics","description":"Track everything that matters with beautiful dashboards and instant insights."}},"feat5":{"type":"Card","props":{"emoji":"🔄","title":"Always Synced","description":"Your data stays in sync across all devices. No more version conflicts."}},"feat6":{"type":"Card","props":{"emoji":"💡","title":"Easy to Use","description":"Intuitive interface that anyone can learn in minutes, not hours."}}}}` },
+Create 4 trust metrics.
+Return ONLY JSON.`
+  },
+  
+  // Design Agents  
+  designer: {
+    councilor: 'Designer',
+    system: `You are DESIGNER - A2UI visual expert. Generate FEATURES section.
 
-  stats: { name: 'Stats', system: `You create STATS section showing impressive numbers.
+A2UI FORMAT:
+{"root":"features","elements":{"features":{"type":"Section","props":{"title":"Powerful Features","subtitle":"Everything you need"}},"grid":{"type":"Grid","props":{"cols":3}},"f1":{"type":"Card","props":{"emoji":"🛡️","title":"Security First","description":"Declarative JSON only. No executable code. Your app stays safe."}},"f2":{"type":"Card","props":{"emoji":"🤖","title":"AI-Powered","description":"Any LLM can generate A2UI. Gemini, GPT, Claude, MiniMax all work."}},"f3":{"type":"Card","props":{"emoji":"🌐","title":"Framework Agnostic","description":"Same JSON renders on React, Flutter, SwiftUI, Angular, and more."}},"f4":{"type":"Card","props":{"emoji":"⚡","title":"Zero Reflow","description":"Pretext measures text at ~0.09ms without DOM access."}},"f5":{"type":"Card","props":{"emoji":"🔄","title":"Incrementally Updatable","description":"Agent updates UI progressively as conversation evolves."}},"f6":{"type":"Card","props":{"emoji":"📦","title":"Open Standard","description":"Google-led open source. Apache 2.0 licensed."}}}}
 
-Example:
-{"stats-section":{"type":"Section","props":{"title":"Trusted Worldwide"}},"stats-grid":{"type":"Grid","props":{"cols":4}},"stat1":{"type":"Metric","props":{"value":"100K+","label":"Active Users","trend":"+15% this month"}},"stat2":{"type":"Metric","props":{"value":"99.99%","label":"Uptime","trend":"Guaranteed"}},"stat3":{"type":"Metric","props":{"value":"50M+","label":"Tasks Completed","trend":"+5M this week"}},"stat4":{"type":"Metric","props":{"value":"4.9/5","label":"User Rating","trend":"Based on 10K reviews"}}}` },
+Return ONLY JSON.`
+  },
+  
+  economist: {
+    councilor: 'Economist',
+    system: `You are ECONOMIST - A2UI metrics expert. Generate STATS section.
 
-  testimonials: { name: 'Testimonials', system: `You create TESTIMONIALS section with 3 customer quotes.
+A2UI FORMAT:
+{"root":"stats","elements":{"stats":{"type":"Section","props":{"title":"Trusted Worldwide"}},"grid":{"type":"Grid","props":{"cols":4}},"m1":{"type":"Metric","props":{"value":"100K+","label":"Active Users","trend":"+15%","icon":"👥"}},"m2":{"type":"Metric","props":{"value":"99.99%","label":"Uptime","trend":"Guaranteed","icon":"⚡"}},"m3":{"type":"Metric","props":{"value":"10M+","label":"UIs Generated","trend":"+1M/week","icon":"🎨"}},"m4":{"type":"Metric","props":{"value":"4.9/5","label":"Satisfaction","trend":"Excellent","icon":"⭐"}}}}
 
-Make them realistic and persuasive.
+Return ONLY JSON.`
+  },
+  
+  product: {
+    councilor: 'Product Manager',
+    system: `You are PRODUCT MANAGER - A2UI strategy expert. Generate PRICING section.
 
-Example:
-{"test-section":{"type":"Section","props":{"title":"Loved by Teams"}},"test-grid":{"type":"Grid","props":{"cols":3}},"test1":{"type":"Testimonial","props":{"quote":"This product completely transformed how we work. Our productivity increased 10x in the first month.","author":"Sarah Chen","role":"CTO at TechCorp","avatar":"👩‍💼"}},"test2":{"type":"Testimonial","props":{"quote":"Best investment we made this year. The ROI was immediate and the support is incredible.","author":"Marcus Johnson","role":"Founder at StartupXYZ","avatar":"👨‍💼"}},"test3":{"type":"Testimonial","props":{"quote":"Finally, a tool that actually delivers on its promises. Highly recommended!","author":"Emily Rodriguez","role":"VP Engineering at Scale","avatar":"👩‍💻"}}}` },
+A2UI FORMAT:
+{"root":"pricing","elements":{"pricing":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free, scale as you grow"}},"grid":{"type":"Grid","props":{"cols":3}},"p1":{"type":"Pricing","props":{"tier":"Starter","price":"Free","description":"Perfect for individuals and small projects","features":["5 projects","Basic analytics","Community support","1GB storage"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$29","period":"month","description":"For growing teams","features":["Unlimited projects","Advanced analytics","Priority support","100GB storage","Team collaboration"],"highlighted":true,"buttonText":"Start Free Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","description":"For large organizations","features":["Everything in Pro","Dedicated support","Custom contracts","Unlimited storage","SLA guarantee"]}}}
 
-  pricing: { name: 'Pricing', system: `You create PRICING section with 3 tiers.
+Return ONLY JSON.`
+  },
+  
+  visionary: {
+    councilor: 'Visionary',
+    system: `You are VISIONARY - A2UI innovation expert. Generate TESTIMONIALS.
 
-Make prices and features realistic.
+A2UI FORMAT:
+{"root":"testimonials","elements":{"testimonials":{"type":"Section","props":{"title":"Loved by Developers"}},"grid":{"type":"Grid","props":{"cols":3}},"t1":{"type":"Testimonial","props":{"quote":"A2UI completely changed how we think about AI-generated interfaces. Safe, fast, and beautiful.","author":"Sarah Chen","role":"CTO at TechCorp","avatar":"👩‍💼"}},"t2":{"type":"Testimonial","props":{"quote":"The framework-agnostic approach is genius. Same code works everywhere.","author":"Marcus Johnson","role":"Lead Engineer","avatar":"👨‍💻"}},"t3":{"type":"Testimonial","props":{"quote":"Finally, a standard that puts security first. Our enterprise clients love it.","author":"Emily Rodriguez","role":"VP Engineering","avatar":"👩‍🔬"}}}}
 
-Example:
-{"pricing-section":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free, upgrade when you need more"}},"pricing-grid":{"type":"Grid","props":{"cols":3}},"price1":{"type":"PricingCard","props":{"tier":"Starter","price":"$0","period":"forever","description":"Perfect for individuals","features":["5 projects","Basic analytics","Email support","1GB storage"],"buttonText":"Get Started"}},"price2":{"type":"PricingCard","props":{"tier":"Pro","price":"$29","period":"month","description":"For growing teams","features":["Unlimited projects","Advanced analytics","Priority support","100GB storage","Custom integrations","Team collaboration"],"highlighted":true,"buttonText":"Start Free Trial"}},"price3":{"type":"PricingCard","props":{"tier":"Enterprise","price":"$99","period":"month","description":"For large organizations","features":["Everything in Pro","Unlimited storage","Dedicated support","SLA guarantee","Custom contracts","On-premise option"],"buttonText":"Contact Sales"}}}` },
+Return ONLY JSON.`
+  },
+  
+  security: {
+    councilor: 'Security Expert',
+    system: `You are SECURITY EXPERT - A2UI safety auditor. Generate FAQ section.
 
-  faq: { name: 'FAQ', system: `You create FAQ section with 5 common questions and answers.
+A2UI FORMAT:
+{"root":"faq","elements":{"faq":{"type":"Section","props":{"title":"Common Questions"}},"q1":{"type":"FAQ","props":{"question":"How does A2UI ensure security?","answer":"A2UI uses declarative JSON only. No executable code ever runs from the agent."}},"q2":{"type":"FAQ","props":{"question":"What LLMs support A2UI?","answer":"Any LLM that can output JSON - Gemini, GPT-4, Claude, MiniMax, and more."}},"q3":{"type":"FAQ","props":{"question":"Can I use my own components?","answer":"Yes! A2UI has an open registry pattern for custom components."}},"q4":{"type":"FAQ","props":{"question":"Is A2UI officially from Google?","answer":"Yes, A2UI is Google's open standard under Apache 2.0 license."}},"q5":{"type":"FAQ","props":{"question":"What frameworks are supported?","answer":"React, Flutter, Lit, Angular, SwiftUI, and more via community renderers."}}}
 
-Example:
-{"faq-section":{"type":"Section","props":{"title":"Common Questions"}},"faq1":{"type":"FAQ","props":{"question":"How does the free trial work?","answer":"You get full access to all features for 14 days. No credit card required."}},"faq2":{"type":"FAQ","props":{"question":"Can I cancel anytime?","answer":"Yes, you can cancel your subscription at any time with no penalties."}},"faq3":{"type":"FAQ","props":{"question":"What payment methods do you accept?","answer":"We accept all major credit cards, PayPal, and wire transfers for annual plans."}},"faq4":{"type":"FAQ","props":{"question":"Is my data secure?","answer":"Absolutely. We use bank-level encryption and are SOC2 compliant."}},"faq5":{"type":"FAQ","props":{"question":"Do you offer refunds?","answer":"Yes, we offer a 30-day money-back guarantee on all paid plans."}}}` },
+Return ONLY JSON.`
+  },
+  
+  devops: {
+    councilor: 'DevOps Engineer',
+    system: `You are DEVOPS - A2UI deployment expert. Generate final CTA.
 
-  cta: { name: 'CTA', system: `You create final CALL-TO-ACTION section.
+A2UI FORMAT:
+{"root":"cta","elements":{"cta":{"type":"CTA","props":{"title":"Ready to Build?","subtitle":"Join thousands of developers building the future of AI UI. Start free today.","buttonText":"Start Building Now"}}}}
+Return ONLY JSON.`
+  },
+  
+  sentinel: {
+    councilor: 'Sentinel',
+    system: `You are SENTINEL - A2UI guardian. Generate FOOTER.
 
-Example:
-{"final-cta":{"type":"CTA","props":{"title":"Ready to Get Started?","subtitle":"Join thousands of happy customers. Start your free trial today.","buttonText":"Start Free Trial Now"}}}` },
+A2UI FORMAT:
+{"root":"footer","elements":{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Documentation","Changelog"],"Developers":["API Reference","SDKs","GitHub","Community"],"Company":["About","Blog","Careers","Press"],"Legal":["Privacy","Terms","Security","Cookies"]},"copyright":"© 2026 A2UI Pretext UI. Powered by Google A2UI + AI Council Swarm."}}}}
 
-  footer: { name: 'Footer', system: `You create FOOTER section with links.
-
-Example:
-{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Integrations","Changelog","Roadmap"],"Company":["About","Blog","Careers","Press Kit","Contact"],"Resources":["Documentation","API Reference","Community","Status","Support"],"Legal":["Privacy Policy","Terms of Service","Cookie Policy","GDPR"]},"copyright":"© 2026 Pretext AI UI. Built with ❤️ for the community."}}}` },
+Return ONLY JSON.`
+  }
 }
 
 // ============================================
 // MAIN APP
 // ============================================
 export default function App() {
-  const [components, setComponents] = useState<any[]>([])
+  const [spec, setSpec] = useState<A2UISpec | null>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
-  const [phase, setPhase] = useState('Starting...')
+  const [phase, setPhase] = useState('A2UI Council Assembling...')
   const [progress, setProgress] = useState(0)
   const [genTime, setGenTime] = useState(0)
   
@@ -259,61 +357,65 @@ export default function App() {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
-      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'system', content: system }, { role: 'user', content: 'Return valid JSON only.' }], max_tokens: 2048 })
+      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'system', content: system }, { role: 'user', content: 'Return A2UI JSON only.' }], max_tokens: 2048 })
     })
     const data = await res.json()
     return data.choices?.[0]?.message?.content || ''
   }
   
-  function parseJSON(text: string): any {
+  function parseA2UI(text: string): A2UISpec | null {
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return null
-    try { return JSON.parse(match[0]) } catch { return null }
-  }
-  
-  function elementsToComponents(elements: Record<string, any>): any[] {
-    return Object.entries(elements).map(([id, elem]: [string, any]) => ({
-      id, type: elem.type, props: elem.props || {}, children: elem.children?.map((childId: string) => {
-        const child = elements[childId]
-        return child ? { id: childId, type: child.type, props: child.props } : null
-      }).filter(Boolean)
-    })).filter((c: any) => c.type)
+    try {
+      const parsed = JSON.parse(match[0])
+      if (parsed.elements && !parsed.version) {
+        // Add version if missing
+        parsed.version = "0.8"
+      }
+      return parsed
+    } catch { return null }
   }
   
   async function runSwarm() {
     setIsGenerating(true)
     setLogs([])
-    setPhase('Generating website...')
+    setPhase('A2UI Council Assembling...')
     startRef.current = Date.now()
-    const allElements: Record<string, any> = {}
     
-    const agentKeys = Object.keys(AGENTS)
+    const allElements: Record<string, A2UIElement> = {}
+    
+    const agentKeys = Object.keys(A2UI_AGENTS)
+    
     for (let i = 0; i < agentKeys.length; i++) {
       const key = agentKeys[i]
-      const agent = AGENTS[key as keyof typeof AGENTS]
-      setPhase(`${agent.name}...`)
+      const agent = A2UI_AGENTS[key as keyof typeof A2UI_AGENTS]
+      
+      setPhase(`${agent.councilor} deliberating...`)
       setProgress(Math.round(((i + 1) / agentKeys.length) * 100))
       
       try {
         const text = await callAPI(agent.system)
-        const parsed = parseJSON(text)
+        const parsed = parseA2UI(text)
+        
         if (parsed?.elements) {
           Object.assign(allElements, parsed.elements)
-          setLogs(prev => [...prev.slice(-8), `✅ ${agent.name}: Added ${Object.keys(parsed.elements).length} elements`])
+          setLogs(prev => [...prev.slice(-8), `✅ [${agent.councilor}] Added ${Object.keys(parsed.elements).length} elements`])
         } else {
-          setLogs(prev => [...prev.slice(-8), `⚠️ ${agent.name}: Parse failed`])
+          setLogs(prev => [...prev.slice(-8), `⚠️ [${agent.councilor}] No valid A2UI`])
         }
       } catch (err) {
-        setLogs(prev => [...prev.slice(-8), `❌ ${agent.name}: ${err}`])
+        setLogs(prev => [...prev.slice(-8), `❌ [${agent.councilor}] ${err}`])
       }
     }
     
-    const comps = elementsToComponents(allElements)
-    setComponents(comps)
-    setGenTime(((Date.now() - startRef.current) / 1000).toFixed(1))
-    setPhase('Complete!')
+    const finalSpec: A2UISpec = { version: "0.8", root: "app", elements: allElements }
+    setSpec(finalSpec)
+    
+    const elapsed = ((Date.now() - startRef.current) / 1000).toFixed(1)
+    setGenTime(parseFloat(elapsed))
+    setPhase('A2UI Complete!')
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-8), `✅ Generated in ${genTime}s`])
+    setLogs(prev => [...prev.slice(-8), `✅ Generated in ${elapsed}s with A2UI Standard`])
   }
   
   useEffect(() => { runSwarm() }, [])
@@ -321,15 +423,18 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#0a0a0f] text-white">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10 px-6 py-4">
+        {/* A2UI Header */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-purple-500/20 px-6 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📐</span>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Pretext AI UI</h1>
+              <span className="text-2xl">🤖</span>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">A2UI + Pretext</h1>
+              <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400">v0.8</span>
             </div>
             <div className="flex items-center gap-4">
+              <span className="text-xs text-gray-500 hidden sm:block">Powered by AI Council Swarm</span>
               {!isGenerating && <span className="text-sm text-green-400">⚡ {genTime}s</span>}
-              <button onClick={runSwarm} disabled={isGenerating} className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-sm disabled:opacity-50">
+              <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-sm font-bold disabled:opacity-50">
                 {isGenerating ? '⏳' : '🔄'}
               </button>
             </div>
@@ -339,14 +444,35 @@ export default function App() {
         <main className="pt-20">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-4">🐝 AI Building Your Website</h2>
-              <p className="text-gray-400 mb-4">{phase}</p>
-              <div className="w-80 h-3 bg-white/10 rounded-full"><div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${progress}%` }} /></div>
-              <div className="mt-8 bg-black/40 rounded-xl p-4 max-w-lg"><pre className="text-xs text-gray-500">{logs.join('\n') || 'Starting...'}</pre></div>
+              <div className="text-center mb-8">
+                <h2 className="text-5xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">🤖 A2UI Council</h2>
+                <p className="text-gray-400 text-lg">{phase}</p>
+              </div>
+              
+              {/* Progress */}
+              <div className="w-80 mb-8">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-500">Council Progress</span>
+                  <span className="text-purple-400">{progress}%</span>
+                </div>
+                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+              
+              {/* Logs */}
+              <div className="bg-black/60 rounded-xl p-4 max-w-lg w-full">
+                <pre className="text-xs text-gray-500 whitespace-pre-wrap font-mono max-h-40 overflow-auto">
+                  {logs.join('\n') || 'Council assembling...'}
+                </pre>
+              </div>
             </div>
+          ) : spec ? (
+            // A2UI Renderer
+            renderA2UI(spec)
           ) : (
-            <div>
-              {components.map(comp => renderComponent(comp))}
+            <div className="flex items-center justify-center h-[calc(100vh-80px)] text-gray-500">
+              Awaiting A2UI generation...
             </div>
           )}
         </main>

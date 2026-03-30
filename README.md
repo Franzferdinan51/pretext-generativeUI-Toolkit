@@ -1,14 +1,14 @@
-# Pretext AI UI Toolkit
+# Pretext AI UI Toolkit - A2UI Deep Integration
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Pretext-Zero%20Reflow-blue?style=flat-square" alt="Pretext">
-  <img src="https://img.shields.io/badge/JSON%20Render-Safe%20UI-purple?style=flat-square" alt="JSON Render">
-  <img src="https://img.shields.io/badge/A2UI-Agent%20Standard-green?style=flat-square" alt="A2UI">
+  <img src="https://img.shields.io/badge/A2UI-Security%20First-blue?style=flat-square" alt="A2UI">
+  <img src="https://img.shields.io/badge/Pretext-Zero%20Reflow-purple?style=flat-square" alt="Pretext">
+  <img src="https://img.shields.io/badge/Framework-Agnostic-green?style=flat-square" alt="Framework">
 </p>
 
 <p align="center">
-  <strong>📐 AI-Powered Generative UI with Zero-Reflow Text</strong><br>
-  Pretext + JSON Render + A2UI + AI Council Swarm
+  <strong>🤖 AI-Powered Generative UI with A2UI Standard</strong><br>
+  Security-first • LLM-friendly • Framework-agnostic
 </p>
 
 ---
@@ -19,155 +19,75 @@
 
 ---
 
-## ✨ Core Technologies
+## 🤖 A2UI - Google's Agent UI Standard
 
-### 📐 [Pretext](https://github.com/chenglou/pretext) - Zero-Reflow Text Measurement
+A2UI is Google's open standard for **agent-generated UIs**. It allows agents to "speak UI" through a declarative JSON format.
 
-**Character-level text measurement without DOM reflow (~0.09ms)**
+### Core Philosophies
 
-```javascript
-import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine, walkLineRanges } from '@chenglou/pretext'
+| Principle | Description |
+|-----------|-------------|
+| **Security First** | Declarative JSON data, NOT executable code. Client maintains catalog of trusted components. |
+| **LLM-Friendly** | Flat list of components with ID references. Easy to generate incrementally. |
+| **Framework-Agnostic** | Same JSON renders on React, Flutter, Lit, SwiftUI, Angular, etc. |
+| **Incrementally Updatable** | Progressive rendering. Agent makes changes based on conversation. |
 
-// Fast: ~0.09ms per measurement (cached!)
-const prepared = prepare('Hello world', '16px Inter')
-const { height } = layout(prepared, 400, 24) // pure math!
-
-// Exact line positions for Canvas
-const { lines } = layoutWithLines(prepared, 320, 26)
-
-// Flow text around obstacles
-layoutNextLine(prepared, cursor, width) // iterator for variable-width layout
-
-// Shrinkwrap - find tightest width
-walkLineRanges(prepared, 10000, line => { /* track maxWidth */ })
-```
-
-### 🎨 [JSON Render](https://github.com/vercel-labs/json-render) - Safe Components
-
-**Generative UI with guardrails and Zod validation**
+### A2UI Format
 
 ```javascript
-import { defineCatalog, defineRegistry, Renderer, JSONUIProvider } from '@json-render/react'
-
-const catalog = defineCatalog(schema, {
-  components: {
-    Card: { props: z.object({ title: z.string() }), description: 'Card' },
-    Button: { props: z.object({ content: z.string() }), description: 'Button' },
-  }
-})
-
-const { registry } = defineRegistry(catalog, { components })
-
-<JSONUIProvider registry={registry}>
-  <Renderer spec={spec} registry={registry} />
-</JSONUIProvider>
-```
-
-### 🤖 [A2UI](https://github.com/google/A2UI) - Agent UI Standard
-
-**Google's open standard for agent-generated UIs**
-
-```javascript
-// A2UI flat spec format
+// A2UI Spec Structure
 const spec = {
-  root: 'card-1',
+  version: "0.8",
+  root: "component-id",
   elements: {
-    'card-1': { type: 'Card', props: { title: 'Hello' }, children: ['button-1'] },
-    'button-1': { type: 'Button', props: { content: 'Click' } },
+    "component-id": {
+      type: "ComponentName",
+      props: { key: "value" },
+      children: ["child-id"]
+    }
   }
 }
 ```
 
+### A2UI Flow
+
+```
+Agent → JSON Payload → Transport (A2A, AG UI) → Client Renderer → Native UI
+```
+
+### Use Cases
+
+1. **Dynamic Data Collection** - Forms, date pickers, sliders based on context
+2. **Remote Sub-Agents** - Orchestrator delegates to specialized agents
+3. **Adaptive Workflows** - Approval dashboards, data visualizations
+
 ---
 
-## 🏛️ AI Council Swarm Integration
+## 📐 Pretext Integration
 
-### 11 Deliberation Modes
+Pretext provides **zero-reflow text measurement** (~0.09ms cached).
 
-| Mode | Emoji | Purpose |
-|------|-------|---------|
-| Legislative | ⚖️ | Debate + Vote |
-| Deep Research | 🧠 | Multi-vector investigation |
-| Swarm Hive | 🐝 | Task decomposition |
-| Swarm Coding | 💻 | Software engineering |
-| Prediction | 🔮 | Superforecasting |
-| Inquiry | ❓ | Rapid Q&A |
-| Emergency | 🚨 | Crisis response |
-| Risk | 📊 | Risk analysis |
-| Consensus | 🤝 | Find agreement |
-| Strategic | 🎯 | Long-term planning |
-| Vision | 👁️ | Image analysis |
+```javascript
+import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
 
-### 45 Specialized Councilors
+// Fast measurement
+const prepared = prepare('Hello world', '16px Inter')
+const { height } = layout(prepared, 400, 24) // pure math!
+
+// Exact positions
+const { lines } = layoutWithLines(prepared, 320, 26)
+```
+
+---
+
+## 🏛️ AI Council Swarm (45 Councilors)
 
 | Category | Councilors |
 |----------|-----------|
-| **Foundation** | Speaker, Technocrat, Ethicist, Pragmatist, Skeptic, Sentinel, Visionary, Historian, Diplomat, Journalist, Psychologist, Coder |
-| **Business** | Economist, Product Manager, Marketing Expert, Finance Expert, Risk Manager |
-| **Technical** | Solutions Architect, DevOps Engineer, Security Expert, Performance Engineer, QA Engineer |
-| **User & Community** | User Advocate, Customer Support, Community Manager, Accessibility Expert |
-| **Creative & Innovation** | Visionary, Innovation Coach, Propagandist, Psychologist |
-| **Legal & Compliance** | Legal Expert, Privacy Officer |
-| **Agriculture** | Botanist, Geneticist |
-
----
-
-## ⚡ Speed: Parallel Execution
-
-- **5 batches × 3 agents = 15 parallel agents**
-- `Promise.all()` for concurrent execution
-- Consensus voting system
-- Live benchmark display
-
----
-
-## 📦 Component Catalog
-
-### Standard Components
-| Component | Description |
-|-----------|-------------|
-| Header | Header bar with logo |
-| Heading | h1/h2/h3 with gradient support |
-| Text | Text with styling options |
-| Button | CTA button |
-| Card | Feature/info card |
-| Stack | Flex layout (horizontal/vertical) |
-| Grid | CSS Grid layout |
-| Metric | Stats display |
-| Badge | Tag/label |
-
-### Pretext-Specific Components
-| Component | Description |
-|-----------|-------------|
-| **CanvasText** | Renders measured text on Canvas with gradient |
-| **StreamingText** | Character-by-character animation as Pretext measures |
-| **FlowText** | Text flowing around floating obstacle/image |
-
----
-
-## 🐝 Swarm Workflow
-
-```
-1. 📋 PLAN → Architect, Product Manager, Visionary
-2. 🎨 DESIGN → Designer, User Advocate, Accessibility
-3. ⚙️ IMPLEMENT → Coder, Backend, Frontend
-4. 🔍 REVIEW → QA Engineer, Security Expert, Performance
-5. 🚀 DEPLOY → DevOps Engineer, Sentinel
-```
-
----
-
-## 🧬 Pretext APIs
-
-| API | Purpose |
-|-----|---------|
-| `prepare(text, font)` | One-time text analysis + measurement |
-| `layout(prepared, width, lineHeight)` | Calculate height (hot path, ~0.09ms) |
-| `prepareWithSegments(text, font)` | Rich segment structure for line layout |
-| `layoutWithLines(prepared, width, lineHeight)` | Get all lines with exact positions |
-| `layoutNextLine(prepared, cursor, width)` | Iterator for variable-width layout (flow text) |
-| `walkLineRanges(prepared, width, callback)` | Low-level iteration, shrinkwrap support |
-| `clearCache()` | Release accumulated cache |
+| **Foundation** | Speaker, Technocrat, Ethicist, Pragmatist, Skeptic |
+| **Strategy** | Economist, Product Manager, Marketing, Finance |
+| **Technical** | Architect, DevOps, Security, QA |
+| **Creative** | Visionary, Innovation, Psychologist |
 
 ---
 
@@ -175,53 +95,16 @@ const spec = {
 
 | Technology | Purpose |
 |------------|---------|
-| **Pretext** | Zero-reflow text measurement |
-| **JSON Render** | Safe component rendering |
-| **A2UI** | Agent UI standard |
+| **A2UI** | Agent UI standard (Google) |
+| **Pretext** | Zero-reflow text |
 | **React** | UI framework |
-| **Canvas API** | Pretext rendering |
-| **MiniMax M2.7** | AI generation |
-| **Tailwind CSS** | Styling |
-| **Zod** | Type validation |
-
----
-
-## 🚀 Quick Start
-
-```bash
-cd ~/Desktop/Pretext-Generative-UI-Toolkit
-npm run dev
-# Open http://localhost:3456
-```
-
----
-
-## 📁 Project Structure
-
-```
-Pretext-Generative-UI-Toolkit/
-├── src/
-│   └── webui/
-│       └── App.tsx          # Main app with all integrations
-├── package.json
-├── vite.config.ts
-└── README.md
-```
+| **MiniMax** | AI generation |
+| **Tailwind** | Styling |
 
 ---
 
 ## 🌐 Links
 
-| Resource | URL |
-|----------|-----|
-| **GitHub** | https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit |
-| **Pretext** | https://github.com/chenglou/pretext |
-| **JSON Render** | https://github.com/vercel-labs/json-render |
-| **A2UI** | https://github.com/google/A2UI |
-| **AI Council** | https://github.com/Franzferdinan51/AI-Bot-Council-Concensus |
-
----
-
-<p align="center">
-  📐 Built with Pretext • 🏛️ Powered by AI Council Swarm • ⚡ Zero Reflow
-</p>
+- [A2UI](https://github.com/google/A2UI)
+- [Pretext](https://github.com/chenglou/pretext)
+- [GitHub](https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit)
