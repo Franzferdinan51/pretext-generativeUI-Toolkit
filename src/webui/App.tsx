@@ -15,7 +15,8 @@ class PretextEngine {
     const key = `${text}:${fontSize}:${maxWidth}`
     if (!this.cache.has(key)) {
       const prepared = prepare(text, `${fontSize}px Inter`)
-      this.cache.set(key, layout(prepared, maxWidth, fontSize * 1.4))
+      const result = layout(prepared, maxWidth, fontSize * 1.4)
+      this.cache.set(key, result)
     }
     return this.cache.get(key)
   }
@@ -23,7 +24,8 @@ class PretextEngine {
     const key = `lines:${text}:${fontSize}:${maxWidth}`
     if (!this.cache.has(key)) {
       const prepared = prepareWithSegments(text, `${fontSize}px Inter`)
-      this.cache.set(key, layoutWithLines(prepared, maxWidth, fontSize * 1.4))
+      const result = layoutWithLines(prepared, maxWidth, fontSize * 1.4)
+      this.cache.set(key, result)
     }
     return this.cache.get(key)
   }
@@ -210,7 +212,8 @@ export default function App() {
     // Use fallback if no components
     if (Object.keys(allElements).length === 0) {
       setLogs(prev => [...prev.slice(-8), `🔧 Using fallback...`])
-      const fallback = parseJSON(JSON.stringify({ root: 'f1', elements: { f1: { type: 'Heading', props: { content: 'Fallback - API may have failed', level: 'h1' } } }))
+      const fallbackData = { root: 'f1', elements: { f1: { type: 'Heading', props: { content: 'Fallback - API may have failed', level: 'h1' } } } }
+      const fallback = parseJSON(JSON.stringify(fallbackData))
       if (fallback?.elements) Object.assign(allElements, fallback.elements)
     }
     
