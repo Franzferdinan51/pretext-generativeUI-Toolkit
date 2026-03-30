@@ -12,101 +12,27 @@
       justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    .card {
-      width: 420px;
-      background: #f0f4f8;
-    }
-    .header {
-      background: #1e293b;
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .header-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .header-time {
-      font-size: 10px;
-      color: #94a3b8;
-    }
-    .breaking {
-      background: #fff;
-      margin: 16px;
-      border-radius: 14px;
-      padding: 16px;
-      border: 1px solid #e2e8f0;
-    }
-    .breaking-tag {
-      display: inline-block;
-      background: #dc2626;
-      color: #fff;
-      font-size: 9px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-    }
-    .breaking-headline {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.4;
-      margin-bottom: 8px;
-    }
-    .breaking-source {
-      font-size: 10px;
-      color: #64748b;
-    }
-    .section-label {
-      font-size: 10px;
-      font-weight: 700;
-      color: #64748b;
-      padding: 0 16px;
-      margin-bottom: 8px;
-    }
-    .story {
-      background: #fff;
-      margin: 0 16px 8px;
-      border-radius: 12px;
-      padding: 14px 16px;
-      border: 1px solid #e2e8f0;
-    }
-    .story-tag {
-      display: inline-block;
-      font-size: 9px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-bottom: 6px;
-      color: #fff;
-    }
+    .card { width: 420px; background: #f0f4f8; }
+    .header { background: #1e293b; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header-title { font-size: 18px; font-weight: 700; color: #fff; }
+    .header-time { font-size: 10px; color: #94a3b8; }
+    .breaking { background: #fff; margin: 16px; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; }
+    .breaking-tag { display: inline-block; background: #dc2626; color: #fff; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px; }
+    .breaking-headline { font-size: 16px; font-weight: 700; color: #0f172a; line-height: 1.4; margin-bottom: 8px; }
+    .breaking-source { font-size: 10px; color: #64748b; }
+    .section-label { font-size: 10px; font-weight: 700; color: #64748b; padding: 0 16px; margin: 12px 0 8px; }
+    .story { background: #fff; margin: 0 16px 8px; border-radius: 12px; padding: 14px 16px; border: 1px solid #e2e8f0; }
+    .story-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 6px; color: #fff; }
     .tag-ai { background: #2563eb; }
     .tag-defense { background: #16a34a; }
     .tag-cyber { background: #7c3aed; }
-    .tag-markets { background: #ca8a04; }
     .tag-military { background: #9333ea; }
     .tag-iran { background: #ea580c; }
-    .tag-world { background: #0891b2; }
-    .story-headline {
-      font-size: 13px;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.4;
-      margin-bottom: 6px;
-    }
-    .story-source {
-      font-size: 10px;
-      color: #94a3b8;
-    }
-    .footer {
-      text-align: center;
-      font-size: 9px;
-      color: #cbd5e1;
-      padding: 16px;
-    }
+    .story-link { text-decoration: none; }
+    .story-headline { font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.4; margin-bottom: 6px; }
+    .story-link:hover .story-headline { color: #2563eb; text-decoration: underline; }
+    .story-source { font-size: 10px; color: #94a3b8; }
+    .footer { text-align: center; font-size: 9px; color: #cbd5e1; padding: 16px; }
   </style>
 </head>
 <body>
@@ -114,54 +40,60 @@
 
     <div class="header">
       <span class="header-title">DuckBot News</span>
-      <span class="header-time">3:48 PM EDT · Mar 30</span>
+      <span class="header-time">3:50 PM EDT · Mar 30</span>
     </div>
 
-    <div class="breaking">
-      <div class="breaking-tag">🔥 BREAKING</div>
-      <div class="breaking-headline">"No Kings" Protests Draw 8 Million — Largest Single Day of Protests in US History</div>
-      <div class="breaking-source">Democracy Now · 8h ago</div>
-    </div>
+    <a href="https://www.democracynow.org/2026/3/30/headlines" class="story-link" target="_blank">
+      <div class="breaking">
+        <div class="breaking-tag">🔥 BREAKING</div>
+        <div class="breaking-headline">"No Kings" Protests Draw 8 Million — Largest Single Day of Protests in US History</div>
+        <div class="breaking-source">Democracy Now · 8h ago</div>
+      </div>
+    </a>
 
     <div class="section-label">LATEST STORIES</div>
 
-    <div class="story">
-      <div class="story-tag tag-ai">🤖 AI</div>
-      <div class="story-headline">Google Expands Personalized Gemini AI to All US Users</div>
-      <div class="story-source">MarketingProfs · 2h ago</div>
-    </div>
+    <a href="https://www.marketingprofs.com/opinions/2026/54448/ai-update-march-20-2026-ai-news-and-views-from-the-past-week" class="story-link" target="_blank">
+      <div class="story">
+        <div class="story-tag tag-ai">🤖 AI</div>
+        <div class="story-headline">Google Expands Personalized Gemini AI to All US Users</div>
+        <div class="story-source">MarketingProfs · 2h ago</div>
+      </div>
+    </a>
 
-    <div class="story">
-      <div class="story-tag tag-defense">🛡️ DEFENSE</div>
-      <div class="story-headline">NATO Urges Allies to Rethink Defense, Prepare for "New Enemy"</div>
-      <div class="story-source">Aerotech News · 4h ago</div>
-    </div>
+    <a href="https://www.aerotechnews.com/blog/2026/03/30/headlines-march-30-2/" class="story-link" target="_blank">
+      <div class="story">
+        <div class="story-tag tag-defense">🛡️ DEFENSE</div>
+        <div class="story-headline">NATO Urges Allies to Rethink Defense, Prepare for "New Enemy"</div>
+        <div class="story-source">Aerotech News · 4h ago</div>
+      </div>
+    </a>
 
-    <div class="story">
-      <div class="story-tag tag-cyber">🔒 CYBER</div>
-      <div class="story-headline">EU Commission Cloud Hacked — ShinyHunters Claim Responsibility</div>
-      <div class="story-source">Tech Startups · 6h ago</div>
-    </div>
+    <a href="https://techstartups.com/2026/03/30/top-tech-news-today-march-30-2026/" class="story-link" target="_blank">
+      <div class="story">
+        <div class="story-tag tag-cyber">🔒 CYBER</div>
+        <div class="story-headline">EU Commission Cloud Hacked — ShinyHunters Claim Responsibility</div>
+        <div class="story-source">Tech Startups · 6h ago</div>
+      </div>
+    </a>
 
-    <div class="story">
-      <div class="story-tag tag-markets">📈 MARKETS</div>
-      <div class="story-headline">Wall Street Opens Higher Ahead of Holiday-Shortened Week</div>
-      <div class="story-source">TheStreet · 1h ago</div>
-    </div>
+    <a href="https://www.crescendo.ai/news/latest-ai-news-and-updates" class="story-link" target="_blank">
+      <div class="story">
+        <div class="story-tag tag-military">🎖️ MILITARY</div>
+        <div class="story-headline">Code Platoon Launches AI Curriculum for Military Community</div>
+        <div class="story-source">Crescendo AI · 16h ago</div>
+      </div>
+    </a>
 
-    <div class="story">
-      <div class="story-tag tag-military">🎖️ MILITARY</div>
-      <div class="story-headline">Code Platoon Launches AI Curriculum for Military Community</div>
-      <div class="story-source">Crescendo AI · 16h ago</div>
-    </div>
+    <a href="https://www.democracynow.org/2026/3/30/headlines" class="story-link" target="_blank">
+      <div class="story">
+        <div class="story-tag tag-iran">⚠️ IRAN</div>
+        <div class="story-headline">Trump Threatens Iranian Civilian Infrastructure as Troops Deploy</div>
+        <div class="story-source">Democracy Now · 8h ago</div>
+      </div>
+    </a>
 
-    <div class="story">
-      <div class="story-tag tag-iran">⚠️ IRAN</div>
-      <div class="story-headline">Trump Threatens Iranian Civilian Infrastructure as Troops Deploy</div>
-      <div class="story-source">Democracy Now · 8h ago</div>
-    </div>
-
-    <div class="footer">Sources: Democracy Now, Aerotech, Tech Startups, TheStreet, Crescendo AI</div>
+    <div class="footer">Sources: Democracy Now, Aerotech, Tech Startups, Crescendo AI</div>
 
   </div>
 </body>
