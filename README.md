@@ -74,18 +74,42 @@ User Request → Pretext measures text → Canvas draws at exact positions
 | `crypto` | Crypto price chart with live glow effects |
 | `metric` | Stat/metric card with trend indicator |
 | `plant` | Plant health dashboard with photo |
+| `osrs` | OSRS game item price chart |
+| `council` | AI Council consensus display |
+| `ascii` | Retro terminal visual |
+| `glass` | Apple liquid glass UI effect |
+| `osrs` | OSRS game item price chart |
+| `council` | AI Council consensus display |
+| `ascii` | Retro terminal visual |
+| `glass` | Apple liquid glass UI effect |
 
 ### Pretext Scene Engine (NEW)
 A reusable foundation for active typography scenes:
 - text nodes with measured layout
 - obstacle nodes for future text-flow around objects
 - motion primitives: `float`, `orbit`, `pulse`, `drift`
-- starter templates: `weather`, `crypto`, `orbit`, `plant`, `osrs`, `council`, `ascii`
+- starter templates: `weather`, `crypto`, `orbit`, `plant`, `osrs`, `council`, `ascii`, `glass`
 
 Core exports:
 - `measureSceneText()`
+- `layoutTextAroundObstacle()`
 - `resolveMotion()`
 - `sceneTemplates()`
+
+### Layout Engine — Textura-style (NEW)
+DOM-free declarative layout trees combining Pretext text measurement with flexbox layout:
+- `computeLayout()` — compute exact pixel positions for a full UI tree
+- `flattenLayout()` — flatten nested layout to a flat list
+- `renderLayout()` — render computed layout to Canvas
+- Box nodes (flex containers) + Text nodes (Pretext-measured)
+- Inspired by [razroo/textura](https://github.com/razroo/textura)
+
+### Liquid Glass Effect (NEW)
+Apple-inspired glassmorphism for Canvas:
+- `drawLiquidGlass()` — translucent panels with specular highlights
+- `drawShimmerOverlay()` — animated shimmer streak
+- `liquidGlassCSS()` — CSS snippet for HTML glass effects
+- Blur, border, top highlight, animated shimmer phase
 
 ### Full Websites (A2UI + React)
 | Section | Content |
@@ -254,6 +278,13 @@ pretext-generative-ui-toolkit/
 │   ├── PretextCanvas.tsx
 │   ├── PretextLayout.tsx
 │   └── PretextStream.tsx
+│
+├── src/layout/
+│   └── LayoutEngine.ts     # Textura-style DOM-free layout trees
+│
+├── src/effects/
+│   ├── LiquidGlass.tsx     # Apple liquid glass effect
+│   └── ...
 │
 ├── examples/
 │   ├── pretext-weather-canvas.html

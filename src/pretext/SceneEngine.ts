@@ -198,5 +198,18 @@ export function sceneTemplates() {
         { id: 'ascii-noise', kind: 'text', text: { id: 'ascii-noise', text: '||||| //// \\\\ ---- +++++', font: '18px monospace', x: 250, y: 280, color: '#4ade80', align: 'center' }, motion: { kind: 'drift', amplitude: 10, speed: 1.2 } },
       ],
     } as SceneDefinition,
+    glass: {
+      width: 500,
+      height: 800,
+      background: { top: '#1e1040', bottom: '#0a0620' },
+      nodes: [
+        { id: 'glass-title', kind: 'text', text: { id: 'glass-title', text: 'LIQUID GLASS', font: 'bold 32px Inter', x: 250, y: 60, color: '#a78bfa', align: 'center' } },
+        { id: 'glass-sub', kind: 'text', text: { id: 'glass-sub', text: 'Pretext × Canvas', font: '18px Inter', x: 250, y: 100, color: '#c4b5fd', align: 'center' } },
+        { id: 'glass-panel1', kind: 'text', text: { id: 'glass-panel1', text: '◈  GENERATIVE UI', font: 'bold 20px Inter', x: 250, y: 250, color: '#ffffff', align: 'center' }, motion: { kind: 'pulse', speed: 1.6, amplitude: 5 } },
+        { id: 'glass-panel2', kind: 'text', text: { id: 'glass-panel2', text: '◈  LAYOUT ENGINE', font: 'bold 20px Inter', x: 250, y: 400, color: '#ffffff', align: 'center' }, motion: { kind: 'pulse', speed: 1.3, amplitude: 5 } },
+        { id: 'glass-panel3', kind: 'text', text: { id: 'glass-panel3', text: '◈  LIQUID GLASS', font: 'bold 20px Inter', x: 250, y: 550, color: '#ffffff', align: 'center' }, motion: { kind: 'pulse', speed: 2.0, amplitude: 5 } },
+        { id: 'glass-badge', kind: 'text', text: { id: 'glass-badge', text: 'APPLE INSPIRED', font: 'bold 14px Inter', x: 250, y: 700, color: '#818cf8', align: 'center' } },
+      ],
+    } as SceneDefinition,
   }
 }
