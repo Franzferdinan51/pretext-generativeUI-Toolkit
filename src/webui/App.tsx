@@ -69,7 +69,7 @@ class PretextCore {
 }
 
 // Pretext canvas renderer for streaming text
-class PretextCanvas {
+class PretextCanvasRenderer {
   private canvas: HTMLCanvasElement | null = null
   private ctx: CanvasRenderingContext2D | null = null
   private prepared: any = null
@@ -91,8 +91,6 @@ class PretextCanvas {
     this.prepared = prepareWithSegments(text, font)
     const result = layoutWithLines(this.prepared, maxWidth, this.lineHeight)
     this.lines = result.lines || []
-    
-    // Resize canvas
     if (this.canvas) {
       this.canvas.width = maxWidth
       this.canvas.height = this.lines.length * this.lineHeight + 20
@@ -129,6 +127,7 @@ class PretextCanvas {
 }
 
 const pretextCore = new PretextCore()
+const pretextRenderer = new PretextCanvasRenderer()
 
 // ============================================
 // ERROR BOUNDARY
@@ -170,7 +169,7 @@ const catalog = defineCatalog(schema, {
 // ============================================
 // PRETEXT COMPONENTS
 // ============================================
-const PretextCanvas = ({ content, fontSize = 18, maxWidth = 600, gradient = true }: { content: string; fontSize?: number; maxWidth?: number; gradient?: boolean }) => {
+const PretextCanvasComponent = ({ content, fontSize = 18, maxWidth = 600, gradient = true }: { content: string; fontSize?: number; maxWidth?: number; gradient?: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [lines, setLines] = useState<any[]>([])
   const [height, setHeight] = useState(0)
@@ -319,7 +318,7 @@ const components = {
   Grid: ({ props, children }: { props: any; children?: ReactNode }) => <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${props.columns || 3}, minmax(0, 1fr))` }}>{children}</div>,
   Metric: ({ props }: { props: any }) => <div className="text-center p-8 rounded-3xl bg-white/5 border border-white/10"><div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{props.value}</div><div className="text-gray-400 text-sm uppercase">{props.label}</div></div>,
   Badge: ({ props }: { props: any }) => <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300">{props.content}</span>,
-  CanvasText,
+  CanvasText: PretextCanvasComponent,
   FlowText,
   StreamingText,
 }
