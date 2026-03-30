@@ -5,7 +5,8 @@
 import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
 
-const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
+const MINIMAX_API_KEY = import.meta.env.VITE_MINIMAX_API_KEY || ''
+const DEFAULT_RENDER_ORDER = ['nav', 'hero', 'featSection', 'statsSection', 'howSection', 'codeSection', 'pricingSection', 'faqSection', 'cta', 'footer'] as const
 
 interface A2UIElement { type: string; props: Record<string, any>; children?: string[] }
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
@@ -292,6 +293,7 @@ const FALLBACK_SPEC: A2UISpec = {
   version: "0.8",
   root: "app",
   elements: {
+    app: { type: "Fragment", props: {}, children: ["nav", "hero", "featSection", "statsSection", "howSection", "codeSection", "pricingSection", "faqSection", "cta", "footer"] },
     nav: { type: "Nav", props: { logo: "⚡ PretextFlow", links: ["Docs", "Features", "Pricing", "GitHub"] }},
     hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement Without Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic.", pBtn: "Start Free", sBtn: "View Docs" }},
     featSection: { type: "Section", props: { title: "Why PretextFlow?", sub: "The modern way to handle text layout" }, children: ["featGrid"]},
@@ -335,13 +337,31 @@ const FALLBACK_SPEC: A2UISpec = {
 // ============================================
 // RENDERER
 // ============================================
-function renderSpec(spec: A2UISpec): ReactNode {
-  if (!spec?.elements) return null
+function normalizeSpec(spec: A2UISpec): A2UISpec {
+  if (!spec?.elements) return FALLBACK_SPEC
+  if (spec.root && spec.elements[spec.root]) return spec
+
+  const orderedChildren = DEFAULT_RENDER_ORDER.filter((id) => spec.elements[id])
+  if (orderedChildren.length === 0) return FALLBACK_SPEC
+
+  return {
+    version: spec.version || '0.8',
+    root: 'app',
+    elements: {
+      app: { type: 'Fragment', props: {}, children: orderedChildren as string[] },
+      ...spec.elements,
+    },
+  }
+}
+
+function renderSpec(rawSpec: A2UISpec): ReactNode {
+  const spec = normalizeSpec(rawSpec)
   function render(id: string): ReactNode {
     const elem = spec.elements[id]
     if (!elem) return null
     const { type, props, children } = elem
     switch (type) {
+      case "Fragment": return <React.Fragment key={id}>{children?.map((c: string) => render(c))}</React.Fragment>
       case "Nav": return <Nav key={id} {...props} />
       case "Hero": return <Hero key={id} {...props} />
       case "Section": return <Section key={id} {...props}>{children?.map((c: string) => render(c))}</Section>
@@ -357,7 +377,7 @@ function renderSpec(spec: A2UISpec): ReactNode {
       default: return null
     }
   }
-  return spec.root ? render(spec.root) : null
+  return render(spec.root)
 }
 
 // ============================================
@@ -388,11 +408,15 @@ export default function App() {
   const [showBuildScreen, setShowBuildScreen] = useState(true)
   
   async function callAPI(prompt: string) {
+    if (!MINIMAX_API_KEY) {
+      throw new Error('Missing VITE_MINIMAX_API_KEY')
+    }
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
       body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'user', content: prompt }], max_tokens: 1200 })
     })
+    if (!res.ok) throw new Error(`MiniMax API error: ${res.status}`)
     const data = await res.json()
     return data.choices?.[0]?.message?.content || ''
   }
@@ -409,6 +433,15 @@ export default function App() {
     setLogs(['🤖 Starting Generative UI Builder...'])
     const elements: Record<string, A2UIElement> = {}
     const keys = Object.keys(AGENTS)
+
+    if (!MINIMAX_API_KEY) {
+      setSpec(FALLBACK_SPEC)
+      setPhase('Fallback mode')
+      setProgress(100)
+      setIsGenerating(false)
+      setLogs(prev => [...prev, '⚠️ Missing VITE_MINIMAX_API_KEY - using verified fallback website'])
+      return
+    }
     
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
@@ -437,9 +470,11 @@ export default function App() {
     }
     
     if (Object.keys(elements).length > 0) {
-      setSpec({ version: "0.8", root: "app", elements })
+      setSpec(normalizeSpec({ version: "0.8", root: "app", elements }))
+      setLogs(prev => [...prev.slice(-20), '✅ Verified spec structure and injected root container'])
     } else {
       setSpec(FALLBACK_SPEC)
+      setLogs(prev => [...prev.slice(-20), '⚠️ Falling back to verified built-in website'])
     }
     
     setPhase('Complete!')

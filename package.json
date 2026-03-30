@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
+    "verify": "node backend/verify.js",
     "cli": "node backend/cli.js",
     "mcp": "node backend/mcp-server.js"
   },
