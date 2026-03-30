@@ -1,14 +1,8 @@
-# Pretext AI UI Toolkit - A2UI Deep Integration
+# Pretext + A2UI Toolkit
 
 <p align="center">
-  <img src="https://img.shields.io/badge/A2UI-Security%20First-blue?style=flat-square" alt="A2UI">
-  <img src="https://img.shields.io/badge/Pretext-Zero%20Reflow-purple?style=flat-square" alt="Pretext">
-  <img src="https://img.shields.io/badge/Framework-Agnostic-green?style=flat-square" alt="Framework">
-</p>
-
-<p align="center">
-  <strong>🤖 AI-Powered Generative UI with A2UI Standard</strong><br>
-  Security-first • LLM-friendly • Framework-agnostic
+  <strong>📐 Pretext Layout Engine + 🤖 A2UI Standard</strong><br>
+  Zero-reflow text measurement • CSS-replacing layouts • AI-generated UIs
 </p>
 
 ---
@@ -19,92 +13,83 @@
 
 ---
 
-## 🤖 A2UI - Google's Agent UI Standard
+## 📐 Pretext - CSS Replacing Layout Engine
 
-A2UI is Google's open standard for **agent-generated UIs**. It allows agents to "speak UI" through a declarative JSON format.
+**Pretext** measures text without DOM access. Zero reflow. ~0.09ms cached.
 
-### Core Philosophies
+### Live Demos
+- [chenglou.me/pretext](https://chenglou.me/pretext/) - Official Pretext demos
+- [somnai-dreams/pretext-demos](https://somnai-dreams.github.io/pretext-demos/) - Community demos
 
-| Principle | Description |
-|-----------|-------------|
-| **Security First** | Declarative JSON data, NOT executable code. Client maintains catalog of trusted components. |
-| **LLM-Friendly** | Flat list of components with ID references. Easy to generate incrementally. |
-| **Framework-Agnostic** | Same JSON renders on React, Flutter, Lit, SwiftUI, Angular, etc. |
-| **Incrementally Updatable** | Progressive rendering. Agent makes changes based on conversation. |
+### Pretext Layout Methods
 
-### A2UI Format
+| Method | What It Does |
+|--------|-------------|
+| `masonry()` | Auto-calculated column heights |
+| `floatAround()` | Text flows around obstacles |
+| `shrinkwrap()` | Find tightest width |
+| `balanced()` | Equal line widths |
+| `virtualList()` | Pre-calculate without DOM |
+
+### API
 
 ```javascript
-// A2UI Spec Structure
+import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine, walkLineRanges } from '@chenglou/pretext'
+
+// Fast: ~0.09ms (cached)
+const prepared = prepare('Hello world', '16px Inter')
+const { height } = layout(prepared, 400, 24) // pure math!
+
+// Line positions
+const { lines } = layoutWithLines(prepared, 320, 26)
+
+// Flow around obstacle
+layoutNextLine(prepared, cursor, width) // iterator
+```
+
+---
+
+## 🤖 A2UI - Google's Agent UI Standard
+
+Declarative JSON format. Security-first. Framework-agnostic.
+
+```javascript
 const spec = {
   version: "0.8",
-  root: "component-id",
+  root: "element-id",
   elements: {
-    "component-id": {
-      type: "ComponentName",
-      props: { key: "value" },
-      children: ["child-id"]
-    }
+    "element-id": { type: "Card", props: { title: "Hello" } }
   }
 }
 ```
 
-### A2UI Flow
-
-```
-Agent → JSON Payload → Transport (A2A, AG UI) → Client Renderer → Native UI
-```
-
 ### Use Cases
-
-1. **Dynamic Data Collection** - Forms, date pickers, sliders based on context
-2. **Remote Sub-Agents** - Orchestrator delegates to specialized agents
-3. **Adaptive Workflows** - Approval dashboards, data visualizations
-
----
-
-## 📐 Pretext Integration
-
-Pretext provides **zero-reflow text measurement** (~0.09ms cached).
-
-```javascript
-import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
-
-// Fast measurement
-const prepared = prepare('Hello world', '16px Inter')
-const { height } = layout(prepared, 400, 24) // pure math!
-
-// Exact positions
-const { lines } = layoutWithLines(prepared, 320, 26)
-```
-
----
-
-## 🏛️ AI Council Swarm (45 Councilors)
-
-| Category | Councilors |
-|----------|-----------|
-| **Foundation** | Speaker, Technocrat, Ethicist, Pragmatist, Skeptic |
-| **Strategy** | Economist, Product Manager, Marketing, Finance |
-| **Technical** | Architect, DevOps, Security, QA |
-| **Creative** | Visionary, Innovation, Psychologist |
+- Dynamic forms
+- Remote sub-agents
+- Adaptive workflows
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **A2UI** | Agent UI standard (Google) |
-| **Pretext** | Zero-reflow text |
+| Tech | Purpose |
+|------|---------|
+| **Pretext** | Text measurement + layouts |
+| **A2UI** | Agent UI standard |
 | **React** | UI framework |
 | **MiniMax** | AI generation |
-| **Tailwind** | Styling |
 
 ---
 
 ## 🌐 Links
 
-- [A2UI](https://github.com/google/A2UI)
 - [Pretext](https://github.com/chenglou/pretext)
+- [Pretext Demos](https://somnai-dreams.github.io/pretext-demos/)
+- [A2UI](https://github.com/google/A2UI)
 - [GitHub](https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit)
+
+---
+
+<p align="center">
+  📐 Pretext • 🤖 A2UI • ⚡ 0.09ms
+</p>
