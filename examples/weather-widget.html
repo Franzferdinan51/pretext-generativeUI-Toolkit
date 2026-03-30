@@ -11,7 +11,6 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     canvas { display: block; }
@@ -22,28 +21,18 @@
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-
 const W = 380;
 canvas.width = W;
-canvas.style.width = W + 'px';
 
 const weather = {
-  location: 'Huber Heights',
-  updated: '2:00 PM EDT',
+  location: 'Huber Heights, OH',
+  updated: '2:26 PM EDT · Mar 30',
 
-  current: {
-    temp_f: 72,
-    feels_f: 69,
-    humidity: 53,
-    cloud: 3,
-    condition: 'Clear',
-    icon: '☀️',
-  },
-
+  current: { temp_f: 73, feels_f: 69, humidity: 52, cloud: 10, condition: 'Clear', icon: '☀️' },
   wind: { mph: 16, direction: 'SW' },
-  pressure: { hpa: 1017.7, inHg: 30.05 },
+  pressure: { hpa: 1018, inHg: 30.05 },
   uv: 3,
-  dewpoint_f: 56,
+  dewpoint_f: 55,
   visibility: '10 mi',
 
   today: { high_f: 74, low_f: 59 },
@@ -51,24 +40,27 @@ const weather = {
   sunset: '7:58 PM',
 
   hourly: [
-    { hour: '2PM',  temp: 72, icon: '☀️',  precip: '3%' },
-    { hour: '3PM',  temp: 73, icon: '☀️',  precip: '3%' },
-    { hour: '4PM',  temp: 74, icon: '☀️',  precip: '3%' },
-    { hour: '5PM',  temp: 75, icon: '☀️',  precip: '2%' },
-    { hour: '6PM',  temp: 74, icon: '🌤️', precip: '2%' },
-    { hour: '7PM',  temp: 72, icon: '🌤️', precip: '1%' },
-    { hour: '8PM',  temp: 70, icon: '🌙',  precip: '1%' },
-    { hour: '9PM',  temp: 68, icon: '🌙',  precip: '1%' },
+    { hour: '2PM', temp: 73, icon: '☀️',  precip: '3%' },
+    { hour: '3PM', temp: 72, icon: '☀️',  precip: '3%' },
+    { hour: '4PM', temp: 69, icon: '☀️',  precip: '3%' },
+    { hour: '5PM', temp: 67, icon: '☀️',  precip: '2%' },
+    { hour: '6PM', temp: 66, icon: '☀️',  precip: '2%' },
+    { hour: '7PM', temp: 66, icon: '☀️',  precip: '1%' },
+    { hour: '8PM', temp: 65, icon: '🌙',  precip: '1%' },
+    { hour: '9PM', temp: 65, icon: '🌙',  precip: '1%' },
   ],
 
   outlook: [
-    { day: 'Tomorrow', icon: '☀️',  high: 81, low: 61, condition: 'Sunny' },
-    { day: 'Wednesday', icon: '🌧️', high: 67, low: 52, condition: 'Rain' },
+    { day: 'Today',     icon: '☀️',  high: 74, low: 59, condition: 'Clear',        precip: '0%'  },
+    { day: 'Tomorrow',   icon: '☀️',  high: 81, low: 61, condition: 'Mostly Sunny', precip: '0%'  },
+    { day: 'Wed Apr 1',  icon: '🌧️', high: 76, low: 61, condition: 'Rain',          precip: '60%' },
   ],
 };
 
-function dt(text, size, x, y, color, align = 'center', weight = 'normal') {
-  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+function dt(text, size, x, y, color, align, weight) {
+  if (align === undefined) align = 'center';
+  if (weight === undefined) weight = 'normal';
+  ctx.font = weight + ' ' + size + 'px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillStyle = color;
   ctx.textAlign = align;
   ctx.fillText(text, x, y);
@@ -80,153 +72,183 @@ function fr(x, y, w, h, color) {
   ctx.fillRect(x, y, w, h);
 }
 
-const WX = 16, WW = W - WX * 2;
-const HR = 14;  // horizontal row height
-
-function row(x, y, w, h) {
-  fr(x, y, w, h, '#161b22');
-}
-
 function divider(x1, x2, yy) {
-  fr(x1, yy, x2 - x1, 1, '#21262d');
+  const w = x2 - x1;
+  if (w > 0) fr(x1, yy, w, 1, '#21262d');
 }
 
-function detailItem(x, y, icon, label, value) {
-  dt(icon, 16, x + 12, y + 14, '#8b949e');
-  dt(label, 10, x + 36, y + 10, '#484f58', 'left', 'bold');
-  dt(value, 13, x + 36, y + 26, '#c9d1d9', 'left');
-}
+const WX = 16;
+const WW = W - WX * 2;
+const COL3 = WW / 3;
 
 let t = 0;
+
+function row(y, h) {
+  fr(WX, y, WW, h, '#161b22');
+}
 
 function render() {
   t += 0.016;
 
-  canvas.height = 540;
-  canvas.style.height = '540px';
+  canvas.height = 680;
+  canvas.style.height = '680px';
+  fr(0, 0, W, 680, '#0d1117');
 
-  fr(0, 0, W, 540, '#0d1117');
+  let y = 0;
 
-  // Sky gradient
-  const sky = ctx.createLinearGradient(0, 0, 0, 160);
-  sky.addColorStop(0, '#1a3a6a');
+  // ── SKY ─────────────────────────────────────────
+  const skyH = 140;
+  const sky = ctx.createLinearGradient(0, 0, 0, skyH);
+  sky.addColorStop(0, '#0f2557');
   sky.addColorStop(1, '#2a5a9a');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, 160);
+  ctx.fillRect(0, 0, W, skyH);
 
-  // Sun
-  const sx = W * 0.78, sy = 55;
+  const sx = W * 0.75, sy = 48;
   const sp = 1 + Math.sin(t * 1.2) * 0.04;
   for (let i = 3; i >= 1; i--) {
     ctx.save(); ctx.filter = `blur(${i * 10}px)`;
-    ctx.fillStyle = `rgba(255, 210, 80, ${0.06 / i})`;
-    ctx.beginPath(); ctx.arc(sx, sy, 32 * i * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.fillStyle = `rgba(255,210,80,${0.06 / i})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 30 * i * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
   }
   ctx.save(); ctx.filter = 'blur(6px)';
-  ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(sx, sy, 28 * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(sx, sy, 26 * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
 
-  // ── MAIN TEMP SECTION ──────────────────────────────
-  const cardY = 110;
+  y = skyH;
 
-  dt(weather.location, 13, W / 2, cardY + 6, '#8b949e', 'center', 'bold');
-  dt(weather.updated, 9, W / 2, cardY + 22, '#484f58');
+  // ── MAIN ──────────────────────────────────────────
+  dt(weather.location, 13, W / 2, y + 8, '#8b949e', 'center', 'bold');
+  dt(weather.updated, 9, W / 2, y + 24, '#484f58');
 
   const pulse = Math.sin(t * 1.2) * 1;
-  dt(`${weather.current.temp_f}°`, 80, W / 2, cardY + 42 + pulse, '#ffffff', 'center', 'bold');
-  dt(weather.current.condition, 18, W / 2, cardY + 102, '#f0f6fc', 'center', 'bold');
-  dt(`Feels like ${weather.current.feels_f}°`, 11, W / 2, cardY + 124, '#6e7681');
+  dt(weather.current.temp_f + '°', 76, W / 2, y + 48 + pulse, '#ffffff', 'center', 'bold');
+  dt(weather.current.condition, 20, W / 2, y + 96, '#f0f6fc', 'center', 'bold');
+  dt('Feels like ' + weather.current.feels_f + '°', 11, W / 2, y + 116, '#6e7681');
 
-  // High / Low
-  dt(`${weather.today.high_f}°`, 14, W / 2 - 30, cardY + 124, '#f85149', 'center', 'bold');
-  dt('/', 14, W / 2, cardY + 124, '#3d444d');
-  dt(`${weather.today.low_f}°`, 14, W / 2 + 30, cardY + 124, '#58a6ff', 'center', 'bold');
+  y += 132;
 
-  // ── DETAIL ROWS ──────────────────────────────────
-  const rowY1 = cardY + 148;
-  row(WX, rowY1, WW, 48);
-  const row1Items = [
-    { icon: '💧', label: 'HUMIDITY', value: `${weather.current.humidity}%` },
-    { icon: '💨', label: 'WIND', value: `${weather.wind.mph} mph ${weather.wind.direction}` },
-    { icon: '🌡️', label: 'PRESSURE', value: `${Math.round(weather.pressure.hpa)} hPa` },
-  ];
-  const iw1 = WW / 3;
-  for (let i = 0; i < 3; i++) {
-    const ix = WX + i * iw1;
-    const item = row1Items[i];
-    dt(item.icon, 14, ix + 14, rowY1 + 10, '#8b949e');
-    dt(item.label, 8, ix + 34, rowY1 + 10, '#484f58', 'left', 'bold');
-    dt(item.value, 13, ix + 34, rowY1 + 26, '#c9d1d9', 'left');
-  }
+  // ── HIGH / LOW ──────────────────────────────────
+  row(y, 40);
+  const hlY = y;
+  y += 40;
 
-  const rowY2 = cardY + 202;
-  row(WX, rowY2, WW, 48);
-  const row2Items = [
-    { icon: '🌅', label: 'SUNRISE', value: weather.sunrise },
-    { icon: '🌇', label: 'SUNSET', value: weather.sunset },
-    { icon: '👁️', label: 'VISIBILITY', value: weather.visibility },
-  ];
-  for (let i = 0; i < 3; i++) {
-    const ix = WX + i * iw1;
-    const item = row2Items[i];
-    dt(item.icon, 14, ix + 14, rowY2 + 10, '#8b949e');
-    dt(item.label, 8, ix + 34, rowY2 + 10, '#484f58', 'left', 'bold');
-    dt(item.value, 13, ix + 34, rowY2 + 26, '#c9d1d9', 'left');
-  }
+  const mid = W / 2;
+  dt('HIGH', 9, WX + 44, hlY + 10, '#f85149', 'center', 'bold');
+  dt(weather.today.high_f + '°', 18, WX + 44, hlY + 26, '#f85149', 'center', 'bold');
+  divider(mid - 24, mid + 24, hlY + 10);
+  dt('LOW', 9, mid, hlY + 10, '#58a6ff', 'center', 'bold');
+  dt(weather.today.low_f + '°', 18, mid, hlY + 26, '#58a6ff', 'center', 'bold');
+  divider(mid + 52, mid + 110, hlY + 10);
+  dt('SUNRISE ' + weather.sunrise, 9, mid + 81, hlY + 10, '#d29922', 'center', 'bold');
+  divider(mid + 160, mid + 220, hlY + 10);
+  dt('SUNSET ' + weather.sunset, 9, W - WX, hlY + 10, '#f97316', 'right', 'bold');
 
-  const rowY3 = cardY + 256;
-  row(WX, rowY3, WW, 48);
-  const row3Items = [
-    { icon: '☀️', label: 'UV INDEX', value: `${weather.uv}` },
-    { icon: '💧', label: 'DEW POINT', value: `${weather.dewpoint_f}°F` },
-    { icon: '☁️', label: 'CLOUDS', value: `${weather.current.cloud}%` },
-  ];
-  for (let i = 0; i < 3; i++) {
-    const ix = WX + i * iw1;
-    const item = row3Items[i];
-    dt(item.icon, 14, ix + 14, rowY3 + 10, '#8b949e');
-    dt(item.label, 8, ix + 34, rowY3 + 10, '#484f58', 'left', 'bold');
-    dt(item.value, 13, ix + 34, rowY3 + 26, '#c9d1d9', 'left');
-  }
+  y += 12;
 
-  // ── HOURLY ────────────────────────────────────────
-  const hourlyY = cardY + 318;
-  row(WX, hourlyY, WW, 90);
-  dt('HOURLY', 10, W / 2, hourlyY + 10, '#484f58', 'center', 'bold');
+  // ── ROW: Humidity / Wind / Pressure ─────────────
+  row(y, 54);
+  y += 54;
+
+  // Humidity
+  dt('💧', 14, WX + 12, y - 46, '#8b949e');
+  dt('HUMIDITY', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.current.humidity + '%', 14, WX + 32, y - 32, '#c9d1d9', 'left');
+
+  // Wind
+  dt('💨', 14, WX + COL3 + 12, y - 46, '#8b949e');
+  dt('WIND', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.wind.mph + ' mph ' + weather.wind.direction, 12, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
+
+  // Pressure
+  dt('🌡️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
+  dt('PRESSURE', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.pressure.hpa + ' hPa / ' + weather.pressure.inHg + ' in', 11, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
+
+  y += 8;
+
+  // ── ROW: UV / Dew Point / Visibility ─────────────
+  row(y, 54);
+  y += 54;
+
+  dt('☀️', 14, WX + 12, y - 46, '#8b949e');
+  dt('UV INDEX', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(String(weather.uv), 14, WX + 32, y - 32, '#c9d1d9', 'left');
+
+  dt('💧', 14, WX + COL3 + 12, y - 46, '#8b949e');
+  dt('DEW POINT', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.dewpoint_f + '°F', 14, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
+
+  dt('👁️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
+  dt('VISIBILITY', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.visibility, 14, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
+
+  y += 8;
+
+  // ── ROW: Sunrise / Sunset / Clouds ──────────────
+  row(y, 54);
+  y += 54;
+
+  dt('🌅', 14, WX + 12, y - 46, '#8b949e');
+  dt('SUNRISE', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.sunrise, 14, WX + 32, y - 32, '#c9d1d9', 'left');
+
+  dt('🌇', 14, WX + COL3 + 12, y - 46, '#8b949e');
+  dt('SUNSET', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.sunset, 14, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
+
+  dt('☁️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
+  dt('CLOUDS', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
+  dt(weather.current.cloud + '%', 14, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
+
+  y += 14;
+
+  // ── HOURLY ───────────────────────────────────────
+  row(y, 108);
+  const hfTitleY = y;
+  y += 24;
+  dt('HOURLY FORECAST', 10, W / 2, hfTitleY + 8, '#484f58', 'center', 'bold');
+  y += 10;
 
   const n = weather.hourly.length;
-  const itemW = (WW - 4) / n;
+  const hourItemW = (WW - 4) / n;
   for (let i = 0; i < n; i++) {
     const h = weather.hourly[i];
-    const ix = WX + 2 + i * itemW + itemW / 2;
-    const iy = hourlyY + 28;
+    const ix = WX + 2 + i * hourItemW + hourItemW / 2;
+    const iy = y;
     const bob = Math.sin(t * 2 + i * 0.5) * 1;
+
     dt(h.icon, 16, ix, iy + bob, '#f0f6fc');
-    dt(h.hour, 8, ix, iy + 20, '#6e7681');
-    dt(`${h.temp}°`, 12, ix, iy + 36, '#f0f6fc', 'center', 'bold');
-    dt(h.precip, 8, ix, iy + 52, parseInt(h.precip) > 20 ? '#58a6ff' : '#3d444d');
+    dt(h.hour, 8, ix, iy + 22, '#6e7681');
+    dt(h.temp + '°', 13, ix, iy + 38, '#f0f6fc', 'center', 'bold');
+    dt('💧' + h.precip, 8, ix, iy + 54, parseInt(h.precip) > 20 ? '#58a6ff' : '#3d444d');
   }
 
-  // ── 3-DAY ─────────────────────────────────────────
-  const outY = hourlyY + 100;
-  row(WX, outY, WW, 72);
-  dt('3-DAY', 10, W / 2, outY + 10, '#484f58', 'center', 'bold');
+  y += 74;
+  y += 14;
 
-  const od = (WW - 4) / 3;
+  // ── 3-DAY OUTLOOK ───────────────────────────────
+  row(y, 110);
+  const outTitleY = y;
+  y += 22;
+  dt('3-DAY OUTLOOK', 10, W / 2, outTitleY + 8, '#484f58', 'center', 'bold');
+  y += 10;
+
+  const od = WW / 3;
   for (let i = 0; i < weather.outlook.length; i++) {
     const o = weather.outlook[i];
-    const ox = WX + 2 + i * od + od / 2;
-    const oy = outY + 28;
+    const ox = WX + od * i + od / 2;
+    const iy = y;
 
-    dt(o.day, 9, ox, oy, '#8b949e', 'center', 'bold');
-    dt(o.icon, 16, ox, oy + 16, '#f0f6fc');
-    dt(`${o.high}° / ${o.low}°`, 11, ox, oy + 36, '#f0f6fc', 'center', 'bold');
+    dt(o.day, 9, ox, iy, '#8b949e', 'center', 'bold');
+    dt(o.icon, 22, ox, iy + 18, '#f0f6fc');
+    dt(o.condition, 9, ox, iy + 42, '#6e7681');
+    dt(o.high + '°', 13, ox, iy + 58, '#f0f6fc', 'center', 'bold');
+    dt(o.low + '°', 11, ox, iy + 74, '#6e7681', 'center');
+    dt('💧 ' + o.precip, 9, ox, iy + 88, parseInt(o.precip) > 30 ? '#58a6ff' : '#6e7681', 'center');
   }
 
-  // 3rd day (no data placeholder)
-  const ox3 = WX + 2 + 2 * od + od / 2;
-  dt('Thu', 9, ox3, outY + 28, '#484f58', 'center', 'bold');
-  dt('☀️', 16, ox3, outY + 44, '#3d444d');
-  dt('—', 11, ox3, outY + 64, '#3d444d', 'center', 'bold');
+  y += 100;
+  dt('Open-Meteo · Huber Heights, OH', 9, W / 2, y + 6, '#21262d');
 
   requestAnimationFrame(render);
 }
