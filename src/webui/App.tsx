@@ -1,6 +1,6 @@
 // ============================================================
-// A2UI + PRETEXT + GENERATIVE UI v5
-// Deep integration: CopilotKit OpenGenerativeUI patterns
+// A2UI + PRETEXT + GENERATIVE UI v6
+// WITH VISIBLE BUILD SCREEN
 // ============================================================
 import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
@@ -11,118 +11,122 @@ interface A2UIElement { type: string; props: Record<string, any>; children?: str
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
 
 // ============================================
-// GENERATIVE UI COMPONENT TYPES (from OpenGenerativeUI)
+// BUILD SCREEN COMPONENT
 // ============================================
-/*
-From CopilotKit/OpenGenerativeUI - Output Types:
+const BuildScreen = ({ logs, phase, progress, onRegenerate }: { logs: string[]; phase: string; progress: number; onRegenerate: () => void }) => (
+  <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-8">
+    <div className="max-w-2xl w-full">
+      {/* Logo */}
+      <div className="text-center mb-8">
+        <div className="text-6xl mb-4">⚡</div>
+        <h1 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+          PretextFlow
+        </h1>
+        <p className="text-gray-500">Generative UI Builder</p>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="mb-6">
+        <div className="flex justify-between text-xs text-gray-400 mb-2">
+          <span>{phase}</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+      
+      {/* Status */}
+      <div className="flex items-center justify-center gap-2 mb-6">
+        <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full" />
+        <span className="text-purple-400 text-sm">Building your website...</span>
+      </div>
+      
+      {/* Logs */}
+      <div className="bg-black/60 border border-white/10 rounded-xl p-4 mb-6">
+        <div className="text-xs text-gray-500 mb-2 font-bold">BUILD LOG</div>
+        <pre className="text-xs text-gray-300 font-mono h-48 overflow-y-auto">
+          {logs.map((log, i) => (
+            <div key={i} className={`
+              ${log.startsWith('✅') ? 'text-green-400' : ''}
+              ${log.startsWith('❌') ? 'text-red-400' : ''}
+              ${log.startsWith('⚠️') ? 'text-yellow-400' : ''}
+              ${log.startsWith('🤖') || log.startsWith('⚡') ? 'text-purple-400' : ''}
+              ${log.startsWith('📝') ? 'text-blue-400' : ''}
+            `}>
+              {log}
+            </div>
+          ))}
+          {logs.length === 0 && <span className="text-gray-600">Waiting for build to start...</span>}
+        </pre>
+      </div>
+      
+      {/* Agent Progress */}
+      <div className="grid grid-cols-5 gap-2 mb-6">
+        {['Nav', 'Hero', 'Features', 'Stats', 'Code', 'Pricing', 'FAQ', 'CTA', 'Footer', 'Done'].map((agent, i) => {
+          const agentProgress = (i + 1) * 10
+          const isComplete = progress >= agentProgress
+          const isActive = progress >= (agentProgress - 10) && progress < agentProgress
+          return (
+            <div 
+              key={i}
+              className={`text-center p-2 rounded-lg text-xs font-bold transition-all ${
+                isComplete ? 'bg-green-500/20 text-green-400' :
+                isActive ? 'bg-purple-500/20 text-purple-400 animate-pulse' :
+                'bg-white/5 text-gray-600'
+              }`}
+            >
+              {agent}
+            </div>
+          )
+        })}
+      </div>
+      
+      {/* Buttons */}
+      <div className="flex gap-4 justify-center">
+        <button 
+          onClick={onRegenerate}
+          disabled={progress < 100}
+          className="px-6 py-3 bg-purple-600 rounded-xl font-bold text-sm disabled:opacity-50 hover:bg-purple-500 transition"
+        >
+          🔄 Regenerate
+        </button>
+        {progress === 100 && (
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-green-600 rounded-xl font-bold text-sm hover:bg-green-500 transition"
+          >
+            ✅ View Website
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)
 
-┌─────────────────┬──────────────┐
-│ Algorithm viz   │ SVG/Canvas   │
-│ 3D animations   │ Three.js     │
-│ Charts          │ Chart.js     │
-│ Diagrams        │ SVG/Mermaid  │
-│ Interactive     │ HTML+JS      │
-│ Simulations     │ Canvas+JS    │
-│ Dashboards      │ HTML+CSS     │
-│ Network/graph   │ D3.js        │
-└─────────────────┴──────────────┘
-
-Pattern: useComponent hook → sandboxed iframe
-*/
-
+// ============================================
+// GENERATIVE UI COMPONENT TYPES
+// ============================================
 const GENERATIVE_COMPONENTS = {
-  // Charts
   'line-chart': { library: 'Chart.js', props: ['data', 'labels', 'title'] },
   'bar-chart': { library: 'Chart.js', props: ['data', 'labels', 'title'] },
   'pie-chart': { library: 'Chart.js', props: ['data', 'labels'] },
-  'doughnut-chart': { library: 'Chart.js', props: ['data', 'labels'] },
-  
-  // Diagrams
   'flowchart': { library: 'SVG', props: ['nodes', 'edges'] },
-  'sequence-diagram': { library: 'SVG', props: ['steps'] },
-  'erd': { library: 'SVG', props: ['entities', 'relationships'] },
-  'mermaid': { library: 'Mermaid', props: ['chart'] },
-  
-  // 3D
-  '3d-scene': { library: 'Three.js', props: ['objects', 'camera', 'lights'] },
-  '3d-animation': { library: 'Three.js', props: ['geometry', 'animation'] },
-  
-  // Interactive
-  'widget': { library: 'HTML+JS', props: ['content', 'interactive'] },
-  'form': { library: 'HTML', props: ['fields', 'onSubmit'] },
+  '3d-scene': { library: 'Three.js', props: ['objects', 'camera'] },
   'dashboard': { library: 'HTML+CSS', props: ['metrics', 'charts'] },
-  'simulation': { library: 'Canvas+JS', props: ['physics', 'rules'] },
-  
-  // Network
   'force-graph': { library: 'D3.js', props: ['nodes', 'links'] },
-  'tree': { library: 'D3.js', props: ['data', 'layout'] },
-  
-  // SVG
-  'svg-diagram': { library: 'SVG', props: ['shapes', 'paths'] },
-  'illustration': { library: 'SVG', props: ['style', 'content'] },
+  'simulation': { library: 'Canvas+JS', props: ['physics', 'rules'] },
 }
 
-// ============================================
-// SKILLS SYSTEM (from CopilotKit)
-// ============================================
-/*
-Skills are loaded on-demand via progressive disclosure.
-Each skill has SKILL.md with instructions.
-*/
 const SKILLS = {
-  'advanced-visualization': {
-    description: 'UI mockups, dashboards, Chart.js, generative art',
-    outputTypes: ['chart', 'dashboard', 'widget']
-  },
-  'svg-diagrams': {
-    description: 'SVG generation rules, component patterns, diagram types',
-    outputTypes: ['flowchart', 'diagram', 'illustration']
-  },
-  '3d-visualization': {
-    description: 'Three.js, WebGPU, 3D scenes and animations',
-    outputTypes: ['3d-scene', '3d-animation']
-  },
-  'algorithms': {
-    description: 'Algorithm visualizations, sorting, searching',
-    outputTypes: ['simulation', 'interactive']
-  }
+  'advanced-visualization': { description: 'Charts, Dashboards, Art', outputTypes: ['chart', 'dashboard'] },
+  'svg-diagrams': { description: 'SVG generation, diagrams', outputTypes: ['flowchart', 'illustration'] },
+  '3d-visualization': { description: 'Three.js, WebGPU, 3D', outputTypes: ['3d-scene'] },
+  'algorithms': { description: 'Algorithm visualizations', outputTypes: ['simulation'] },
 }
-
-// ============================================
-// RENDERIFY PIPELINE (from webllm/renderify)
-// ============================================
-/*
-1. LLM Output (JSX/TSX or JSON)
-2. CodeGen (parse + normalize)
-3. Security Policy Check (before execution!)
-4. Runtime Executor (Babel + JSPM)
-5. Browser renders
-
-Security profiles: strict | balanced | relaxed
-*/
-
-// ============================================
-// AGENT RULES
-// ============================================
-const AGENT_RULES = `
-CRITICAL: Write code that is:
-1. SIMPLE - Prefer obvious over clever
-2. COMPLETE - No TODOs, no placeholders
-3. CONSISTENT - Same pattern everywhere
-
-Return ONLY valid JSON in A2UI format.
-`
-
-// ============================================
-// CREATIVE BRIEF
-// ============================================
-const CREATIVE_BRIEF = `
-You are building a landing page for "PretextFlow" - a text layout engine for developers.
-BRAND: Professional, Stripe/Linear/Vercel.
-STYLE: Dark mode, purple/pink gradients on #0a0a0f.
-SECTIONS: Nav → Hero → Features → Stats → How It Works → Code → Pricing → FAQ → CTA → Footer
-Return ONLY valid JSON.
-`
 
 // ============================================
 // PRETEXT LAYOUT ENGINE
@@ -172,7 +176,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   constructor(props: { children: ReactNode }) { super(props); this.state = { hasError: false } }
   static getDerivedStateFromError() { return { hasError: true } }
   render() {
-    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white"><h1 className="text-2xl text-red-400">Error</h1></div>
+    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white"><h1 className="text-2xl text-red-400">Error in App</h1></div>
     return this.props.children
   }
 }
@@ -205,107 +209,81 @@ const CTA = ({ title, sub, btn }: any) => <section className="py-24 px-8 text-ce
 const Footer = ({ links, copy }: any) => <footer className="py-12 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-8">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-semibold mb-3 text-purple-400 text-sm">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-600 text-xs border-t border-white/5 pt-8">{copy}</div></div></footer>
 
 // ============================================
-// GENERATIVE UI SHOWCASE (from OpenGenerativeUI)
+// SHOWCASE SECTIONS
 // ============================================
-const GenerativeUIShowcase = () => {
-  const outputTypes = [
-    { type: '📊', name: 'Charts', desc: 'Line, Bar, Pie, Doughnut', library: 'Chart.js' },
-    { type: '🔄', name: 'Flowcharts', desc: 'Process, Sequence, ERD', library: 'SVG/Mermaid' },
-    { type: '📈', name: 'Dashboards', desc: 'Metrics, KPIs, Metrics cards', library: 'HTML+CSS' },
-    { type: '🎮', name: 'Simulations', desc: 'Physics, Math, Interactive', library: 'Canvas+JS' },
-    { type: '🌐', name: '3D Scenes', desc: 'WebGPU, Three.js', library: 'Three.js' },
-    { type: '🕸️', name: 'Networks', desc: 'Force graphs, Trees', library: 'D3.js' },
-    { type: '🎨', name: 'Diagrams', desc: 'Illustrations, Architecture', library: 'SVG' },
-    { type: '🖼️', name: 'Widgets', desc: 'Interactive UI components', library: 'HTML+JS' },
-  ]
-  
-  return (
-    <section className="py-16 px-8 bg-gradient-to-br from-purple-900/10 to-pink-900/10">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">🤖 Generative UI Output Types</h2>
-        <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit/OpenGenerativeUI</p>
-        <div className="grid grid-cols-4 gap-4">
-          {outputTypes.map((item, i) => (
-            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
-              <div className="text-3xl mb-2">{item.type}</div>
-              <h4 className="font-semibold text-sm mb-1">{item.name}</h4>
-              <p className="text-xs text-gray-500 mb-2">{item.desc}</p>
-              <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">{item.library}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ============================================
-// PIPELINE DIAGRAM
-// ============================================
-const PipelineDiagram = () => {
-  const steps = [
-    { num: '1', title: 'LLM Output', desc: 'JSON/JSX', color: 'from-blue-500 to-cyan-500' },
-    { num: '2', title: 'CodeGen', desc: 'Parse', color: 'from-purple-500 to-pink-500' },
-    { num: '3', title: 'Security', desc: 'Policy Check', color: 'from-orange-500 to-red-500' },
-    { num: '4', title: 'Execute', desc: 'Sandbox', color: 'from-green-500 to-emerald-500' },
-    { num: '5', title: 'Render', desc: 'iframe', color: 'from-cyan-500 to-blue-500' },
-  ]
-  
-  return (
-    <section className="py-16 px-8 bg-black/40">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-black text-center mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">⚡ Generative UI Pipeline</h2>
-        <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
-          {steps.map((step, i) => (
-            <React.Fragment key={i}>
-              <div className="flex-1 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center font-bold mx-auto mb-2`}>{step.num}</div>
-                <h4 className="font-semibold text-sm mb-1">{step.title}</h4>
-                <p className="text-xs text-gray-500">{step.desc}</p>
-              </div>
-              {i < steps.length - 1 && <div className="hidden md:flex items-center text-gray-600">→</div>}
-            </React.Fragment>
-          ))}
-        </div>
-        <div className="mt-8 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-          <div className="flex flex-wrap gap-4 justify-center text-xs">
-            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">🔒 Security: strict | balanced | relaxed</span>
-            <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400">📦 JSPM Module Resolution</span>
-            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400">⚡ Streaming Progressive</span>
-            <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400">🖼️ Sandboxed iframe</span>
+const GenerativeUIShowcase = () => (
+  <section className="py-16 px-8 bg-gradient-to-br from-purple-900/10 to-pink-900/10">
+    <div className="max-w-6xl mx-auto">
+      <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">🤖 Generative UI Output Types</h2>
+      <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit/OpenGenerativeUI</p>
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { type: '📊', name: 'Charts', desc: 'Line, Bar, Pie', library: 'Chart.js' },
+          { type: '🔄', name: 'Flowcharts', desc: 'Process, Sequence', library: 'SVG' },
+          { type: '📈', name: 'Dashboards', desc: 'Metrics, KPIs', library: 'HTML' },
+          { type: '🎮', name: 'Simulations', desc: 'Physics, Math', library: 'Canvas' },
+          { type: '🌐', name: '3D Scenes', desc: 'WebGPU, Three.js', library: 'Three.js' },
+          { type: '🕸️', name: 'Networks', desc: 'Force graphs', library: 'D3.js' },
+          { type: '🎨', name: 'Diagrams', desc: 'Illustrations', library: 'SVG' },
+          { type: '🖼️', name: 'Widgets', desc: 'Interactive', library: 'HTML+JS' },
+        ].map((item, i) => (
+          <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
+            <div className="text-3xl mb-2">{item.type}</div>
+            <h4 className="font-semibold text-sm mb-1">{item.name}</h4>
+            <p className="text-xs text-gray-500 mb-2">{item.desc}</p>
+            <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">{item.library}</span>
           </div>
-        </div>
+        ))}
       </div>
-    </section>
-  )
-}
+    </div>
+  </section>
+)
 
-// ============================================
-// SKILLS SECTION
-// ============================================
-const SkillsSection = () => {
-  const skills = Object.entries(SKILLS).map(([name, data]) => ({ name, ...data }))
-  
-  return (
-    <section className="py-16 px-8">
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📚 Skills System</h2>
-        <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit - Progressive Disclosure</p>
-        <div className="grid grid-cols-2 gap-4">
-          {skills.map((skill, i) => (
-            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-              <h4 className="font-semibold mb-2 text-purple-400">⚡ {skill.name}</h4>
-              <p className="text-xs text-gray-500 mb-3">{skill.description}</p>
-              <div className="flex flex-wrap gap-1">
-                {skill.outputTypes.map((type, j) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-white/5 text-gray-400">{type}</span>)}
-              </div>
+const PipelineDiagram = () => (
+  <section className="py-16 px-8 bg-black/40">
+    <div className="max-w-4xl mx-auto">
+      <h2 className="text-2xl font-black text-center mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">⚡ Generative UI Pipeline</h2>
+      <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
+        {[
+          { num: '1', title: 'LLM Output', desc: 'JSON/JSX', color: 'from-blue-500 to-cyan-500' },
+          { num: '2', title: 'CodeGen', desc: 'Parse', color: 'from-purple-500 to-pink-500' },
+          { num: '3', title: 'Security', desc: 'Policy Check', color: 'from-orange-500 to-red-500' },
+          { num: '4', title: 'Execute', desc: 'Sandbox', color: 'from-green-500 to-emerald-500' },
+          { num: '5', title: 'Render', desc: 'iframe', color: 'from-cyan-500 to-blue-500' },
+        ].map((step, i) => (
+          <React.Fragment key={i}>
+            <div className="flex-1 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center font-bold mx-auto mb-2`}>{step.num}</div>
+              <h4 className="font-semibold text-sm mb-1">{step.title}</h4>
+              <p className="text-xs text-gray-500">{step.desc}</p>
             </div>
-          ))}
-        </div>
+            {i < 4 && <div className="hidden md:flex items-center text-gray-600">→</div>}
+          </React.Fragment>
+        ))}
       </div>
-    </section>
-  )
-}
+    </div>
+  </section>
+)
+
+const SkillsSection = () => (
+  <section className="py-16 px-8">
+    <div className="max-w-6xl mx-auto">
+      <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📚 Skills System</h2>
+      <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit - Progressive Disclosure</p>
+      <div className="grid grid-cols-2 gap-4">
+        {Object.entries(SKILLS).map(([name, data]: [string, any], i) => (
+          <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+            <h4 className="font-semibold mb-2 text-purple-400">⚡ {name}</h4>
+            <p className="text-xs text-gray-500 mb-3">{data.description}</p>
+            <div className="flex flex-wrap gap-1">
+              {data.outputTypes.map((type: string, j: number) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-white/5 text-gray-400">{type}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+)
 
 // ============================================
 // FALLBACK SPEC
@@ -386,27 +364,28 @@ function renderSpec(spec: A2UISpec): ReactNode {
 // AGENTS
 // ============================================
 const AGENTS = {
-  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nNav JSON only.` },
-  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nHero JSON only.` },
-  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFeatures JSON only.` },
-  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nStats JSON only.` },
-  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nHow It Works JSON only.` },
-  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nCode Example JSON only.` },
-  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nPricing JSON only.` },
-  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFAQ JSON only.` },
-  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nCTA JSON only.` },
-  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFooter JSON only.` }
+  nav: { name: "Nav", prompt: `Generate Nav JSON for PretextFlow website.` },
+  hero: { name: "Hero", prompt: `Generate Hero section JSON for PretextFlow - a text layout engine.` },
+  features: { name: "Features", prompt: `Generate Features section JSON with 6 feature cards.` },
+  stats: { name: "Stats", prompt: `Generate Stats section JSON with 4 metrics.` },
+  how: { name: "How It Works", prompt: `Generate How It Works section JSON with 3 steps.` },
+  code: { name: "Code Example", prompt: `Generate Code Example section JSON with TypeScript code.` },
+  pricing: { name: "Pricing", prompt: `Generate Pricing section JSON with 3 tiers.` },
+  faq: { name: "FAQ", prompt: `Generate FAQ section JSON with 5 questions.` },
+  cta: { name: "CTA", prompt: `Generate final CTA section JSON.` },
+  footer: { name: "Footer", prompt: `Generate Footer JSON with link categories.` },
 }
 
 // ============================================
 // MAIN APP
 // ============================================
 export default function App() {
-  const [spec, setSpec] = useState<A2UISpec>(FALLBACK_SPEC)
+  const [spec, setSpec] = useState<A2UISpec | null>(null)
   const [logs, setLogs] = useState<string[]>([])
-  const [isGenerating, setIsGenerating] = useState(true)
-  const [phase, setPhase] = useState('Enhancing...')
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [phase, setPhase] = useState('Initializing...')
   const [progress, setProgress] = useState(0)
+  const [showBuildScreen, setShowBuildScreen] = useState(true)
   
   async function callAPI(prompt: string) {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
@@ -425,16 +404,19 @@ export default function App() {
   }
   
   async function enhanceWithAI() {
+    setShowBuildScreen(true)
     setIsGenerating(true)
-    setLogs(['🤖 Generative UI Pipeline running...'])
+    setLogs(['🤖 Starting Generative UI Builder...'])
     const elements: Record<string, A2UIElement> = {}
     const keys = Object.keys(AGENTS)
     
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
       const agent = AGENTS[key as keyof typeof AGENTS]
-      setPhase(`${agent.name}...`)
+      setPhase(`Building ${agent.name}...`)
       setProgress(Math.round(((i + 1) / keys.length) * 100))
+      
+      setLogs(prev => [...prev.slice(-20), `📝 Generating ${agent.name}...`])
       
       try {
         const text = await callAPI(agent.prompt)
@@ -442,28 +424,41 @@ export default function App() {
         
         if (parsed?.elements) {
           Object.assign(elements, parsed.elements)
-          setLogs(prev => [...prev.slice(-4), `✅ ${agent.name}`])
+          setLogs(prev => [...prev.slice(-20), `✅ ${agent.name} complete`])
         } else if (parsed && Object.keys(parsed).length > 0) {
           Object.assign(elements, parsed)
-          setLogs(prev => [...prev.slice(-4), `✅ ${agent.name}`])
+          setLogs(prev => [...prev.slice(-20), `✅ ${agent.name} complete`])
         } else {
-          setLogs(prev => [...prev.slice(-4), `⚠️ ${agent.name}`])
+          setLogs(prev => [...prev.slice(-20), `⚠️ ${agent.name}: no JSON`])
         }
       } catch (err) {
-        setLogs(prev => [...prev.slice(-4), `❌ ${agent.name}`])
+        setLogs(prev => [...prev.slice(-20), `❌ ${agent.name}: failed`])
       }
     }
     
     if (Object.keys(elements).length > 0) {
       setSpec({ version: "0.8", root: "app", elements })
+    } else {
+      setSpec(FALLBACK_SPEC)
     }
     
+    setPhase('Complete!')
+    setProgress(100)
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-4), `🤖 Done!`])
+    setLogs(prev => [...prev.slice(-20), `⚡ Build complete! Click "View Website" to see results.`])
   }
   
-  useEffect(() => { enhanceWithAI() }, [])
+  useEffect(() => { 
+    // Auto-start on first load
+    enhanceWithAI() 
+  }, [])
   
+  // Show build screen first
+  if (showBuildScreen && isGenerating) {
+    return <BuildScreen logs={logs} phase={phase} progress={progress} onRegenerate={enhanceWithAI} />
+  }
+  
+  // After build, show website
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -475,26 +470,28 @@ export default function App() {
               <span className="font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">PretextFlow</span>
             </div>
             <div className="flex items-center gap-3">
-              {!isGenerating && <span className="text-xs text-green-400/80">🤖 Ready</span>}
-              {isGenerating && <span className="text-xs text-purple-400">{phase}</span>}
-              <button onClick={enhanceWithAI} disabled={isGenerating} className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-purple-500 transition">
-                {isGenerating ? '⏳' : '🤖'}
+              <span className="text-xs text-green-400/80">✅ Built</span>
+              <button 
+                onClick={() => { setShowBuildScreen(true); enhanceWithAI() }} 
+                className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold hover:bg-purple-500 transition"
+              >
+                🔄 Rebuild
               </button>
             </div>
           </div>
         </header>
         
-        {/* Progress */}
-        {isGenerating && <div className="fixed top-[52px] left-0 right-0 z-40 h-0.5 bg-white/10"><div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${progress}%` }} /></div>}
-        
-        {/* Logs */}
-        {isGenerating && logs.length > 0 && <div className="fixed bottom-4 right-4 bg-black/80 rounded-lg p-3 max-w-[200px]"><pre className="text-xs text-gray-500">{logs.join('\n')}</pre></div>}
-        
         <main className="pt-16">
-          {renderSpec(spec)}
-          <GenerativeUIShowcase />
-          <PipelineDiagram />
-          <SkillsSection />
+          {spec ? (
+            <>{renderSpec(spec)}<GenerativeUIShowcase /><PipelineDiagram /><SkillsSection /></>
+          ) : (
+            <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </ErrorBoundary>
