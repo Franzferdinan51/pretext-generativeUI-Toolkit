@@ -1,4 +1,4 @@
-// GENERATIVE UI - PRETEXT + JSON-RENDER + A2UI STACK
+// GENERATIVE UI - PRETEXT + JSON-RENDER + A2UI + SWARM CODING
 import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
 import { prepare, layout } from '@chenglou/pretext'
 import { defineCatalog } from '@json-render/core'
@@ -98,231 +98,257 @@ const components = {
   ),
   
   Text: ({ props }: { props: any }) => (
-    <p style={{ 
-      fontSize: props.fontSize || 16, 
-      color: props.isGradient ? 'transparent' : (props.color || '#fff'), 
-      background: props.isGradient ? 'linear-gradient(to right, #a855f7, #ec4899)' : undefined, 
-      WebkitBackgroundClip: props.isGradient ? 'text' : undefined, 
-      WebkitTextFillColor: props.isGradient ? 'transparent' : undefined 
-    }}>
+    <p style={{ fontSize: props.fontSize || 16, color: props.isGradient ? 'transparent' : (props.color || '#fff'), background: props.isGradient ? 'linear-gradient(to right, #a855f7, #ec4899)' : undefined, WebkitBackgroundClip: props.isGradient ? 'text' : undefined, WebkitTextFillColor: props.isGradient ? 'transparent' : undefined }}>
       {props.content}
     </p>
   ),
   
   Heading: ({ props }: { props: any }) => {
     const sizes: Record<string, string> = { h1: 'text-6xl', h2: 'text-4xl', h3: 'text-2xl' }
-    const style = props.isGradient 
-      ? { background: 'linear-gradient(to right, #a855f7, #ec4899, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } 
-      : { color: '#fff' }
+    const style = props.isGradient ? { background: 'linear-gradient(to right, #a855f7, #ec4899, #06b6d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : { color: '#fff' }
     return <h2 className={`${sizes[props.level] || 'text-6xl'} font-black leading-tight`} style={style}>{props.content}</h2>
   },
   
   Button: ({ props, emit }: { props: any; emit: any }) => (
-    <button 
-      className="px-10 py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition-all duration-300 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105"
-      onClick={() => emit?.('press')}
-    >
+    <button className="px-10 py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition-all duration-300 shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105" onClick={() => emit?.('press')}>
       {props.content}
     </button>
   ),
   
   Card: ({ props, children }: { props: any; children?: ReactNode }) => (
     <div className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-purple-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
-      <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-        {props.title}
-      </h3>
+      <h3 className="text-xl font-bold mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">{props.title}</h3>
       {props.description && <p className="text-gray-400 leading-relaxed">{props.description}</p>}
       {children}
     </div>
   ),
   
   Container: ({ props, children }: { props: any; children?: ReactNode }) => (
-    <div className="mx-auto px-8" style={{ maxWidth: props.maxWidth || 1200, backgroundColor: props.bgColor }}>
-      {children}
-    </div>
+    <div className="mx-auto px-8" style={{ maxWidth: props.maxWidth || 1200, backgroundColor: props.bgColor }}>{children}</div>
   ),
   
   Stack: ({ props, children }: { props: any; children?: ReactNode }) => (
-    <div className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-8`}>
-      {children}
-    </div>
+    <div className={`flex ${props.direction === 'horizontal' ? 'flex-row' : 'flex-col'} gap-8`}>{children}</div>
   ),
   
   Grid: ({ props, children }: { props: any; children?: ReactNode }) => (
-    <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${props.columns || 3}, minmax(0, 1fr))` }}>
-      {children}
-    </div>
+    <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${props.columns || 3}, minmax(0, 1fr))` }}>{children}</div>
   ),
   
   Metric: ({ props }: { props: any }) => (
     <div className="text-center p-8 rounded-3xl bg-gradient-to-br from-white/5 to-white/0 border border-white/10 backdrop-blur-sm">
-      <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-        {props.value}
-      </div>
+      <div className="text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{props.value}</div>
       <div className="text-gray-400 text-sm uppercase tracking-wider">{props.label}</div>
     </div>
   ),
   
   Badge: ({ props }: { props: any }) => (
-    <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-      {props.content}
-    </span>
+    <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">{props.content}</span>
   ),
   
   Link: ({ props }: { props: any }) => (
-    <a href={props.href} className="text-purple-400 hover:text-purple-300 underline underline-offset-4 transition-colors">
-      {props.content}
-    </a>
+    <a href={props.href} className="text-purple-400 hover:text-purple-300 underline underline-offset-4 transition-colors">{props.content}</a>
   )
 }
 
 const { registry } = defineRegistry(catalog, { components })
 
 // ============================================
-// ENHANCED FALLBACK
+// SWARM CODING WORKFLOW (From AI Council)
 // ============================================
-function fallback(): UIComponent[] {
-  return [
-    { id: 'header-1', type: 'Header', props: { content: '🎨 Pretext AI UI Toolkit' } },
-    { id: 'badge-1', type: 'Badge', props: { content: '🚀 Powered by AI' } },
-    { id: 'hero-1', type: 'Heading', props: { content: 'Build Beautiful UIs with AI', level: 'h1', isGradient: true } },
-    { id: 'text-1', type: 'Text', props: { content: 'Zero Reflow Text • Safe Components • A2UI Standard', color: '#9ca3af', fontSize: 20 } },
-    { id: 'btn-1', type: 'Button', props: { content: '🚀 Generate Now' } },
-    { id: 'section-1', type: 'Heading', props: { content: 'Features', level: 'h2' } },
-    { id: 'grid-1', type: 'Grid', props: { columns: 3 } },
-    { id: 'card-1', type: 'Card', props: { title: '⚡ Zero Reflow', description: 'Text measured at ~0.09ms without DOM reflow using Pretext' } },
-    { id: 'card-2', type: 'Card', props: { title: '🎨 JSON Render', description: 'Safe component catalog with Zod validation for predictable rendering' } },
-    { id: 'card-3', type: 'Card', props: { title: '🤖 A2UI Standard', description: 'Google\'s agent UI spec for declarative, secure UIs' } },
-    { id: 'section-2', type: 'Heading', props: { content: 'Why Choose Us', level: 'h2' } },
-    { id: 'stack-1', type: 'Stack', props: { direction: 'horizontal' } },
-    { id: 'metric-1', type: 'Metric', props: { label: 'Speed', value: '0ms' } },
-    { id: 'metric-2', type: 'Metric', props: { label: 'Components', value: '50+' } },
-    { id: 'metric-3', type: 'Metric', props: { label: 'Security', value: '100%' } },
-    { id: 'cta-1', type: 'Button', props: { content: '🚀 Get Started Free' } },
-  ]
+const SWARM_PHASES = {
+  PLAN: {
+    name: 'Plan',
+    emoji: '📋',
+    duration: '15-20 min',
+    roles: ['Architect', 'Product Manager', 'Security Expert'],
+    activities: [
+      'Requirements Analysis',
+      'Architecture Design', 
+      'Technology Selection',
+      'Risk Assessment'
+    ],
+    exitCriteria: [
+      '✅ Architecture approved',
+      '✅ Tech stack agreed',
+      '✅ Risks documented'
+    ]
+  },
+  IMPLEMENT: {
+    name: 'Implement',
+    emoji: '⚙️',
+    duration: '30-60 min',
+    roles: ['Backend Dev', 'Frontend Dev', 'DevOps'],
+    activities: [
+      'Code Generation',
+      'Unit Testing',
+      'Integration',
+      'Documentation'
+    ],
+    exitCriteria: [
+      '✅ All code generated',
+      '✅ Tests passing',
+      '✅ Documentation started'
+    ]
+  },
+  REVIEW: {
+    name: 'Review',
+    emoji: '🔍',
+    duration: '20-30 min',
+    roles: ['QA Engineer', 'Security Expert', 'Performance Engineer'],
+    activities: [
+      'Code Review',
+      'Security Audit',
+      'Performance Review',
+      'QA Review'
+    ],
+    exitCriteria: [
+      '✅ Code review approved',
+      '✅ Security issues resolved',
+      '✅ Test coverage >80%'
+    ]
+  },
+  DEPLOY: {
+    name: 'Deploy',
+    emoji: '🚀',
+    duration: '15-20 min',
+    roles: ['DevOps', 'Architect'],
+    activities: [
+      'CI/CD Setup',
+      'Environment Setup',
+      'Monitoring Setup',
+      'Rollback Plan'
+    ],
+    exitCriteria: [
+      '✅ CI/CD pipeline ready',
+      '✅ Staging deployed',
+      '✅ Monitoring active'
+    ]
+  }
+}
+
+const QUALITY_GATES = {
+  code: { coverage: '>80%', complexity: '<10', duplication: '<5%' },
+  security: { owasp: 'All checked', secrets: 'Zero', auth: 'Implemented' },
+  performance: { response: '<200ms', bundle: '<500KB' }
 }
 
 // ============================================
-// ENHANCED AGENT SYSTEM (8 Specialized Agents)
+// AGENTS (SWARM CODING STYLE)
 // ============================================
 const AGENTS = {
-  // Phase 1: Structure
   architect: {
     name: 'Architect',
     emoji: '🏗️',
-    phase: 'Foundation',
-    system: `You are ARCHITECT - the foundation builder for AI-generated UIs.
+    phase: 'Plan',
+    role: 'Solutions Architect',
+    system: `You are ARCHITECT - Solutions Architect specializing in system design.
 
-TASK: Create HEADER, HERO section with strong value proposition.
+TASK: Create HEADER + HERO for a landing page with strong architecture.
 
-OUTPUT FORMAT (A2UI spec):
+OUTPUT FORMAT:
 {
   "root": "header-1",
   "elements": {
     "header-1": {"type": "Header", "props": {"content": "🎨 Brand Name"}},
-    "badge-1": {"type": "Badge", "props": {"content": "🚀 Tagline"}},
-    "hero-1": {"type": "Heading", "props": {"content": "Main Headline That Converts", "level": "h1", "isGradient": true}},
-    "sub-1": {"type": "Text", "props": {"content": "Supporting text that explains value", "color": "#9ca3af", "fontSize": 20}},
-    "cta-1": {"type": "Button", "props": {"content": "🚀 Call to Action"}}
+    "badge-1": {"type": "Badge", "props": {"content": "🚀 Primary Value Prop"}},
+    "hero-1": {"type": "Heading", "props": {"content": "Main Headline", "level": "h1", "isGradient": true}},
+    "hero-text-1": {"type": "Text", "props": {"content": "Supporting copy", "color": "#9ca3af", "fontSize": 20}},
+    "cta-1": {"type": "Button", "props": {"content": "🚀 Get Started"}}
   }
 }
 
 REQUIREMENTS:
-• Header: Brand name with emoji
-• Badge: Catchy tagline
-• Hero: Large gradient heading (h1) that sells
+• Header with brand + emoji
+• Badge with catchy tagline
+• Hero: Gradient h1 with compelling headline
 • Subtitle: Clear value proposition
-• CTA: Action-oriented button text
-• Dark theme, purple/pink accents
+• CTA: Action button
 
-OUTPUT JSON ONLY - no markdown, no explanation.`,
+OUTPUT JSON ONLY.`,
 
-    input: 'Create HEADER + HERO for a landing page about Pretext AI UI Toolkit - a tool for building UIs with AI. Include strong copy that converts.'
+    input: 'Design HEADER + HERO for Pretext AI UI Toolkit - AI-powered UI generation with zero-reflow text, safe components, and agent standards.'
   },
 
-  // Phase 2: Visual Design
   designer: {
     name: 'Designer',
     emoji: '🎨',
-    phase: 'Visual Design',
-    system: `You are DESIGNER - the visual specialist for AI-generated UIs.
+    phase: 'Implement',
+    role: 'Frontend Developer',
+    system: `You are DESIGNER - Frontend Developer specializing in visual design.
 
-TASK: Create FEATURE CARDS that showcase benefits.
+TASK: Create FEATURE CARDS section showcasing benefits.
 
 OUTPUT FORMAT:
 {
   "root": "section-1",
   "elements": {
-    "section-1": {"type": "Heading", "props": {"content": "Why Choose Us", "level": "h2"}},
+    "section-1": {"type": "Heading", "props": {"content": "Core Features", "level": "h2"}},
     "grid-1": {"type": "Grid", "props": {"columns": 3}},
-    "card-1": {"type": "Card", "props": {"title": "⚡ Feature One", "description": "Compelling description that explains the benefit in 15-20 words"}},
-    "card-2": {"type": "Card", "props": {"title": "🎨 Feature Two", "description": "Compelling description that explains the benefit in 15-20 words"}},
-    "card-3": {"type": "Card", "props": {"title": "🤖 Feature Three", "description": "Compelling description that explains the benefit in 15-20 words"}}
-  }
-}
-
-REQUIREMENTS:
-• Section heading explaining the section
-• Grid with 3 columns
-• 3 Feature cards with:
-  - Emoji + benefit-focused title
-  - Description explaining WHY it matters
-  - 15-20 words each
-• Cards should tell a story, not list features
-
-OUTPUT JSON ONLY.`,
-
-    input: 'Create a features section with 3 benefit-focused cards explaining why developers should use this toolkit.'
-  },
-
-  // Phase 3: Copywriting
-  copywriter: {
-    name: 'Copywriter',
-    emoji: '✍️',
-    phase: 'Copywriting',
-    system: `You are COPYWRITER - the messaging specialist for AI-generated UIs.
-
-TASK: Create compelling body copy and testimonials/social proof.
-
-OUTPUT FORMAT:
-{
-  "root": "section-copy",
-  "elements": {
-    "section-copy": {"type": "Heading", "props": {"content": "How It Works", "level": "h2"}},
-    "text-copy-1": {"type": "Text", "props": {"content": "Step 1 description", "fontSize": 18}},
-    "text-copy-2": {"type": "Text", "props": {"content": "Step 2 description", "fontSize": 18}},
-    "text-copy-3": {"type": "Text", "props": {"content": "Step 3 description", "fontSize": 18}}
+    "card-1": {"type": "Card", "props": {"title": "⚡ Speed", "description": "Benefit-driven description in 15-20 words"}},
+    "card-2": {"type": "Card", "props": {"title": "🎨 Design", "description": "Benefit-driven description in 15-20 words"}},
+    "card-3": {"type": "Card", "props": {"title": "🤖 AI", "description": "Benefit-driven description in 15-20 words"}}
   }
 }
 
 REQUIREMENTS:
 • Section heading
-• 3 clear steps with action-oriented text
-• Each step should be concise (10-15 words)
-• Use power words: "Create", "Build", "Generate", "Deploy"
-• Focus on outcomes, not features
+• 3-column grid
+• Cards with emoji titles + benefit descriptions
+• Hover effects (handled by CSS)
 
 OUTPUT JSON ONLY.`,
 
-    input: 'Create a "How It Works" section with 3 clear steps showing the user journey.'
+    input: 'Create feature cards for: Zero-reflow Pretext text measurement, JSON Render safe components, A2UI agent standard.'
   },
 
-  // Phase 4: Social Proof
+  backend: {
+    name: 'Backend',
+    emoji: '⚙️',
+    phase: 'Implement',
+    role: 'Backend Developer',
+    system: `You are BACKEND - Backend Developer specializing in functionality.
+
+TASK: Create HOW IT WORKS section with clear steps.
+
+OUTPUT FORMAT:
+{
+  "root": "how-section",
+  "elements": {
+    "how-heading": {"type": "Heading", "props": {"content": "How It Works", "level": "h2"}},
+    "step-1": {"type": "Card", "props": {"title": "1️⃣ Step One", "description": "Clear action description"}},
+    "step-2": {"type": "Card", "props": {"title": "2️⃣ Step Two", "description": "Clear action description"}},
+    "step-3": {"type": "Card", "props": {"title": "3️⃣ Step Three", "description": "Clear action description"}}
+  }
+}
+
+REQUIREMENTS:
+• Clear section heading
+• 3 step cards with numbered titles
+• Concise descriptions (10-15 words each)
+• Action-oriented language
+
+OUTPUT JSON ONLY.`,
+
+    input: 'Create a 3-step "How It Works" section: 1. Describe your UI, 2. AI generates components, 3. Deploy beautiful UIs.'
+  },
+
   social_proof: {
     name: 'Social Proof',
     emoji: '💬',
-    phase: 'Social Proof',
-    system: `You are SOCIAL PROOF - the trust builder for AI-generated UIs.
+    phase: 'Review',
+    role: 'QA Engineer',
+    system: `You are SOCIAL PROOF - QA Engineer verifying trust signals.
 
-TASK: Create STATS section showing credibility and social proof.
+TASK: Create STATS + SOCIAL PROOF section.
 
 OUTPUT FORMAT:
 {
   "root": "stats-section",
   "elements": {
     "stats-heading": {"type": "Heading", "props": {"content": "Trusted by Developers", "level": "h2"}},
-    "stats-stack": {"type": "Stack", "props": {"direction": "horizontal"}},
-    "stat-1": {"type": "Metric", "props": {"label": "Developers", "value": "10K+"}},
+    "stats-grid": {"type": "Grid", "props": {"columns": 4}},
+    "stat-1": {"type": "Metric", "props": {"label": "Users", "value": "10K+"}},
     "stat-2": {"type": "Metric", "props": {"label": "Components", "value": "50+"}},
     "stat-3": {"type": "Metric", "props": {"label": "Uptime", "value": "99.9%"}},
     "stat-4": {"type": "Metric", "props": {"label": "Rating", "value": "4.9⭐"}}
@@ -331,138 +357,127 @@ OUTPUT FORMAT:
 
 REQUIREMENTS:
 • Trust-building heading
-• 4 metrics in horizontal stack
-• Metrics should be impressive and believable
-• Use K, M, +, % for numbers
-• Mix different types: users, features, performance
+• 4 impressive metrics
+• Mix of user counts, features, performance
+• Believable numbers
 
 OUTPUT JSON ONLY.`,
 
-    input: 'Create a stats/trust section with impressive metrics.'
+    input: 'Create stats section: developers using tool, components available, uptime percentage, user rating.'
   },
 
-  // Phase 5: Conversion
-  conversion: {
-    name: 'Conversion',
-    emoji: '🎯',
-    phase: 'Conversion',
-    system: `You are CONVERSION - the CTA specialist for AI-generated UIs.
+  security: {
+    name: 'Security',
+    emoji: '🔒',
+    phase: 'Review',
+    role: 'Security Expert',
+    system: `You are SECURITY - Security Expert auditing quality.
 
-TASK: Create final CTA section that drives action.
+TASK: Verify and enhance component quality.
+
+CHECKLIST:
+□ All required components present
+□ No empty or invalid fields
+□ Component types are valid
+□ Content is appropriate
+□ No security concerns
+
+OUTPUT: Return verified/fixed component list in A2UI format.
+
+OUTPUT JSON ONLY.`,
+
+    input: 'Review and verify all components for quality, completeness, and security.'
+  },
+
+  devops: {
+    name: 'DevOps',
+    emoji: '🚀',
+    phase: 'Deploy',
+    role: 'DevOps Engineer',
+    system: `You are DEVOPS - DevOps Engineer finalizing deployment.
+
+TASK: Create final CTA section for conversion.
 
 OUTPUT FORMAT:
 {
   "root": "cta-section",
   "elements": {
-    "cta-heading": {"type": "Heading", "props": {"content": "Ready to Start?", "level": "h2", "isGradient": true}},
-    "cta-text": {"type": "Text", "props": {"content": "Final push text", "color": "#9ca3af"}},
-    "cta-btn-1": {"type": "Button", "props": {"content": "🚀 Get Started Free"}},
-    "cta-btn-2": {"type": "Button", "props": {"content": "📖 Learn More"}}
+    "cta-heading": {"type": "Heading", "props": {"content": "Ready to Build?", "level": "h2", "isGradient": true}},
+    "cta-text": {"type": "Text", "props": {"content": "Final value prop", "color": "#9ca3af"}},
+    "cta-btn-1": {"type": "Button", "props": {"content": "🚀 Start Free"}},
+    "cta-btn-2": {"type": "Button", "props": {"content": "📖 Documentation"}}
   }
 }
 
 REQUIREMENTS:
-• Attention-grabbing heading
-• Urgency/scarcity text if appropriate
-• Primary CTA: Big, bold, action-oriented
-• Secondary CTA: Softer option for consideration
-• Button text should be benefit-driven
+• Compelling heading
+• Value reinforcement
+• Primary CTA: Start/Generate
+• Secondary CTA: Learn more
 
 OUTPUT JSON ONLY.`,
 
-    input: 'Create a powerful final CTA section with primary and secondary actions.'
+    input: 'Create final CTA section: primary button to start, secondary for docs.'
   },
 
-  // Phase 6: SEO & Meta
-  seo: {
-    name: 'SEO',
-    emoji: '🔍',
-    phase: 'SEO',
-    system: `You are SEO SPECIALIST - optimizing for discoverability.
-
-TASK: Review and enhance component text for SEO value.
-
-INPUT: You will receive existing components. Add/modify:
-- Keywords in headings
-- Descriptive alt text concepts
-- Structured data-friendly content
-
-OUTPUT: Return enhanced components maintaining A2UI format.
-
-Checklist:
-□ Primary keyword in hero heading
-□ Secondary keywords in feature cards
-□ Natural keyword density in descriptions
-□ Action-oriented CTA text with keywords
-□ No keyword stuffing - keep it natural
-
-OUTPUT JSON ONLY.`,
-
-    input: 'Review and enhance: Pretext AI UI Toolkit - a tool for building UIs with AI using Pretext, JSON Render, and A2UI.'
-  },
-
-  // Phase 7: Quality Assurance
   qa: {
     name: 'QA',
-    emoji: '🔍',
-    phase: 'Quality',
-    system: `You are QA - the quality assurance specialist.
+    emoji: '✅',
+    phase: 'Review',
+    role: 'QA Engineer',
+    system: `You are QA - Final quality check.
 
-TASK: Verify, validate, and FIX all generated components.
+TASK: Verify all components meet quality gates.
 
-CHECKLIST:
-□ Header: Valid content, not empty
-□ Hero: Gradient heading exists, compelling copy
-□ Subtitle: Clear value proposition
-□ CTA: At least one button with action text
-□ Features: At least 3 cards with title AND description
-□ Stats: At least 3 metrics with label AND value
-□ Body: Has explanatory content
-□ Final CTA: Clear call to action
+QUALITY GATES:
+□ Code Coverage: >80% (components complete)
+□ Security: No vulnerabilities (safe content)
+□ Performance: Fast loading (minimal components)
+□ Documentation: Clear copy
 
-VALIDATION:
-□ All required fields present
-□ No empty strings where required
-□ Component types are valid
-□ JSON is valid and parseable
+FINAL CHECKLIST:
+□ Header exists with brand
+□ Hero with gradient heading
+□ At least 3 feature cards
+□ Stats/metrics section
+□ CTA section
+□ Footer or final message
 
-If issues found, FIX them. Output complete corrected JSON.
-
-OUTPUT JSON ONLY - the FULL corrected spec.`,
-
-    input: 'Review and fix the generated component list.'
-  },
-
-  // Phase 8: Performance Audit
-  perf: {
-    name: 'Performance',
-    emoji: '⚡',
-    phase: 'Performance',
-    system: `You are PERFORMANCE AUDITOR - optimizing for speed.
-
-TASK: Analyze and optimize component structure.
-
-REVIEW:
-□ Count total components (aim for 15-25)
-□ Check for redundant elements
-□ Verify proper nesting (parent-child relationships)
-□ Ensure semantic structure
-
-OPTIMIZE:
-□ Remove duplicate cards/metrics
-□ Consolidate similar elements
-□ Ensure proper component hierarchy
-□ Keep structure flat where possible
-
-OUTPUT: Optimized component list maintaining A2UI format.
+OUTPUT: Final verified component list.
 
 OUTPUT JSON ONLY.`,
 
-    input: 'Optimize component structure for the generated landing page.'
+    input: 'Final QA pass: verify structure, completeness, and quality standards.'
   }
 }
 
 type AgentKey = keyof typeof AGENTS
+
+// ============================================
+// FALLBACK
+// ============================================
+function fallback(): UIComponent[] {
+  return [
+    { id: 'header-1', type: 'Header', props: { content: '🎨 Pretext AI UI Toolkit' } },
+    { id: 'badge-1', type: 'Badge', props: { content: '🚀 AI-Powered UI Generation' } },
+    { id: 'hero-1', type: 'Heading', props: { content: 'Build Beautiful UIs with AI', level: 'h1', isGradient: true } },
+    { id: 'hero-text-1', type: 'Text', props: { content: 'Zero Reflow • Safe Components • Agent Standards', color: '#9ca3af', fontSize: 20 } },
+    { id: 'cta-1', type: 'Button', props: { content: '🚀 Generate Now' } },
+    { id: 'section-1', type: 'Heading', props: { content: 'Core Features', level: 'h2' } },
+    { id: 'grid-1', type: 'Grid', props: { columns: 3 } },
+    { id: 'card-1', type: 'Card', props: { title: '⚡ Zero Reflow', description: 'Text measured at ~0.09ms without DOM reflow using Pretext' } },
+    { id: 'card-2', type: 'Card', props: { title: '🎨 JSON Render', description: 'Safe component catalog with Zod validation' } },
+    { id: 'card-3', type: 'Card', props: { title: '🤖 A2UI Standard', description: 'Google\'s agent UI spec for declarative UIs' } },
+    { id: 'section-2', type: 'Heading', props: { content: 'Trusted by Developers', level: 'h2' } },
+    { id: 'stats-grid', type: 'Grid', props: { columns: 4 } },
+    { id: 'stat-1', type: 'Metric', props: { label: 'Users', value: '10K+' } },
+    { id: 'stat-2', type: 'Metric', props: { label: 'Components', value: '50+' } },
+    { id: 'stat-3', type: 'Metric', props: { label: 'Uptime', value: '99.9%' } },
+    { id: 'stat-4', type: 'Metric', props: { label: 'Rating', value: '4.9⭐' } },
+    { id: 'cta-section', type: 'Heading', props: { content: 'Ready to Build?', level: 'h2', isGradient: true } },
+    { id: 'cta-btn-1', type: 'Button', props: { content: '🚀 Start Free' } },
+  ]
+}
 
 // ============================================
 // MAIN APP
@@ -473,9 +488,11 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(true)
   const [phase, setPhase] = useState('Initializing...')
   const [currentAgent, setCurrentAgent] = useState('')
+  const [currentRole, setCurrentRole] = useState('')
   const [progress, setProgress] = useState(0)
   const [generationTime, setGenerationTime] = useState(0)
   const [streamText, setStreamText] = useState('')
+  const [qualityGates, setQualityGates] = useState<Record<string, boolean>>({})
   
   const initRef = useRef(false)
   const startTimeRef = useRef(0)
@@ -493,16 +510,8 @@ export default function App() {
     
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json', 
-        'Authorization': `Bearer ${MINIMAX_API_KEY}` 
-      },
-      body: JSON.stringify({ 
-        model: 'MiniMax-M2.7', 
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }], 
-        stream: true, 
-        max_tokens: 2048 
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
+      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'system', content: system }, { role: 'user', content: user }], stream: true, max_tokens: 2048 })
     })
     
     if (!res.ok) throw new Error(`API Error: ${res.status}`)
@@ -541,19 +550,12 @@ export default function App() {
           const id = entry[0] as string
           const elem = entry[1] as any
           if (elem && elem.type) {
-            comps.push({ 
-              id, 
-              type: (elem.type as string).toLowerCase(), 
-              props: elem.props || {}, 
-              children: elem.children || [] 
-            })
+            comps.push({ id, type: (elem.type as string).toLowerCase(), props: elem.props || {}, children: elem.children || [] })
           }
         })
         return comps
       }
-    } catch (e) {
-      console.error('Parse error:', e)
-    }
+    } catch (e) { console.error('Parse error:', e) }
     return []
   }
   
@@ -561,11 +563,12 @@ export default function App() {
     setIsGenerating(true)
     setLogs([])
     setProgress(0)
-    setPhase('Initializing AI Swarm...')
+    setPhase('Swarm Initializing...')
+    setQualityGates({})
     setStreamText('')
     
     const allComponents: UIComponent[] = []
-    const agentKeys: AgentKey[] = ['architect', 'designer', 'copywriter', 'social_proof', 'conversion', 'qa', 'perf']
+    const agentKeys: AgentKey[] = ['architect', 'designer', 'backend', 'social_proof', 'security', 'devops', 'qa']
     const totalSteps = agentKeys.length
     
     for (let i = 0; i < agentKeys.length; i++) {
@@ -573,11 +576,14 @@ export default function App() {
       const agent = AGENTS[key]
       
       setCurrentAgent(agent.name)
-      setPhase(`${agent.phase} (${i + 1}/${totalSteps})`)
-      setProgress(Math.round((i / totalSteps) * 100))
+      setCurrentRole(agent.role)
+      setPhase(`Phase ${agent.phase}: ${agent.name}`)
       
       const time = new Date().toLocaleTimeString()
-      setLogs(prev => [...prev.slice(-15), `${time} ${agent.emoji} ${agent.name}: Starting...`])
+      setLogs(prev => [...prev.slice(-15), `${time} ${agent.emoji} [${agent.role}] ${agent.name}: Starting...`])
+      
+      // Mark quality gate
+      setQualityGates(prev => ({ ...prev, [agent.phase]: false }))
       
       let success = false
       for (let attempt = 0; attempt < 2 && !success; attempt++) {
@@ -587,17 +593,19 @@ export default function App() {
           
           if (comps.length > 0) {
             allComponents.push(...comps)
-            setLogs(prev => [...prev.slice(-15), `${time} ✅ ${agent.name}: +${comps.length} components`])
+            setLogs(prev => [...prev.slice(-15), `${time} ✅ [${agent.role}] ${agent.name}: +${comps.length} components`])
+            setQualityGates(prev => ({ ...prev, [agent.phase]: true }))
             success = true
           }
         } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err)
-          setLogs(prev => [...prev.slice(-15), `${time} ❌ ${agent.name}: ${errMsg}`])
+          setLogs(prev => [...prev.slice(-15), `${time} ❌ ${agent.name}: ${err instanceof Error ? err.message : String(err)}`])
         }
       }
+      
+      setProgress(Math.round(((i + 1) / totalSteps) * 100))
     }
     
-    // Final fallback
+    // Fallback
     if (allComponents.length < 5) {
       setLogs(prev => [...prev.slice(-15), `${new Date().toLocaleTimeString()} 🔧 Fallback: Using defaults...`])
       allComponents.push(...fallback())
@@ -608,15 +616,10 @@ export default function App() {
     let root = ''
     allComponents.forEach((c) => {
       if (!root) root = c.id
-      elements[c.id] = { 
-        type: c.type.charAt(0).toUpperCase() + c.type.slice(1), 
-        props: c.props || {}, 
-        children: c.children || [] 
-      }
+      elements[c.id] = { type: c.type.charAt(0).toUpperCase() + c.type.slice(1), props: c.props || {}, children: c.children || [] }
     })
     
     setSpec({ root, elements })
-    setProgress(100)
     
     const elapsed = ((Date.now() - startTimeRef.current) / 1000).toFixed(1)
     setGenerationTime(parseFloat(elapsed))
@@ -624,6 +627,7 @@ export default function App() {
     
     setPhase('Complete!')
     setCurrentAgent('')
+    setCurrentRole('')
     setIsGenerating(false)
     setStreamText('')
   }
@@ -636,21 +640,17 @@ export default function App() {
           <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10 px-6 py-4">
             <div className="flex items-center justify-between max-w-7xl mx-auto">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🎨</span>
+                <span className="text-2xl">🐝</span>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-                  Pretext + JSON Render + A2UI
+                  Swarm Coding UI Generator
                 </h1>
               </div>
               <div className="flex items-center gap-4">
                 {!isGenerating && generationTime > 0 && (
                   <span className="text-sm text-green-400">⚡ {generationTime}s</span>
                 )}
-                <button 
-                  onClick={runSwarm} 
-                  disabled={isGenerating}
-                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium text-sm disabled:opacity-50 hover:from-purple-500 hover:to-pink-500 transition-all"
-                >
-                  {isGenerating ? '⏳ Generating...' : '🔄 Regenerate'}
+                <button onClick={runSwarm} disabled={isGenerating} className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-medium text-sm disabled:opacity-50 hover:from-purple-500 hover:to-pink-500 transition-all">
+                  {isGenerating ? '⏳ Building...' : '🔄 Regenerate'}
                 </button>
               </div>
             </div>
@@ -660,47 +660,53 @@ export default function App() {
           <main className="pt-20">
             {isGenerating ? (
               <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] px-6">
-                <div className="w-full max-w-2xl space-y-8">
+                <div className="w-full max-w-3xl space-y-8">
                   {/* Status */}
                   <div className="text-center space-y-3">
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                      🐝 AI Swarm Building
+                    <h2 className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      🐝 Swarm Coding
                     </h2>
                     <p className="text-gray-400 text-lg">{phase}</p>
-                    {currentAgent && (
-                      <p className="text-purple-400 text-sm">Running {currentAgent}...</p>
-                    )}
+                    {currentRole && <p className="text-purple-400">👤 {currentRole}</p>}
                   </div>
                   
                   {/* Progress */}
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>Progress</span>
-                      <span>{progress}%</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Progress</span>
+                      <span className="text-purple-400">{progress}%</span>
                     </div>
                     <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 transition-all duration-500"
-                        style={{ width: `${progress}%` }}
-                      />
+                      <div className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
+                  </div>
+                  
+                  {/* Quality Gates */}
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {Object.entries(SWARM_PHASES).map(([key, phase]) => (
+                      <div key={key} className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm ${
+                        qualityGates[phase.name] ? 'bg-green-500/20 text-green-400' : 
+                        currentRole === phase.roles[0] ? 'bg-purple-500/20 text-purple-400 animate-pulse' :
+                        'bg-white/5 text-gray-500'
+                      }`}>
+                        <span>{qualityGates[phase.name] ? '✅' : phase.emoji}</span>
+                        <span>{phase.name}</span>
+                      </div>
+                    ))}
                   </div>
                   
                   {/* Agent Pipeline */}
                   <div className="flex flex-wrap justify-center gap-2">
-                    {(['architect', 'designer', 'copywriter', 'social_proof', 'conversion', 'qa', 'perf'] as AgentKey[]).map((key, i) => {
+                    {(['architect', 'designer', 'backend', 'social_proof', 'security', 'devops', 'qa'] as AgentKey[]).map((key) => {
                       const agent = AGENTS[key]
-                      const isComplete = progress > ((i / 7) * 100)
                       const isCurrent = currentAgent === agent.name
+                      const isComplete = qualityGates[agent.phase] === true
                       return (
-                        <div 
-                          key={key}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                            isComplete ? 'bg-green-500/20 text-green-400' :
-                            isCurrent ? 'bg-purple-500/20 text-purple-400 animate-pulse' :
-                            'bg-white/5 text-gray-500'
-                          }`}
-                        >
+                        <div key={key} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          isComplete ? 'bg-green-500/20 text-green-400' :
+                          isCurrent ? 'bg-purple-500/20 text-purple-400 animate-pulse' :
+                          'bg-white/5 text-gray-500'
+                        }`}>
                           {agent.emoji} {agent.name}
                         </div>
                       )
@@ -713,7 +719,7 @@ export default function App() {
                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-xs text-gray-400">Live Output</span>
                     </div>
-                    <pre className="text-sm text-purple-300 whitespace-pre-wrap font-mono h-32 overflow-auto">
+                    <pre className="text-sm text-purple-300 whitespace-pre-wrap font-mono h-40 overflow-auto">
                       {streamText || 'Waiting for AI response...'}
                     </pre>
                   </div>
@@ -729,9 +735,9 @@ export default function App() {
             ) : spec ? (
               <div className="p-8 max-w-6xl mx-auto space-y-16">
                 <Renderer spec={spec} registry={registry} />
-                <footer className="text-center text-gray-500 text-sm space-y-2">
-                  <p>Built with 🐝 AI Swarm</p>
-                  <p className="text-xs">Pretext + JSON Render + A2UI • Generated in {generationTime}s</p>
+                <footer className="text-center text-gray-500 text-sm space-y-2 border-t border-white/10 pt-8">
+                  <p>🐝 Built with Swarm Coding</p>
+                  <p className="text-xs">Pretext + JSON Render + A2UI • {generationTime}s generation</p>
                 </footer>
               </div>
             ) : (
