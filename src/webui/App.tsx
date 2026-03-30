@@ -3,7 +3,7 @@
 // Zero-Reflow Text • Canvas Rendering • Streaming • Flow-Around
 // ============================================================
 import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
-import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine, walkLineRanges, clearCache } from '@chenglou/pretext'
+import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine, walkLineRanges } from '@chenglou/pretext'
 import { defineCatalog } from '@json-render/core'
 import { defineRegistry, Renderer } from '@json-render/react'
 import { JSONUIProvider } from '@json-render/react'
