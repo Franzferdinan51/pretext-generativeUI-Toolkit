@@ -1,6 +1,6 @@
 // ============================================================
-// A2UI + PRETEXT - FULL WEBSITE GENERATOR v2
-// With proper creative brief for quality output
+// A2UI + PRETEXT - FULL WEBSITE GENERATOR v3
+// Integrated with OpenClaw A2UI + steipete agent-rules
 // ============================================================
 import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
@@ -11,50 +11,47 @@ interface A2UIElement { type: string; props: Record<string, any>; children?: str
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
 
 // ============================================
-// CREATIVE BRIEF - THE FOUNDATION
+// AGENT RULES (from steipete/agent-rules)
+// ============================================
+const AGENT_RULES = `
+CRITICAL: Write code that is:
+1. SIMPLE - Prefer obvious over clever
+2. COMPLETE - No TODOs, no placeholders
+3. CONSISTENT - Same pattern everywhere
+4. TESTED - Works on first try
+
+JSON OUTPUT RULES:
+- Always output valid JSON
+- Use this exact format: {"elements":{"KEY":{"type":"TYPE","props":{...}}}}
+- Never output markdown code blocks
+- Never add explanations, only JSON
+
+COPYWRITING RULES (from steipete's style):
+- Benefit-driven headlines, not feature lists
+- Technical but accessible
+- Specific numbers over vague claims
+- Sound like a real product, not AI gibberish
+`
+
+// ============================================
+// CREATIVE BRIEF
 // ============================================
 const CREATIVE_BRIEF = `
-You are building a landing page for a B2B SaaS product called "PretextFlow" - a text layout engine for developers.
+You are building a landing page for "PretextFlow" - a text layout engine for developers.
 
-BRAND VOICE: Professional, innovative, developer-focused. Think Stripe/Linear/Vercel energy.
-
-STYLE: Dark mode, minimal, lots of whitespace. Purple/pink gradient accents on black backgrounds.
-
-TARGET AUDIENCE: Developers, technical leads, CTOs who want fast UI rendering without layout reflows.
+BRAND: Professional, innovative, developer-focused. Think Stripe/Linear/Vercel.
+STYLE: Dark mode, minimal, purple/pink gradients on #0a0a0f black.
+TARGET: Developers who want fast UI without layout reflows.
 
 KEY MESSAGES:
 - "Zero layout reflow. Pure math."
 - "~0.09ms per measurement"
-- "Replace getBoundingClientRect forever"
-- "Works with React, Vue, Svelte, or raw JS"
+- "Replace getBoundingClientRect"
 
-COLOR PALETTE:
-- Background: #0a0a0f (near black)
-- Surface: rgba(255,255,255,0.05)
-- Border: rgba(255,255,255,0.1)
-- Primary gradient: purple-400 to pink-400
-- Text: white, gray-300, gray-400
-- Accent: purple-500, pink-500
+SECTIONS: Nav → Hero → Features → Stats → How It Works → Code → Pricing → FAQ → CTA → Footer
 
-EMOJI USAGE: Use sparingly - 1-2 per section max. Prefer icons or none.
-
-COPY QUALITY: 
-- Headlines: Benefit-driven, not feature lists
-- Descriptions: Technical but accessible
-- CTAs: Action-oriented, specific
-- Make it sound like a real product, not generated gibberish
-
-WEBSITE SECTIONS TO BUILD (in order):
-1. NAV - Simple logo + 4 nav links + CTA button
-2. HERO - Badge + H1 + subtitle + description + 2 CTAs
-3. FEATURES - 6 cards showcasing capabilities  
-4. STATS - 4 impressive metrics with trends
-5. HOW IT WORKS - 3-step process
-6. CODE EXAMPLE - Show the API in action
-7. PRICING - 3 tiers (Free/Pro/Enterprise)
-8. FAQ - 5 common questions
-9. CTA - Final conversion push
-10. FOOTER - 4 link categories + copyright
+Return ONLY valid JSON matching this structure:
+{"SECTION_ID":{"type":"ComponentType","props":{...},"children":["child_id"]}}
 `
 
 // ============================================
@@ -111,7 +108,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 // ============================================
-// COMPONENTS
+// COMPONENTS (A2UI spec)
 // ============================================
 const Nav = ({ logo, links }: any) => <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 border-b border-white/10"><span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span><div className="flex gap-6">{links?.map((l: string, i: number) => <a key={i} href="#" className="text-gray-400 hover:text-white text-sm">{l}</a>)}</div><button className="px-5 py-2 rounded-xl bg-purple-600 font-bold text-sm">Get Started</button></nav>
 
@@ -138,14 +135,14 @@ const CTA = ({ title, sub, btn }: any) => <section className="py-24 px-8 text-ce
 const Footer = ({ links, copy }: any) => <footer className="py-12 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-8">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-semibold mb-3 text-purple-400 text-sm">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-600 text-xs border-t border-white/5 pt-8">{copy}</div></div></footer>
 
 // ============================================
-// FALLBACK SPEC (High quality)
+// FALLBACK SPEC (High quality - PretextFlow)
 // ============================================
 const FALLBACK_SPEC: A2UISpec = {
   version: "0.8",
   root: "app",
   elements: {
     nav: { type: "Nav", props: { logo: "⚡ PretextFlow", links: ["Docs", "Features", "Pricing", "GitHub"] }},
-    hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement\nWithout Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.", pBtn: "Start Free", sBtn: "View Docs" }},
+    hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement Without Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.", pBtn: "Start Free", sBtn: "View Docs" }},
     featSection: { type: "Section", props: { title: "Why PretextFlow?", sub: "The modern way to handle text layout" }, children: ["featGrid"]},
     featGrid: { type: "Grid", props: { cols: 3 }, children: ["f1", "f2", "f3", "f4", "f5", "f6"]},
     f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement. Cached results. No DOM access." }},
@@ -213,87 +210,19 @@ function renderSpec(spec: A2UISpec): ReactNode {
 }
 
 // ============================================
-// AGENTS WITH BRIEF
+// AGENTS WITH RULES
 // ============================================
 const AGENTS = {
-  nav: { name: "Nav", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the navigation bar JSON:
-{"nav":{"type":"Nav","props":{"logo":"⚡ PretextFlow","links":["Docs","Features","Pricing","GitHub"]}}}
-
-Return ONLY valid JSON, nothing else. No markdown.` },
-  
-  hero: { name: "Hero", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the hero section JSON. Make the headline benefit-driven and compelling:
-
-{"hero":{"type":"Hero","props":{"badge":"🚀 ZERO LAYOUT REFLOW","title":"Text Measurement Without Limits","subtitle":"Pure math. No DOM. No jank.","desc":"PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.","pBtn":"Start Free","sBtn":"View Docs"}}}
-
-Return ONLY valid JSON, nothing else. No markdown.` },
-  
-  features: { name: "Features", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the features section JSON. 6 cards highlighting capabilities:
-
-{"featSection":{"type":"Section","props":{"title":"Why PretextFlow?","subtitle":"The modern way to handle text layout"},"featGrid":{"type":"Grid","props":{"cols":3},"children":["f1","f2","f3","f4","f5","f6"]}},"f1":{"type":"Card","props":{"emoji":"⚡","title":"Blazing Fast","desc":"~0.09ms per measurement. Cached results. No DOM access."}},"f2":{"type":"Card","props":{"emoji":"🔒","title":"Secure by Design","desc":"No eval. No code execution. Pure declarative JSON."}},"f3":{"type":"Card","props":{"emoji":"🌍","title":"Universal","desc":"Works with React, Vue, Svelte, or vanilla JS."}},"f4":{"type":"Card","props":{"emoji":"📱","title":"Any Surface","desc":"Render to DOM, Canvas, SVG, or game engines."}},"f5":{"type":"Card","props":{"emoji":"🎯","title":"Precise","desc":"Uses the browser's own font engine as ground truth."}},"f6":{"type":"Card","props":{"emoji":"♿","title":"Accessible","desc":"Built-in support for RTL languages and screen readers."}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  stats: { name: "Stats", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the stats/metrics section JSON:
-
-{"statsSection":{"type":"Section","props":{"title":"Numbers Don't Lie"},"statsGrid":{"type":"Grid","props":{"cols":4},"children":["m1","m2","m3","m4"]}},"m1":{"type":"Metric","props":{"val":"0.09ms","label":"Per Call"}},"m2":{"type":"Metric","props":{"val":"10M+","label":"Calls/Day"}},"m3":{"type":"Metric","props":{"val":"99.99%","label":"Uptime"}},"m4":{"type":"Metric","props":{"val":"4.9/5","label":"Dev Rating"}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  how: { name: "How It Works", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the "How It Works" section with 3 steps:
-
-{"howSection":{"type":"Section","props":{"title":"How It Works","subtitle":"Three steps to layout bliss"},"howGrid":{"type":"Grid","props":{"cols":3},"children":["s1","s2","s3"]}},"s1":{"type":"Step","props":{"num":"1","title":"Install","desc":"npm install @pretextflow/core"}},"s2":{"type":"Step","props":{"num":"2","title":"Measure","desc":"pretext.measure(text, width)"}},"s3":{"type":"Step","props":{"num":"3","title":"Render","desc":"Use positions in Canvas, SVG, or DOM"}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  code: { name: "Code Example", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the code example section:
-
-{"codeSection":{"type":"Section","props":{"title":"Simple API","subtitle":"One function. Infinite possibilities."},"code":{"type":"CodeBlock","props":{"lang":"typescript","code":"import { prepare, layout } from '@pretextflow/core'\n\nconst text = 'Hello, PretextFlow!'\nconst prepared = prepare(text, '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(\`Height: \${height}px\`) // ~21px\n// No DOM access. No reflow. Pure math."}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  pricing: { name: "Pricing", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the pricing section JSON:
-
-{"pricingSection":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free. Scale as you grow."},"pricingGrid":{"type":"Grid","props":{"cols":3},"children":["p1","p2","p3"]}},"p1":{"type":"Pricing","props":{"tier":"Hobby","price":"$0","features":["100K calls/month","Community support","1 project"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$29","period":"mo","features":["Unlimited calls","Priority support","10 projects","Analytics"],"highlight":true,"btn":"Start Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","features":["Everything in Pro","Dedicated support","Unlimited projects","SLA guarantee"]}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  faq: { name: "FAQ", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the FAQ section JSON:
-
-{"faqSection":{"type":"Section","props":{"title":"FAQ","subtitle":"Common questions, clear answers"},"faqGrid":{"type":"Grid","props":{"cols":2},"children":["faq1","faq2","faq3","faq4","faq5"]}},"faq1":{"type":"FAQ","props":{"q":"What makes it so fast?","a":"Pretext uses the browser's native font engine to measure text once, then caches everything. Subsequent calls are pure arithmetic."}},"faq2":{"type":"FAQ","props":{"q":"Does it work with TypeScript?","a":"Yes! Full TypeScript support with types included. Works in Node.js and browsers."}},"faq3":{"type":"FAQ","props":{"q":"Can I use it for game development?","a":"Absolutely. Pretext outputs raw coordinates, making it perfect for Canvas, WebGL, and game UI systems."}},"faq4":{"type":"FAQ","props":{"q":"Is there a React integration?","a":"Yes, we have official React bindings plus examples for Vue, Svelte, and Solid."}},"faq5":{"type":"FAQ","props":{"q":"What about RTL languages?","a":"Full support for Arabic, Hebrew, and other RTL scripts built in."}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  cta: { name: "CTA", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the final CTA section JSON:
-
-{"cta":{"type":"CTA","props":{"title":"Ready to go fast?","subtitle":"Join thousands of developers who eliminated layout thrashing.","btn":"Get Started Free"}}}
-
-Return ONLY valid JSON, nothing else.` },
-  
-  footer: { name: "Footer", prompt: `${CREATIVE_BRIEF}
-
-Generate ONLY the footer JSON:
-
-{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Changelog"],"Developers":["Docs","API","Examples","Status"],"Company":["About","Blog","Careers"],"Legal":["Privacy","Terms","Security"]},"copy":"© 2026 PretextFlow. Built for developers who care about performance."}}}
-
-Return ONLY valid JSON, nothing else.` }
+  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the navigation JSON. No markdown.` },
+  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the hero section JSON. Make it compelling.` },
+  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the features section: 6 cards showcasing capabilities.` },
+  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the stats section: 4 impressive metrics.` },
+  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the How It Works section: 3 steps.` },
+  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the code example section with working TypeScript.` },
+  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the pricing section: 3 tiers.` },
+  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the FAQ section: 5 questions and answers.` },
+  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the final CTA section JSON.` },
+  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the footer JSON.` }
 }
 
 // ============================================

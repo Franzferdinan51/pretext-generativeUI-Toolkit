@@ -1,4 +1,4 @@
-# Pretext + A2UI Toolkit
+# Pretext + A2UI Toolkit v2
 
 <p align="center">
   <strong>📐 Pretext Layout Engine + 🤖 A2UI Standard</strong><br>
@@ -17,11 +17,7 @@
 
 **Pretext** measures text without DOM access. Zero reflow. ~0.09ms cached.
 
-### Live Demos
-- [chenglou.me/pretext](https://chenglou.me/pretext/) - Official Pretext demos
-- [somnai-dreams/pretext-demos](https://somnai-dreams.github.io/pretext-demos/) - Community demos
-
-### Pretext Layout Methods
+### Layout Methods
 
 | Method | What It Does |
 |--------|-------------|
@@ -34,43 +30,55 @@
 ### API
 
 ```javascript
-import { prepare, layout, prepareWithSegments, layoutWithLines, layoutNextLine, walkLineRanges } from '@chenglou/pretext'
+import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
 
-// Fast: ~0.09ms (cached)
 const prepared = prepare('Hello world', '16px Inter')
-const { height } = layout(prepared, 400, 24) // pure math!
-
-// Line positions
-const { lines } = layoutWithLines(prepared, 320, 26)
-
-// Flow around obstacle
-layoutNextLine(prepared, cursor, width) // iterator
+const { height } = layout(prepared, 400, 24) // ~0.09ms
 ```
 
 ---
 
-## 🤖 A2UI - Google's Agent UI Standard
+## 🤖 A2UI - Agent User Interface
 
-Declarative JSON format. Security-first. Framework-agnostic.
+Declarative JSON standard for AI-generated UIs. Security-first, framework-agnostic.
 
 ```javascript
 const spec = {
   version: "0.8",
   root: "element-id",
   elements: {
-    "element-id": { type: "Card", props: { title: "Hello" } }
+    "card": { type: "Card", props: { title: "Hello" }}
   }
 }
 ```
 
-### Use Cases
-- Dynamic forms
-- Remote sub-agents
-- Adaptive workflows
+### Based On
+
+- **OpenClaw Live Canvas** - A2UI implementation in production
+- **Google A2UI** - Google's agent UI standard
+- **steipete's tools** - Production-grade agent tooling
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Integrated Technologies
+
+### From OpenClaw
+- **A2UI Standard** - Live Canvas declarative UI
+- **Multi-agent routing** - Route to specialized agents
+- **Skills system** - Composable tool chains
+
+### From steipete
+- **Peekaboo** - macOS GUI automation
+- **CodexBar** - Token usage monitoring
+- **agent-rules** - Shared coding rules for agents
+- **Claude Code MCP** - Agent inside agent pattern
+
+### From Google
+- **A2UI Spec** - Declarative UI for agents
+
+---
+
+## 🎨 Built With
 
 | Tech | Purpose |
 |------|---------|
@@ -81,12 +89,26 @@ const spec = {
 
 ---
 
-## 🌐 Links
+## 📦 Components
 
-- [Pretext](https://github.com/chenglou/pretext)
-- [Pretext Demos](https://somnai-dreams.github.io/pretext-demos/)
-- [A2UI](https://github.com/google/A2UI)
-- [GitHub](https://github.com/Franzferdinan51/pretext-generativeUI-Toolkit)
+10 A2UI Components ready:
+- Nav, Hero, Section, Grid, Card
+- Metric, Step, CodeBlock
+- Pricing, FAQ, CTA, Footer
+
+---
+
+## 🌐 Resources
+
+| Resource | Link |
+|----------|------|
+| **Pretext** | [github.com/chenglou/pretext](https://github.com/chenglou/pretext) |
+| **Pretext Demos** | [somnai-dreams.github.io/pretext-demos](https://somnai-dreams.github.io/pretext-demos/) |
+| **OpenClaw** | [github.com/openclaw/openclaw](https://github.com/openclaw/openclaw) |
+| **A2UI (Google)** | [github.com/google/A2UI](https://github.com/google/A2UI) |
+| **steipete tools** | [github.com/steipete](https://github.com/steipete) |
+| **agent-rules** | [github.com/steipete/agent-rules](https://github.com/steipete/agent-rules) |
+| **Peekaboo** | [github.com/steipete/Peekaboo](https://github.com/steipete/Peekaboo) |
 
 ---
 
