@@ -28,8 +28,11 @@ npm run cli -- "SaaS landing page"
 npm run cli -- scene weather "Storm Dashboard"
 npm run cli -- scene orbit "Pretext Motion Demo"
 
-# Verify generated HTML
+# Verify generated HTML quickly
 npm run cli -- verify-html /tmp/orbit-scene.html
+
+# Verify served output + linked image assets
+npm run verify:generated -- /tmp/plant.html http://localhost:8080
 ```
 
 ### MCP Server (Pretext Canvas)
