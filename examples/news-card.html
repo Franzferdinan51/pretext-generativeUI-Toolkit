@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>News — March 30, 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d1117;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { prepareWithSegments, layoutWithLines } from 'https://unpkg.com/@chenglou/pretext@0.0.3/dist/layout.js';
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 420;
+canvas.width = W;
+
+const news = {
+  topStory: {
+    category: 'WORLD',
+    categoryIcon: '🌍',
+    headline: '"No Kings" Protests Draw 8 Million — Largest Single Day in US History',
+    source: 'Democracy Now',
+    time: '8h ago',
+    isBreaking: true,
+  },
+
+  stories: [
+    {
+      category: 'AI',
+      categoryIcon: '🤖',
+      headline: 'Google Expands Personalized Gemini AI to All US Users',
+      source: 'MarketingProfs',
+      time: '2h ago',
+    },
+    {
+      category: 'DEFENSE',
+      categoryIcon: '🛡️',
+      headline: 'NATO Urges Allies to Rethink Defense, Prepare for "New Enemy"',
+      source: 'Aerotech News',
+      time: '4h ago',
+    },
+    {
+      category: 'CYBERSECURITY',
+      categoryIcon: '🔒',
+      headline: 'EU Commission Cloud Hacked — ShinyHunters Claim Responsibility',
+      source: 'Tech Startups',
+      time: '6h ago',
+    },
+    {
+      category: 'MARKETS',
+      categoryIcon: '📈',
+      headline: 'Wall Street Opens Higher Ahead of Holiday-Shortened Week',
+      source: 'TheStreet',
+      time: '1h ago',
+    },
+    {
+      category: 'MILITARY',
+      categoryIcon: '🎖️',
+      headline: 'Code Platoon Launches AI Curriculum for Military Community',
+      source: 'Crescendo AI',
+      time: '16h ago',
+    },
+    {
+      category: 'IRAN',
+      categoryIcon: '⚠️',
+      headline: 'Trump Threatens Iranian Civilian Infrastructure as Troops Deploy',
+      source: 'Democracy Now',
+      time: '8h ago',
+    },
+  ],
+
+  updated: '3:30 PM EDT · Mar 30, 2026',
+};
+
+const WMO = { 0:'Clear', 2:'Partly Cloudy', 3:'Overcast', 61:'Rain', 95:'Thunderstorm' };
+
+// ── TEXT HELPERS ────────────────────────────────────────
+function measure(text, font, maxW = 360, lh = 22) {
+  const p = prepareWithSegments(text, font);
+  return layoutWithLines(p, maxW, lh);
+}
+
+function draw(text, size, x, y, color = '#fff', align = 'center', weight = 'normal') {
+  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  const lines = measure(text, `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`).lines;
+  let cx = align === 'center' ? x : align === 'right' ? x : x;
+  for (const line of lines) {
+    let dx = cx;
+    if (align === 'center') dx = x - line.width / 2;
+    else if (align === 'right') dx = x - line.width;
+    ctx.fillText(line.text, dx, y + line.y + size);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawLines(text, size, x, y, maxW, color, align = 'left', weight = 'normal') {
+  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  const lines = measure(text, `${weight} ${size}px -apple-system, BlinkMacSystemFont, sans-serif`).lines;
+  let cx = x;
+  for (const line of lines) {
+    let dx = cx;
+    if (align === 'center') dx = x - line.width / 2;
+    else if (align === 'right') dx = x - line.width;
+    ctx.fillText(line.text, dx, y + line.y + size);
+  }
+  ctx.textAlign = 'left';
+}
+
+function fr(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+}
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function panel(x, y, w, h, r = 14) {
+  rr(x, y, w, h, r);
+  ctx.fillStyle = '#161b22';
+  ctx.fill();
+}
+
+function tag(x, y, label, color, textColor = '#fff') {
+  const tw = ctx.measureText(label).width;
+  const pw = tw + 12;
+  const ph = 18;
+  rr(x, y, pw, ph, 4);
+  ctx.fillStyle = color + '22';
+  ctx.fill();
+  rr(x, y, pw, ph, 4);
+  ctx.strokeStyle = color + '66';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.font = `bold 8px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'left';
+  ctx.fillText(label, x + 6, y + 13);
+  ctx.textAlign = 'left';
+  return pw;
+}
+
+function catTag(x, y, icon, label, color) {
+  const labelW = ctx.measureText(label).width;
+  const pw = 8 + 14 + 6 + labelW + 8; // icon + gap + text + padding
+  const ph = 18;
+  rr(x, y, pw, ph, 4);
+  ctx.fillStyle = color + '22';
+  ctx.fill();
+  rr(x, y, pw, ph, 4);
+  ctx.strokeStyle = color + '55';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.fillText(icon, x + 6, y + 13);
+  ctx.font = `bold 8px -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.fillText(label, x + 22, y + 13);
+  ctx.textAlign = 'left';
+  return pw;
+}
+
+// ── BACKGROUND PARTICLES ─────────────────────────────────
+const particles = Array.from({length: 30}, () => ({
+  x: Math.random() * W,
+  y: Math.random() * 200,
+  r: Math.random() * 1.5 + 0.3,
+  ph: Math.random() * Math.PI * 2,
+  sp: Math.random() * 0.3 + 0.05,
+}));
+
+function drawBg() {
+  // Dark gradient
+  const g = ctx.createLinearGradient(0, 0, 0, 200);
+  g.addColorStop(0, '#0a1628');
+  g.addColorStop(1, '#0d1117');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, 200);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, i * 34);
+    ctx.lineTo(W, i * 34);
+    ctx.stroke();
+  }
+  for (let i = 1; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * 84, 0);
+    ctx.lineTo(i * 84, 200);
+    ctx.stroke();
+  }
+
+  // Particles
+  for (const p of particles) {
+    const a = 0.2 + Math.sin(t * p.sp + p.ph) * 0.15;
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ── BREAKING BANNER ─────────────────────────────────────
+function drawBreakingBanner() {
+  const bw = W - 32;
+  rr(16, 14, bw, 26, 6);
+  ctx.fillStyle = '#f8514922';
+  ctx.fill();
+  rr(16, 14, bw, 26, 6);
+  ctx.strokeStyle = '#f8514966';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#f85149';
+  ctx.textAlign = 'left';
+  ctx.fillText('🔴 BREAKING', 24, 31);
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText(news.updated, W - 16 - ctx.measureText(news.updated).width, 31);
+  ctx.textAlign = 'left';
+}
+
+// ── TOP STORY ───────────────────────────────────────────
+function drawTopStory(y) {
+  panel(16, y, W - 32, 120, 14);
+
+  // Category tag
+  const top = y + 14;
+  const catColor = '#f85149';
+  catTag(28, top, '🔥', 'BREAKING', catColor);
+
+  // Headline
+  const hl = news.topStory.headline;
+  const hlFont = 'bold 17px -apple-system, BlinkMacSystemFont, sans-serif';
+  const hlLines = measure(hl, hlFont, W - 56, 24).lines;
+  let hly = top + 26;
+  for (const line of hlLines) {
+    ctx.font = hlFont;
+    ctx.fillStyle = '#f0f6fc';
+    ctx.textAlign = 'left';
+    ctx.fillText(line.text, 28, hly + line.y + 17);
+    hly += 24;
+  }
+
+  // Source + time
+  const srcY = top + 26 + hlLines.length * 24 + 8;
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#484f58';
+  ctx.textAlign = 'left';
+  ctx.fillText(news.topStory.source + ' · ' + news.topStory.time, 28, srcY + 10);
+  ctx.textAlign = 'left';
+
+  return 14 + 120;
+}
+
+// ── STORY CARD ─────────────────────────────────────────
+function drawStoryCard(y, story, index) {
+  const cardH = 76;
+  panel(16, y, W - 32, cardH, 12);
+
+  const innerY = y + 12;
+
+  // Category
+  const colors = ['#58a6ff', '#3fb950', '#f78166', '#d29922', '#a371f7', '#f85149'];
+  const c = colors[index % colors.length];
+  catTag(28, innerY, story.categoryIcon, story.category, c);
+
+  // Headline
+  const hf = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+  const hl = measure(story.headline, hf, W - 56, 20).lines;
+  let hly = innerY + 22;
+  for (const line of hl) {
+    ctx.font = hf;
+    ctx.fillStyle = '#f0f6fc';
+    ctx.textAlign = 'left';
+    ctx.fillText(line.text, 28, hly + line.y + 14);
+    hly += 20;
+  }
+
+  // Source + time
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#484f58';
+  ctx.textAlign = 'left';
+  ctx.fillText(story.source + ' · ' + story.time, 28, innerY + 22 + hl.length * 20 + 8);
+  ctx.textAlign = 'left';
+
+  return cardH + 10;
+}
+
+// ── RENDER ─────────────────────────────────────────────
+const MX = 16;
+let t = 0;
+
+function render() {
+  t += 0.016;
+
+  canvas.height = 660;
+  canvas.style.height = '660px';
+  fr(0, 0, W, 660, '#0d1117');
+
+  let y = 0;
+
+  drawBg();
+  y = 14;
+
+  drawBreakingBanner();
+  y += 40;
+
+  const topH = drawTopStory(y);
+  y += topH + 12;
+
+  // Section label
+  ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#484f58';
+  ctx.textAlign = 'left';
+  ctx.fillText('LATEST STORIES', MX + 2, y + 10);
+  ctx.textAlign = 'left';
+  y += 20;
+
+  for (let i = 0; i < news.stories.length; i++) {
+    y += drawStoryCard(y, news.stories[i], i);
+  }
+
+  y += 8;
+  ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillStyle = '#21262d';
+  ctx.textAlign = 'center';
+  ctx.fillText('DuckBot News · Sources: Democracy Now, Aerotech, Tech Startups, TheStreet, Crescendo AI', W / 2, y + 8);
+  ctx.textAlign = 'left';
+
+  requestAnimationFrame(render);
+}
+
+render();
+</script>
+</body>
+</html>
