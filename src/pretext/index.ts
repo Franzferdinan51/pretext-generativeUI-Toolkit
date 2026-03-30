@@ -38,3 +38,15 @@ export {
   type StreamingCursorProps,
   type ChunkStreamProps
 } from './PretextStream'
+
+export {
+  measureSceneText,
+  resolveMotion,
+  sceneTemplates,
+  type SceneTextNode,
+  type SceneObstacle,
+  type SceneMotion,
+  type SceneNode,
+  type SceneDefinition,
+  type LaidOutTextLine,
+} from './SceneEngine'

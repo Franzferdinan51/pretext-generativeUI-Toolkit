@@ -70,6 +70,18 @@ User Request → Pretext measures text → Canvas draws at exact positions
 | `metric` | Stat/metric card with trend indicator |
 | `plant` | Plant health dashboard with photo |
 
+### Pretext Scene Engine (NEW)
+A reusable foundation for active typography scenes:
+- text nodes with measured layout
+- obstacle nodes for future text-flow around objects
+- motion primitives: `float`, `orbit`, `pulse`, `drift`
+- starter templates: `weather`, `crypto`, `orbit`
+
+Core exports:
+- `measureSceneText()`
+- `resolveMotion()`
+- `sceneTemplates()`
+
 ### Full Websites (A2UI + React)
 | Section | Content |
 |---------|---------|
@@ -154,29 +166,36 @@ npm run mcp
 ### Pretext Canvas Pipeline
 ```
 ┌─────────────────────────────────────────────┐
-│                 User Request                    │
+│                 User Request                │
 └─────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────┐
-│  Pretext (text measurement)                     │
-│  - prepareWithSegments()                       │
-│  - layoutWithLines() → {x, y, width, height}  │
-│  - ~0.09ms per layout (cached!)               │
+│  Pretext (text measurement)                 │
+│  - prepareWithSegments()                    │
+│  - layoutWithLines() → {x, y, width}        │
+│  - ~0.09ms per layout (cached!)             │
 └─────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────┐
-│  Canvas (GPU rendering)                         │
-│  - ctx.fillText(x, y) at Pretext positions     │
-│  - requestAnimationFrame() for animations     │
-│  - No DOM, No CSS, No Reflow                 │
+│  Scene Engine (NEW)                         │
+│  - text nodes / obstacle nodes              │
+│  - motion: float / orbit / pulse / drift    │
+│  - template packs for reusable scenes       │
 └─────────────────────────────────────────────┘
                          ↓
 ┌─────────────────────────────────────────────┐
-│              Animated UI Output                 │
-│  - Weather cards                              │
-│  - Crypto charts                              │
-│  - Plant dashboards                            │
-│  - Any visual you can imagine                 │
+│  Canvas (GPU rendering)                     │
+│  - ctx.fillText(x, y) at Pretext positions  │
+│  - requestAnimationFrame() animations       │
+│  - No DOM, No CSS, No Reflow                │
+└─────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────┐
+│              Animated UI Output             │
+│  - Weather cards                            │
+│  - Crypto charts                            │
+│  - Plant dashboards                         │
+│  - Active text scenes / orbit systems       │
 └─────────────────────────────────────────────┘
 ```
 
@@ -212,11 +231,18 @@ pretext-generative-ui-toolkit/
 │
 ├── backend/
 │   ├── cli.js               # CLI (pretext-canvas + generative-ui)
-│   ├── mcp-server.js       # MCP server (both modes)
+│   ├── mcp-server.js        # MCP server (both modes)
 │   ├── pretext-server.js    # Pretext HTTP API (port 3458)
 │   ├── pretext-generator.js # Pretext-enhanced generator
 │   ├── fast-generator.js    # Simple HTML generator
-│   └── generative-ui.js     # Full AI generator (A2UI)
+│   ├── generative-ui.js     # Full AI generator (A2UI)
+│   └── verify.js            # Shipping sanity checks
+│
+├── src/pretext/
+│   ├── SceneEngine.ts       # Scene nodes + motion primitives
+│   ├── PretextCanvas.tsx
+│   ├── PretextLayout.tsx
+│   └── PretextStream.tsx
 │
 ├── examples/
 │   ├── pretext-weather-canvas.html
