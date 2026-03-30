@@ -41,6 +41,7 @@ export {
 
 export {
   measureSceneText,
+  layoutTextAroundObstacle,
   resolveMotion,
   sceneTemplates,
   type SceneTextNode,

@@ -31,6 +31,10 @@ npm run cli -- scene orbit "Pretext Motion Demo"
 # Verify generated HTML quickly
 npm run cli -- verify-html /tmp/orbit-scene.html
 
+# Measure / validate text directly
+npm run cli -- measure "Pretext scene engine"
+npm run cli -- fit "CTA button label"
+
 # Verify served output + linked image assets
 npm run verify:generated -- /tmp/plant.html http://localhost:8080
 ```
@@ -147,6 +151,10 @@ npm run mcp
 | `generate_metric` | Metric/stat card |
 | `generate_scene` | Build animated scene HTML from a template |
 | `validate_text_fit` | Verify text fits width/line constraints |
+| `measure_text` | Measure text height and line count |
+| `layout_lines` | Return exact laid out text lines |
+| `find_optimal_width` | Find minimum width for a target line count |
+| `float_text` | Flow text around obstacle rectangles |
 | `serve_file` | Get LAN URL |
 | `get_template` | Template info |
 

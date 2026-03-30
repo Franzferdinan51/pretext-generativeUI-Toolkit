@@ -77,6 +77,22 @@ async function main() {
     console.log(JSON.stringify(verifyGeneratedHtml(path), null, 2))
     process.exit(0)
   }
+
+  if (args[0] === 'measure' || args[0] === 'fit') {
+    const action = args[0] === 'measure' ? 'measure_text' : 'validate_text_fit'
+    const text = args.slice(1).join(' ')
+    if (!text) {
+      console.error(`Usage: generative-ui ${args[0]} "some text"`)
+      process.exit(1)
+    }
+    const response = await fetch('http://localhost:3458', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, text, maxWidth: 280, maxLines: 2, fontSize: 16 })
+    })
+    console.log(JSON.stringify(await response.json(), null, 2))
+    process.exit(0)
+  }
   
   let description = ''
   let sections = DEFAULT_SECTIONS
@@ -152,6 +168,8 @@ Usage:
   generative-ui [options] "desc"           With options
   generative-ui scene <template> [title]    Generate animated scene html
   generative-ui verify-html <file>          Verify generated html sanity
+  generative-ui measure "text"             Measure text with Pretext server
+  generative-ui fit "text"                 Validate text fit with Pretext server
 
 Options:
   --sections <list>    Comma-separated sections (default: all)

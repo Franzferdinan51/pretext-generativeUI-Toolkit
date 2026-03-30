@@ -77,6 +77,62 @@ const TOOLS = [
       },
       required: ['text', 'maxWidth']
     }
+  },
+  {
+    name: 'measure_text',
+    description: 'Measure text height and line count using Pretext',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        fontSize: { type: 'number' },
+        maxWidth: { type: 'number' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'layout_lines',
+    description: 'Return exact laid out text lines using Pretext',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        fontSize: { type: 'number' },
+        maxWidth: { type: 'number' },
+        lineHeight: { type: 'number' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'find_optimal_width',
+    description: 'Find minimum width for a target max line count',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        fontSize: { type: 'number' },
+        maxLines: { type: 'number' },
+        minWidth: { type: 'number' },
+        maxWidth: { type: 'number' }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'float_text',
+    description: 'Flow text around an obstacle rectangle',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+        fontSize: { type: 'number' },
+        maxWidth: { type: 'number' },
+        obstacle: { type: 'object' }
+      },
+      required: ['text']
+    }
   }
 ]
 
@@ -126,6 +182,22 @@ const IMPLEMENTATIONS = {
 
   async validate_text_fit(params) {
     return await callPretextServer('validate_text_fit', params)
+  },
+
+  async measure_text(params) {
+    return await callPretextServer('measure_text', params)
+  },
+
+  async layout_lines(params) {
+    return await callPretextServer('layout_lines', params)
+  },
+
+  async find_optimal_width(params) {
+    return await callPretextServer('find_optimal_width', params)
+  },
+
+  async float_text(params) {
+    return await callPretextServer('float_text', params)
   }
 }
 

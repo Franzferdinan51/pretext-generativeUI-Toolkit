@@ -1,4 +1,4 @@
-import { prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+import { prepareWithSegments, layoutWithLines, layoutNextLine } from '@chenglou/pretext'
 
 export type SceneTextNode = {
   id: string
@@ -74,6 +74,30 @@ export function measureSceneText(node: SceneTextNode): LaidOutTextLine[] {
     x: align === 'center' ? baseX - line.width / 2 : align === 'right' ? baseX - line.width : baseX,
     y: baseY + line.y,
   }))
+}
+
+export function layoutTextAroundObstacle(text: string, font = '16px Inter', maxWidth = 320, lineHeight = 24, obstacle = { x: 0, y: 0, width: 120, height: 120 }) {
+  const prepared = prepareWithSegments(text, font)
+  const lines = []
+  let cursor = { segmentIndex: 0, graphemeIndex: 0 }
+  let y = 0
+
+  while (true) {
+    const inObstacle = y >= obstacle.y && y < obstacle.y + obstacle.height
+    const usableWidth = inObstacle ? maxWidth - obstacle.width - 10 : maxWidth
+    const line = layoutNextLine(prepared, cursor, usableWidth)
+    if (!line) break
+    lines.push({
+      text: line.text,
+      x: inObstacle ? obstacle.width + 10 : 0,
+      y,
+      width: line.width,
+    })
+    cursor = line.end
+    y += lineHeight
+  }
+
+  return { lines, height: y, obstacle }
 }
 
 export function resolveMotion(node: SceneNode, time: number): { dx: number; dy: number; scale: number; opacity: number } {
