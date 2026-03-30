@@ -1,6 +1,6 @@
 // ============================================================
-// A2UI + PRETEXT + RENDERIFY - FULL WEBSITE GENERATOR v4
-// Integrated with: renderify, ai-website, OpenClaw A2UI
+// A2UI + PRETEXT + GENERATIVE UI v5
+// Deep integration: CopilotKit OpenGenerativeUI patterns
 // ============================================================
 import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
@@ -11,34 +11,98 @@ interface A2UIElement { type: string; props: Record<string, any>; children?: str
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
 
 // ============================================
-// MULTI-MODEL CONFIG (from ai-website)
+// GENERATIVE UI COMPONENT TYPES (from OpenGenerativeUI)
 // ============================================
-const LLM_PROVIDERS = {
-  minimax: { name: 'MiniMax', model: 'MiniMax-M2.7', apiKey: MINIMAX_API_KEY, endpoint: 'https://api.minimax.io/v1/chat/completions' },
-  // Groq, Gemini, etc. can be added here
+/*
+From CopilotKit/OpenGenerativeUI - Output Types:
+
+┌─────────────────┬──────────────┐
+│ Algorithm viz   │ SVG/Canvas   │
+│ 3D animations   │ Three.js     │
+│ Charts          │ Chart.js     │
+│ Diagrams        │ SVG/Mermaid  │
+│ Interactive     │ HTML+JS      │
+│ Simulations     │ Canvas+JS    │
+│ Dashboards      │ HTML+CSS     │
+│ Network/graph   │ D3.js        │
+└─────────────────┴──────────────┘
+
+Pattern: useComponent hook → sandboxed iframe
+*/
+
+const GENERATIVE_COMPONENTS = {
+  // Charts
+  'line-chart': { library: 'Chart.js', props: ['data', 'labels', 'title'] },
+  'bar-chart': { library: 'Chart.js', props: ['data', 'labels', 'title'] },
+  'pie-chart': { library: 'Chart.js', props: ['data', 'labels'] },
+  'doughnut-chart': { library: 'Chart.js', props: ['data', 'labels'] },
+  
+  // Diagrams
+  'flowchart': { library: 'SVG', props: ['nodes', 'edges'] },
+  'sequence-diagram': { library: 'SVG', props: ['steps'] },
+  'erd': { library: 'SVG', props: ['entities', 'relationships'] },
+  'mermaid': { library: 'Mermaid', props: ['chart'] },
+  
+  // 3D
+  '3d-scene': { library: 'Three.js', props: ['objects', 'camera', 'lights'] },
+  '3d-animation': { library: 'Three.js', props: ['geometry', 'animation'] },
+  
+  // Interactive
+  'widget': { library: 'HTML+JS', props: ['content', 'interactive'] },
+  'form': { library: 'HTML', props: ['fields', 'onSubmit'] },
+  'dashboard': { library: 'HTML+CSS', props: ['metrics', 'charts'] },
+  'simulation': { library: 'Canvas+JS', props: ['physics', 'rules'] },
+  
+  // Network
+  'force-graph': { library: 'D3.js', props: ['nodes', 'links'] },
+  'tree': { library: 'D3.js', props: ['data', 'layout'] },
+  
+  // SVG
+  'svg-diagram': { library: 'SVG', props: ['shapes', 'paths'] },
+  'illustration': { library: 'SVG', props: ['style', 'content'] },
 }
 
 // ============================================
-// RENDERIFY-STYLE PIPELINE (core concept)
+// SKILLS SYSTEM (from CopilotKit)
 // ============================================
 /*
-RENDERIFY PIPELINE (from webllm/renderify):
+Skills are loaded on-demand via progressive disclosure.
+Each skill has SKILL.md with instructions.
+*/
+const SKILLS = {
+  'advanced-visualization': {
+    description: 'UI mockups, dashboards, Chart.js, generative art',
+    outputTypes: ['chart', 'dashboard', 'widget']
+  },
+  'svg-diagrams': {
+    description: 'SVG generation rules, component patterns, diagram types',
+    outputTypes: ['flowchart', 'diagram', 'illustration']
+  },
+  '3d-visualization': {
+    description: 'Three.js, WebGPU, 3D scenes and animations',
+    outputTypes: ['3d-scene', '3d-animation']
+  },
+  'algorithms': {
+    description: 'Algorithm visualizations, sorting, searching',
+    outputTypes: ['simulation', 'interactive']
+  }
+}
+
+// ============================================
+// RENDERIFY PIPELINE (from webllm/renderify)
+// ============================================
+/*
 1. LLM Output (JSX/TSX or JSON)
 2. CodeGen (parse + normalize)
 3. Security Policy Check (before execution!)
-4. Runtime Executor (Babel transpile + JSPM)
-5. Browser renders instantly
+4. Runtime Executor (Babel + JSPM)
+5. Browser renders
 
-SECURITY PROFILES:
-- strict: No dynamic imports, no eval
-- balanced: Allow JSPM packages
-- relaxed: Full npm access
-
-STREAMING: renderPromptStream emits llm-delta / preview / final
+Security profiles: strict | balanced | relaxed
 */
 
 // ============================================
-// AGENT RULES (from steipete)
+// AGENT RULES
 // ============================================
 const AGENT_RULES = `
 CRITICAL: Write code that is:
@@ -46,10 +110,7 @@ CRITICAL: Write code that is:
 2. COMPLETE - No TODOs, no placeholders
 3. CONSISTENT - Same pattern everywhere
 
-JSON OUTPUT RULES:
-- Always output valid JSON
-- Use this format: {"elements":{"KEY":{"type":"TYPE","props":{...}}}}
-- Never output markdown code blocks
+Return ONLY valid JSON in A2UI format.
 `
 
 // ============================================
@@ -57,13 +118,9 @@ JSON OUTPUT RULES:
 // ============================================
 const CREATIVE_BRIEF = `
 You are building a landing page for "PretextFlow" - a text layout engine for developers.
-
-BRAND: Professional, Stripe/Linear/Vercel quality.
+BRAND: Professional, Stripe/Linear/Vercel.
 STYLE: Dark mode, purple/pink gradients on #0a0a0f.
-TARGET: Developers who want fast UI without layout reflows.
-
 SECTIONS: Nav → Hero → Features → Stats → How It Works → Code → Pricing → FAQ → CTA → Footer
-
 Return ONLY valid JSON.
 `
 
@@ -121,7 +178,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 // ============================================
-// COMPONENTS (A2UI spec)
+// COMPONENTS
 // ============================================
 const Nav = ({ logo, links }: any) => <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 border-b border-white/10"><span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span><div className="flex gap-6">{links?.map((l: string, i: number) => <a key={i} href="#" className="text-gray-400 hover:text-white text-sm">{l}</a>)}</div><button className="px-5 py-2 rounded-xl bg-purple-600 font-bold text-sm">Get Started</button></nav>
 
@@ -148,21 +205,56 @@ const CTA = ({ title, sub, btn }: any) => <section className="py-24 px-8 text-ce
 const Footer = ({ links, copy }: any) => <footer className="py-12 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-8">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-semibold mb-3 text-purple-400 text-sm">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-600 text-xs border-t border-white/5 pt-8">{copy}</div></div></footer>
 
 // ============================================
-// PIPELINE SECTION (renderify concept)
+// GENERATIVE UI SHOWCASE (from OpenGenerativeUI)
 // ============================================
-const PipelineDiagram = () => {
-  const steps = [
-    { num: '1', title: 'LLM Output', desc: 'JSX/TSX or JSON', color: 'from-blue-500 to-cyan-500' },
-    { num: '2', title: 'CodeGen', desc: 'Parse + normalize', color: 'from-purple-500 to-pink-500' },
-    { num: '3', title: 'Security', desc: 'Policy check', color: 'from-orange-500 to-red-500' },
-    { num: '4', title: 'Execute', desc: 'Babel + JSPM', color: 'from-green-500 to-emerald-500' },
-    { num: '5', title: 'Render', desc: 'Browser UI', color: 'from-cyan-500 to-blue-500' },
+const GenerativeUIShowcase = () => {
+  const outputTypes = [
+    { type: '📊', name: 'Charts', desc: 'Line, Bar, Pie, Doughnut', library: 'Chart.js' },
+    { type: '🔄', name: 'Flowcharts', desc: 'Process, Sequence, ERD', library: 'SVG/Mermaid' },
+    { type: '📈', name: 'Dashboards', desc: 'Metrics, KPIs, Metrics cards', library: 'HTML+CSS' },
+    { type: '🎮', name: 'Simulations', desc: 'Physics, Math, Interactive', library: 'Canvas+JS' },
+    { type: '🌐', name: '3D Scenes', desc: 'WebGPU, Three.js', library: 'Three.js' },
+    { type: '🕸️', name: 'Networks', desc: 'Force graphs, Trees', library: 'D3.js' },
+    { type: '🎨', name: 'Diagrams', desc: 'Illustrations, Architecture', library: 'SVG' },
+    { type: '🖼️', name: 'Widgets', desc: 'Interactive UI components', library: 'HTML+JS' },
   ]
   
   return (
     <section className="py-16 px-8 bg-gradient-to-br from-purple-900/10 to-pink-900/10">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">🤖 Generative UI Output Types</h2>
+        <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit/OpenGenerativeUI</p>
+        <div className="grid grid-cols-4 gap-4">
+          {outputTypes.map((item, i) => (
+            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
+              <div className="text-3xl mb-2">{item.type}</div>
+              <h4 className="font-semibold text-sm mb-1">{item.name}</h4>
+              <p className="text-xs text-gray-500 mb-2">{item.desc}</p>
+              <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">{item.library}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ============================================
+// PIPELINE DIAGRAM
+// ============================================
+const PipelineDiagram = () => {
+  const steps = [
+    { num: '1', title: 'LLM Output', desc: 'JSON/JSX', color: 'from-blue-500 to-cyan-500' },
+    { num: '2', title: 'CodeGen', desc: 'Parse', color: 'from-purple-500 to-pink-500' },
+    { num: '3', title: 'Security', desc: 'Policy Check', color: 'from-orange-500 to-red-500' },
+    { num: '4', title: 'Execute', desc: 'Sandbox', color: 'from-green-500 to-emerald-500' },
+    { num: '5', title: 'Render', desc: 'iframe', color: 'from-cyan-500 to-blue-500' },
+  ]
+  
+  return (
+    <section className="py-16 px-8 bg-black/40">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-black text-center mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">⚡ Renderify Pipeline</h2>
+        <h2 className="text-2xl font-black text-center mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">⚡ Generative UI Pipeline</h2>
         <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
           {steps.map((step, i) => (
             <React.Fragment key={i}>
@@ -175,12 +267,40 @@ const PipelineDiagram = () => {
             </React.Fragment>
           ))}
         </div>
-        <div className="mt-8 p-4 rounded-xl bg-black/40 border border-white/10">
+        <div className="mt-8 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
           <div className="flex flex-wrap gap-4 justify-center text-xs">
-            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">🔒 Security Profiles: strict | balanced | relaxed</span>
+            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">🔒 Security: strict | balanced | relaxed</span>
             <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400">📦 JSPM Module Resolution</span>
-            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400">⚡ Streaming Render</span>
+            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400">⚡ Streaming Progressive</span>
+            <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400">🖼️ Sandboxed iframe</span>
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ============================================
+// SKILLS SECTION
+// ============================================
+const SkillsSection = () => {
+  const skills = Object.entries(SKILLS).map(([name, data]) => ({ name, ...data }))
+  
+  return (
+    <section className="py-16 px-8">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-2xl font-black text-center mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📚 Skills System</h2>
+        <p className="text-gray-500 text-center mb-8 text-sm">From CopilotKit - Progressive Disclosure</p>
+        <div className="grid grid-cols-2 gap-4">
+          {skills.map((skill, i) => (
+            <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]">
+              <h4 className="font-semibold mb-2 text-purple-400">⚡ {skill.name}</h4>
+              <p className="text-xs text-gray-500 mb-3">{skill.description}</p>
+              <div className="flex flex-wrap gap-1">
+                {skill.outputTypes.map((type, j) => <span key={j} className="text-xs px-2 py-0.5 rounded bg-white/5 text-gray-400">{type}</span>)}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -198,12 +318,12 @@ const FALLBACK_SPEC: A2UISpec = {
     hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement Without Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic.", pBtn: "Start Free", sBtn: "View Docs" }},
     featSection: { type: "Section", props: { title: "Why PretextFlow?", sub: "The modern way to handle text layout" }, children: ["featGrid"]},
     featGrid: { type: "Grid", props: { cols: 3 }, children: ["f1", "f2", "f3", "f4", "f5", "f6"]},
-    f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement. Cached results." }},
-    f2: { type: "Card", props: { emoji: "🔒", title: "Secure by Design", desc: "No eval. Pure declarative JSON." }},
-    f3: { type: "Card", props: { emoji: "🌍", title: "Universal", desc: "React, Vue, Svelte, or vanilla." }},
-    f4: { type: "Card", props: { emoji: "📱", title: "Any Surface", desc: "DOM, Canvas, SVG, game engines." }},
-    f5: { type: "Card", props: { emoji: "🎯", title: "Precise", desc: "Browser font engine as ground truth." }},
-    f6: { type: "Card", props: { emoji: "♿", title: "Accessible", desc: "RTL languages built in." }},
+    f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement." }},
+    f2: { type: "Card", props: { emoji: "🔒", title: "Secure by Design", desc: "No eval. Pure JSON." }},
+    f3: { type: "Card", props: { emoji: "🌍", title: "Universal", desc: "React, Vue, Svelte." }},
+    f4: { type: "Card", props: { emoji: "📱", title: "Any Surface", desc: "DOM, Canvas, SVG." }},
+    f5: { type: "Card", props: { emoji: "🎯", title: "Precise", desc: "Browser font engine." }},
+    f6: { type: "Card", props: { emoji: "♿", title: "Accessible", desc: "RTL built in." }},
     statsSection: { type: "Section", props: { title: "Numbers Don't Lie" }, children: ["statsGrid"]},
     statsGrid: { type: "Grid", props: { cols: 4 }, children: ["m1", "m2", "m3", "m4"]},
     m1: { type: "Metric", props: { val: "0.09ms", label: "Per Call" }},
@@ -212,16 +332,16 @@ const FALLBACK_SPEC: A2UISpec = {
     m4: { type: "Metric", props: { val: "4.9/5", label: "Dev Rating" }},
     howSection: { type: "Section", props: { title: "How It Works", sub: "Three steps" }, children: ["howGrid"]},
     howGrid: { type: "Grid", props: { cols: 3 }, children: ["s1", "s2", "s3"]},
-    s1: { type: "Step", props: { num: "1", title: "Install", desc: "npm install @pretextflow/core" }},
-    s2: { type: "Step", props: { num: "2", title: "Measure", desc: "pretext.measure(text, width)" }},
-    s3: { type: "Step", props: { num: "3", title: "Render", desc: "Use positions anywhere" }},
+    s1: { type: "Step", props: { num: "1", title: "Install", desc: "npm install @pretextflow" }},
+    s2: { type: "Step", props: { num: "2", title: "Measure", desc: "pretext.measure()" }},
+    s3: { type: "Step", props: { num: "3", title: "Render", desc: "Use anywhere" }},
     codeSection: { type: "Section", props: { title: "Simple API", sub: "One function" }, children: ["code"]},
-    code: { type: "CodeBlock", props: { lang: "typescript", code: "import { prepare, layout } from '@pretextflow/core'\n\nconst prepared = prepare('Hello', '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(`Height: ${height}px`)" }},
+    code: { type: "CodeBlock", props: { lang: "typescript", code: "import { prepare, layout } from '@pretextflow/core'\n\nconst prepared = prepare('Hello', '16px Inter')\nconst { height } = layout(prepared, 400, 24)" }},
     pricingSection: { type: "Section", props: { title: "Simple Pricing", sub: "Start free" }, children: ["pricingGrid"]},
     pricingGrid: { type: "Grid", props: { cols: 3 }, children: ["p1", "p2", "p3"]},
-    p1: { type: "Pricing", props: { tier: "Hobby", price: "$0", features: ["100K calls", "Community support"]}},
-    p2: { type: "Pricing", props: { tier: "Pro", price: "$29", features: ["Unlimited", "Priority support"], highlight: true, btn: "Start Trial"}},
-    p3: { type: "Pricing", props: { tier: "Enterprise", price: "Custom", features: ["Everything", "Dedicated support"]}},
+    p1: { type: "Pricing", props: { tier: "Hobby", price: "$0", features: ["100K calls", "Community"]}},
+    p2: { type: "Pricing", props: { tier: "Pro", price: "$29", features: ["Unlimited", "Support"], highlight: true, btn: "Start Trial"}},
+    p3: { type: "Pricing", props: { tier: "Enterprise", price: "Custom", features: ["Everything", "Dedicated"]}},
     faqSection: { type: "Section", props: { title: "FAQ" }, children: ["faqGrid"]},
     faqGrid: { type: "Grid", props: { cols: 2 }, children: ["faq1", "faq2", "faq3", "faq4", "faq5"]},
     faq1: { type: "FAQ", props: { q: "What makes it fast?", a: "Browser font engine + caching." }},
@@ -229,7 +349,7 @@ const FALLBACK_SPEC: A2UISpec = {
     faq3: { type: "FAQ", props: { q: "Game dev?", a: "Perfect for Canvas/WebGL." }},
     faq4: { type: "FAQ", props: { q: "React integration?", a: "Yes, plus Vue/Svelte." }},
     faq5: { type: "FAQ", props: { q: "RTL languages?", a: "Full support built in." }},
-    cta: { type: "CTA", props: { title: "Ready to go fast?", sub: "Join thousands of developers.", btn: "Get Started Free" }},
+    cta: { type: "CTA", props: { title: "Ready to go fast?", sub: "Join developers.", btn: "Get Started Free" }},
     footer: { type: "Footer", props: { links: { Product: ["Features", "Pricing"], Developers: ["Docs", "API"], Company: ["About", "Blog"], Legal: ["Privacy", "Terms"]}, copy: "© 2026 PretextFlow" }}
   }
 }
@@ -266,16 +386,16 @@ function renderSpec(spec: A2UISpec): ReactNode {
 // AGENTS
 // ============================================
 const AGENTS = {
-  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Nav JSON only.` },
-  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Hero JSON only.` },
-  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Features JSON only.` },
-  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Stats JSON only.` },
-  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate How It Works JSON only.` },
-  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Code Example JSON only.` },
-  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Pricing JSON only.` },
-  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate FAQ JSON only.` },
-  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate CTA JSON only.` },
-  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Footer JSON only.` }
+  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nNav JSON only.` },
+  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nHero JSON only.` },
+  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFeatures JSON only.` },
+  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nStats JSON only.` },
+  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nHow It Works JSON only.` },
+  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nCode Example JSON only.` },
+  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nPricing JSON only.` },
+  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFAQ JSON only.` },
+  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nCTA JSON only.` },
+  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nFooter JSON only.` }
 }
 
 // ============================================
@@ -306,7 +426,7 @@ export default function App() {
   
   async function enhanceWithAI() {
     setIsGenerating(true)
-    setLogs(['✨ AI Pipeline running...'])
+    setLogs(['🤖 Generative UI Pipeline running...'])
     const elements: Record<string, A2UIElement> = {}
     const keys = Object.keys(AGENTS)
     
@@ -339,7 +459,7 @@ export default function App() {
     }
     
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-4), `⚡ Done!`])
+    setLogs(prev => [...prev.slice(-4), `🤖 Done!`])
   }
   
   useEffect(() => { enhanceWithAI() }, [])
@@ -355,10 +475,10 @@ export default function App() {
               <span className="font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">PretextFlow</span>
             </div>
             <div className="flex items-center gap-3">
-              {!isGenerating && <span className="text-xs text-green-400/80">⚡ Pipeline Ready</span>}
+              {!isGenerating && <span className="text-xs text-green-400/80">🤖 Ready</span>}
               {isGenerating && <span className="text-xs text-purple-400">{phase}</span>}
               <button onClick={enhanceWithAI} disabled={isGenerating} className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-purple-500 transition">
-                {isGenerating ? '⏳' : '⚡'}
+                {isGenerating ? '⏳' : '🤖'}
               </button>
             </div>
           </div>
@@ -372,7 +492,9 @@ export default function App() {
         
         <main className="pt-16">
           {renderSpec(spec)}
+          <GenerativeUIShowcase />
           <PipelineDiagram />
+          <SkillsSection />
         </main>
       </div>
     </ErrorBoundary>

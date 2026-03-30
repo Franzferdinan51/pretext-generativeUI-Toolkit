@@ -1,7 +1,7 @@
-# Pretext + A2UI Toolkit v3
+# Pretext + A2UI + GenerativeUI Toolkit v5
 
 <p align="center">
-  <strong>📐 Pretext Layout + 🤖 AI Generation + ⚡ Runtime Rendering</strong>
+  <strong>📐 Pretext Layout + 🤖 Generative UI + ⚡ Runtime Rendering</strong>
 </p>
 
 ---
@@ -12,78 +12,97 @@
 
 ---
 
-## 🏗️ Architecture (Inspired by 5 Powerful Projects)
+## 🏗️ Architecture (Inspired by 8 Projects)
 
-### 1. jadouse5/ai-website - On-the-fly Generation
-- **URL → Prompt → HTML** pipeline
-- Multiple LLM providers (Gemini, Groq, Mercury, Qwen)
-- Infinite scalability - pages don't exist as files
-- Real-time personalization
+### 1. CopilotKit/OpenGenerativeUI (MOST RELEVANT!)
+**Our closest match!** Pure generative UI framework.
+- Sandboxed iframe rendering
+- Progressive reveal animations
+- Automatic light/dark theming
+- Skills-based architecture (SKILL.md)
+- Deep agent with tools
+- `useComponent` hook for generative UI
+- Output types: charts, diagrams, 3D, SVG, HTML
 
-### 2. dennismeissel/WebSite-Generator - Natural Language Editing
-- Describe → Generate → Update in real-time
-- macOS native experience
-
-### 3. webllm/renderify - Runtime JSX/TSX (CRITICAL!)
-- **LLM generates JSX → Browser renders directly**
-- **No backend build step!**
-- Security policy checker before execution
+### 2. webllm/renderify (JSX Runtime)
+- LLM generates JSX → Browser renders directly
+- Zero backend build step
+- Security policy checker
+- JSPM module resolution
 - Streaming-first rendering
-- JSPM module resolution at runtime
-- Zero-build rendering
 
-### 4. openclaw/openclaw - A2UI Standard
-- Declarative JSON UI format
-- Live Canvas implementation
+### 3. jadouse5/ai-website
+- URL → Prompt → HTML pipeline
+- Multiple LLM providers
+- Infinite scalability
+
+### 4. Orillusion (WebGPU 3D)
+- 3D rendering in browser
+- WebGPU standard
+- Desktop-level effects
+
+### 5. krea-ai/realtime-video (Reference)
+- Real-time AI video generation
+- WebSocket streaming
+- 11 fps on B200
+
+### 6. openclaw/openclaw
+- A2UI Live Canvas standard
 - Multi-agent routing
 
-### 5. steipete - Agent Rules
-- SIMPLE, COMPLETE, CONSISTENT code
-- No TODOs or placeholders
+### 7. google/A2UI
+- Declarative JSON UI spec
+
+### 8. steipete
+- Agent rules (SIMPLE, COMPLETE, CONSISTENT)
 
 ---
 
-## 📐 Pretext - CSS Replacing Layout
-
-| Method | What It Does |
-|--------|-------------|
-| `masonry()` | Auto-calculated column heights |
-| `floatAround()` | Text flows around obstacles |
-| `shrinkwrap()` | Find tightest width |
-
----
-
-## ⚡ Renderify Pipeline (NEW!)
+## ⚡ Generative UI Pipeline
 
 ```
-LLM Output (JSX/TSX)
-  ↓
-CodeGen (parse + normalize)
-  ↓
-Security Policy Check
-  ↓
-Runtime Executor (Babel transpile + JSPM)
-  ↓
-Browser renders instantly!
-```
+User Prompt → Deep Agent → Skills → Component Type → Render
 
-### Key Features:
-- **Zero-build** - No backend compiler
-- **Security-first** - Policy checker before execution
-- **Streaming** - Progressive UI updates
-- **Pluggable** - 10 hook points
+Types of Output:
+┌─────────────────┬──────────────┐
+│ Algorithm viz   │ SVG/Canvas   │
+│ 3D animations   │ Three.js    │
+│ Charts          │ Chart.js    │
+│ Diagrams        │ SVG/Mermaid │
+│ Interactive     │ HTML+JS     │
+│ Simulations     │ Canvas+JS   │
+│ Dashboards      │ HTML+CSS    │
+└─────────────────┴──────────────┘
+```
 
 ---
 
-## 🎯 Tech Stack
+## 🎨 Tech Stack
 
-| Tech | Purpose |
-|------|---------|
-| **Pretext** | Text measurement + layouts |
-| **A2UI** | Declarative UI spec |
-| **Renderify** | Runtime JSX rendering |
-| **React** | UI framework |
-| **MiniMax** | AI generation |
+| Layer | Technology |
+|-------|------------|
+| **Layout** | Pretext (~0.09ms) |
+| **UI Spec** | A2UI JSON |
+| **Rendering** | React + iframe sandbox |
+| **3D** | Orillusion WebGPU |
+| **Agent** | MiniMax M2.7 + Skills |
+| **Streaming** | WebSocket-ready |
+
+---
+
+## 📦 Output Types (from OpenGenerativeUI)
+
+| When user asks... | Output | Tech |
+|-------------------|--------|------|
+| How X works (physical) | Illustrative diagram | SVG |
+| Process/steps | Flowchart | SVG |
+| Trends over time | Line chart | Chart.js |
+| Category comparison | Bar chart | Chart.js |
+| KPIs/metrics | Dashboard | HTML |
+| Architecture | Structural diagram | SVG |
+| Physics/math | Simulation | Canvas+JS |
+| 3D visualization | 3D scene | Three.js |
+| Network/graph | Force layout | D3.js |
 
 ---
 
@@ -91,15 +110,17 @@ Browser renders instantly!
 
 | Project | Link |
 |---------|------|
-| **Pretext** | [chenglou/pretext](https://github.com/chenglou/pretext) |
-| **ai-website** | [jadouse5/ai-website](https://github.com/jadouse5/ai-website) |
-| **WebSite-Generator** | [dennismeissel/WebSite-Generator](https://github.com/dennismeissel/WebSite-Generator) |
+| **OpenGenerativeUI** | [CopilotKit/OpenGenerativeUI](https://github.com/CopilotKit/OpenGenerativeUI) |
 | **renderify** | [webllm/renderify](https://github.com/webllm/renderify) |
+| **ai-website** | [jadouse5/ai-website](https://github.com/jadouse5/ai-website) |
+| **Orillusion** | [Orillusion/orillusion](https://github.com/Orillusion/orillusion) |
+| **realtime-video** | [krea-ai/realtime-video](https://github.com/krea-ai/realtime-video) |
 | **OpenClaw** | [openclaw/openclaw](https://github.com/openclaw/openclaw) |
 | **A2UI** | [google/A2UI](https://github.com/google/A2UI) |
+| **Pretext** | [chenglou/pretext](https://github.com/chenglou/pretext) |
 
 ---
 
 <p align="center">
-  📐 Pretext • 🤖 A2UI • ⚡ Renderify • 🔒 Security-First
+  📐 Pretext • 🤖 GenerativeUI • ⚡ Zero-build • 🔒 Sandboxed
 </p>
