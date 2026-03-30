@@ -411,8 +411,6 @@ export default function App() {
   const initRef = useRef(false)
   const startTimeRef = useRef(0)
   
-  useEffect(() => { if (!initRef.current) { initRef.current = true; startTimeRef.current = Date.now(); runSwarm().catch(console.error) } }, [])
-  
   async function callMiniMax(system: string) {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
@@ -439,24 +437,6 @@ export default function App() {
     } catch {}
     return []
   }
-  
-  // Pretext benchmark
-  function runPretextBenchmark() {
-    const testText = 'Pretext measures text without DOM reflow at ~0.09ms per call.'
-    const iterations = 100
-    
-    const start = performance.now()
-    for (let i = 0; i < iterations; i++) {
-      pretextCore.measure(testText, 16, 600, 24)
-    }
-    const end = performance.now()
-    const totalMs = end - start
-    const perCall = totalMs / iterations
-    
-    setPretextStats({ iterations, totalMs: totalMs.toFixed(2), perCall: perCall.toFixed(3) })
-  }
-  
-  useEffect(() => { runPretextBenchmark() }, [])
   
   async function runSwarm() {
     setIsGenerating(true); setLogs([])
@@ -498,6 +478,27 @@ export default function App() {
     setPhase('Complete!'); setIsGenerating(false)
     setLogs(prev => [...prev.slice(-10), `✅ Done in ${((Date.now() - startTimeRef.current) / 1000).toFixed(1)}s`])
   }
+  
+  // Pretext benchmark
+  function runPretextBenchmark() {
+    const testText = 'Pretext measures text without DOM reflow at ~0.09ms per call.'
+    const iterations = 100
+    
+    const start = performance.now()
+    for (let i = 0; i < iterations; i++) {
+      pretextCore.measure(testText, 16, 600, 24)
+    }
+    const end = performance.now()
+    const totalMs = end - start
+    const perCall = totalMs / iterations
+    
+    setPretextStats({ iterations, totalMs: totalMs.toFixed(2), perCall: perCall.toFixed(3) })
+  }
+  
+  // Run swarm on mount
+  useEffect(() => { if (!initRef.current) { initRef.current = true; startTimeRef.current = Date.now(); runSwarm().catch(console.error) } }, [])
+  
+  useEffect(() => { runPretextBenchmark() }, [])
   
   return (
     <ErrorBoundary>
