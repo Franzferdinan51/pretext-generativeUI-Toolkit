@@ -1,11 +1,11 @@
-# Pretext + GenerativeUI Toolkit
+# Pretext + Canvas AI UI Toolkit
 
 <p align="center">
-  <strong>🎨 Generate Real Websites On-The-Fly with AI</strong>
+  <strong>🎨 Generate UI via Pretext (text measurement) + Canvas (rendering)</strong>
 </p>
 
 <p align="center">
-  For OpenClaw agents • CLI • MCP • SKILL.md • Real-time UI Generation
+  AI controls every pixel with pure math • No DOM reflow • 60fps animations
 </p>
 
 ---
@@ -19,14 +19,22 @@ npm run dev
 # → http://localhost:3456
 ```
 
-### CLI (Terminal)
+### CLI (Pretext Canvas)
 ```bash
-npm run cli -- "SaaS landing page"
-npm run cli -- --sections nav,hero,pricing "Developer tool"
-npm run cli -- --brand "Acme" "E-commerce site"
+# Weather card
+npm run cli -- weather "72F sunny Dayton Ohio"
+
+# Crypto chart
+npm run cli -- crypto "Bitcoin $67000 24h up"
+
+# Metric card
+npm run cli -- metric "99.9% uptime positive"
+
+# Serve on LAN
+npm run cli -- serve /tmp/weather.html
 ```
 
-### MCP Server (For AI Agents)
+### MCP Server (Pretext Canvas)
 ```bash
 npm run mcp
 # → http://localhost:3457
@@ -34,24 +42,35 @@ npm run mcp
 
 ---
 
-## 🎯 What This Does
+## ⚡ What Is Pretext + Canvas?
 
-Transforms **natural language** into **complete websites**:
+**Pretext** measures text positions (x, y, width, height) WITHOUT DOM reflow.
+**Canvas** renders at exact Pretext-measured positions.
 
 ```
-"SaaS landing page for developer tools"
-    ↓
-[AI Generation Pipeline]
-    ↓
-{A2UI JSON Spec}
-    ↓
-{Rendered Website}
+User Request → Pretext measures text → Canvas draws at exact positions
+     ↓                    ↓                        ↓
+  Natural         - prepareWithSegments()    - ctx.fillText()
+  Language        - layoutWithLines()         - GPU accelerated
+     ↓                    ↓                        ↓
+  "72F"    ────────────→ [measured] ────────────→ rendered!
 ```
+
+**No CSS. No HTML elements. No DOM. Just pure math.**
 
 ---
 
-## 📦 What Gets Generated
+## 🎯 What Gets Generated
 
+### Pretext Canvas Cards (Pure Canvas, Animated)
+| Type | Description |
+|------|-------------|
+| `weather` | Animated weather card with aurora background |
+| `crypto` | Crypto price chart with live glow effects |
+| `metric` | Stat/metric card with trend indicator |
+| `plant` | Plant health dashboard with photo |
+
+### Full Websites (A2UI + React)
 | Section | Content |
 |---------|---------|
 | `nav` | Logo + navigation links |
@@ -65,121 +84,118 @@ Transforms **natural language** into **complete websites**:
 
 ---
 
-## 🤖 OpenClaw Integration
+## 🌐 Live Examples
 
-### SKILL.md
-Location: `.agents/skills/generative-ui/SKILL.md`
+All served via Tailscale: **http://100.68.208.113:8080/**
 
-OpenClaw auto-discovers and teaches agents:
+| Example | URL | Theme |
+|---------|-----|-------|
+| Weather | `/pretext-weather-glam.html` | Purple aurora |
+| Dragon Whip | `/dragon-whip.html` | Red RPG |
+| Plant Health | `/plant.html` | Green grow |
+| Bitcoin | `/bitcoin.html` | Orange finance |
 
+---
+
+## 🛠️ CLI Usage
+
+```bash
+# Generate cards
+npm run cli -- weather "68F partly cloudy Huber Heights"
+npm run cli -- crypto "Ethereum $3400 positive"
+npm run cli -- metric "10000 users active"
+
+# Options
+--output <path>   # Custom output
+--open            # Open in browser
+--serve           # Start LAN server
+
+# Serve existing file
+npm run cli -- serve /tmp/card.html
 ```
-Agent: "Build a landing page for my AI startup"
-→ generative-ui skill executes
-→ Returns complete website (A2UI JSON + HTML)
-```
 
-### MCP Server
-AI agents connect via JSON-RPC 2.0:
+---
+
+## 🤖 MCP Server
 
 ```bash
 npm run mcp
 # Endpoints:
 # GET  /health    - Health check
-# GET  /tools     - List tools  
-# POST /mcp       - MCP protocol
+# GET  /tools     - List tools
+# POST /          - Call tool: {tool, args}
 ```
 
-#### MCP Tools
+### MCP Tools
 | Tool | Description |
 |------|-------------|
-| `generate_ui` | Generate website from description |
-| `render_spec` | Render A2UI spec to HTML |
-| `list_components` | List available components |
+| `generate_weather` | Animated weather card |
+| `generate_crypto` | Crypto price chart |
+| `generate_metric` | Metric/stat card |
+| `serve_file` | Get LAN URL |
+| `get_template` | Template info |
 
-#### Connect to OpenClaw
+### OpenClaw Integration
 ```json
 {
   "mcpServers": {
-    "generative-ui": {
+    "pretext-canvas": {
       "command": "node",
-      "args": ["/path/to/backend/mcp-server.js"]
+      "args": ["./backend/mcp-server.js"]
     }
   }
 }
-```
-
-### CLI for Exec Tool
-```bash
-# Via OpenClaw exec tool
-generative-ui "Portfolio for freelancer"
-generative-ui --output html "SaaS dashboard"
-```
-
----
-
-## 🔧 CLI Usage
-
-```bash
-# Full website
-generative-ui "Modern SaaS landing page"
-
-# Specific sections
-generative-ui --sections nav,hero,pricing "Developer tool"
-
-# With brand
-generative-ui --brand "Acme Corp" "E-commerce"
-
-# HTML output
-generative-ui --output html "Portfolio"
-
-# List components
-generative-ui --list-components
-```
-
-### Options
-```
---sections <list>    Sections (nav,hero,features,pricing,faq,cta,footer)
---brand <name>      Brand name
---style <style>    dark or light (default: dark)
---output <format>   json, spec, or html (default: json)
---list-components   Show available components
 ```
 
 ---
 
 ## 🏗️ Architecture
 
+### Pretext Canvas Pipeline
 ```
-┌─────────────────────────────────────────────────────┐
-│                    User / Agent                      │
-└─────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────┐
-│  Interface (pick one)                               │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │
-│  │   CLI   │  │   MCP   │  │  SKILL │  │  REST  │ │
-│  └────┬────┘  └────┬────┘  └────┬────┘  └────┬───┘ │
-└───────┼────────────┼───────────┼────────────┼─────┘
-        ↓             ↓           ↓            ↓
-┌─────────────────────────────────────────────────────┐
-│              generative-ui.js (Core API)             │
-│  ┌──────────────┐  ┌──────────────┐               │
-│  │ generateUI() │  │ renderSpec() │               │
-│  └──────┬───────┘  └──────────────┘               │
-│         ↓                                            │
-│  ┌──────────────────────────────────────────────┐  │
-│  │           MiniMax M2.7 API                   │  │
-│  │  JSON-only generation • Fallback on failure   │  │
-│  └──────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────┐
-│                    A2UI Output                       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐         │
-│  │  JSON    │  │   HTML   │  │  React  │         │
-│  │  Spec    │  │  Render  │  │  Comps  │         │
-│  └──────────┘  └──────────┘  └──────────┘         │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│                 User Request                    │
+└─────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────┐
+│  Pretext (text measurement)                     │
+│  - prepareWithSegments()                       │
+│  - layoutWithLines() → {x, y, width, height}  │
+│  - ~0.09ms per layout (cached!)               │
+└─────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────┐
+│  Canvas (GPU rendering)                         │
+│  - ctx.fillText(x, y) at Pretext positions     │
+│  - requestAnimationFrame() for animations     │
+│  - No DOM, No CSS, No Reflow                 │
+└─────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────┐
+│              Animated UI Output                 │
+│  - Weather cards                              │
+│  - Crypto charts                              │
+│  - Plant dashboards                            │
+│  - Any visual you can imagine                 │
+└─────────────────────────────────────────────┘
+```
+
+### Full Toolkit Structure
+```
+┌─────────────────────────────────────────────┐
+│        Pretext Generative UI Toolkit           │
+├─────────────────────────────────────────────┤
+│  Pretext Canvas (NEW!)                         │
+│  ├── cli.js          - pretext-canvas command  │
+│  ├── mcp-server.js   - MCP JSON-RPC server     │
+│  ├── pretext-server.js - Text API server       │
+│  └── pretext-generator.js - Pretext generator  │
+├─────────────────────────────────────────────┤
+│  Full Website Generation (A2UI)                 │
+│  ├── generative-ui.js - Core API (MiniMax)    │
+│  ├── cli.js          - CLI tool                │
+│  └── mcp-server.js  - MCP server             │
+└─────────────────────────────────────────────┘
 ```
 
 ---
@@ -192,19 +208,43 @@ pretext-generative-ui-toolkit/
 ├── package.json
 │
 ├── src/webui/
-│   └── App.tsx              # React web UI
+│   └── App.tsx              # React web UI (A2UI)
 │
 ├── backend/
-│   ├── generative-ui.js      # Core API (ESM)
-│   ├── cli.js                # CLI tool
-│   └── mcp-server.js         # MCP server
+│   ├── cli.js               # CLI (pretext-canvas + generative-ui)
+│   ├── mcp-server.js       # MCP server (both modes)
+│   ├── pretext-server.js    # Pretext HTTP API (port 3458)
+│   ├── pretext-generator.js # Pretext-enhanced generator
+│   ├── fast-generator.js    # Simple HTML generator
+│   └── generative-ui.js     # Full AI generator (A2UI)
 │
-├── .agents/skills/
-│   └── generative-ui/
-│       └── SKILL.md          # OpenClaw skill
+├── examples/
+│   ├── pretext-weather-canvas.html
+│   ├── dragon-whip.html
+│   └── ...
 │
-└── AGENTS.md                # Agent config
+└── .agents/skills/
+    └── generative-ui/
+        └── SKILL.md        # OpenClaw skill
 ```
+
+---
+
+## 🎨 Features
+
+### Pretext Canvas
+- ⚡ **Zero reflow** - Pretext measures without DOM
+- 🎮 **60fps animations** - requestAnimationFrame loop
+- 🔮 **Glow effects** - Canvas blur filters
+- 📱 **Responsive** - Scale to any screen
+- 🌐 **Tailscale ready** - Access from anywhere
+
+### Full Website Generation
+- 🤖 **AI-powered** - MiniMax M2.7
+- 📦 **A2UI spec** - Google's standard
+- 🎨 **Tailwind CSS** - Dark mode
+- 🔄 **Streaming** - Real-time generation
+- 📄 **JSON-first** - Always produces output
 
 ---
 
@@ -212,51 +252,32 @@ pretext-generative-ui-toolkit/
 
 | Layer | Technology |
 |-------|------------|
-| **Generation** | MiniMax M2.7 API |
-| **Layout** | Pretext (~0.09ms text measurement) |
+| **Text Measurement** | Pretext (~0.09ms, cached) |
+| **Rendering** | Canvas 2D (GPU) |
+| **Website Generation** | MiniMax M2.7 API |
 | **UI Spec** | A2UI JSON |
 | **Styling** | Tailwind CSS |
-| **Theme** | Dark mode (Stripe/Linear aesthetic) |
+| **Theme** | Dark mode (purple/pink/orange) |
 
 ---
 
-## 🎨 Features
+## 💡 Why Pretext + Canvas?
 
-- **8 UI Components**: Nav, Hero, Card, Metric, Pricing, FAQ, CTA, Footer
-- **Responsive Design**: Mobile-first with Tailwind
-- **Dark Mode**: Purple/pink gradients on black
-- **Real-time Generation**: Progress shown step-by-step
-- **Fallback on Failure**: Always produces output
-- **JSON-First**: Strict parsing with auto-fix
-- **OpenClaw Ready**: SKILL.md + MCP + CLI
-
----
-
-## 🔌 OpenClaw Config
-
-### Skill Enable
-```json
-{
-  "skills": {
-    "entries": {
-      "generative-ui": {
-        "enabled": true
-      }
-    }
-  }
-}
+Traditional DOM-based UI:
+```
+AI generates HTML → Browser parses → DOM reflow → Paint
+                          ↑
+                   SLOW! Expensive!
 ```
 
-### Workspace Skills
-```json
-{
-  "skills": {
-    "load": {
-      "extraDirs": [".agents/skills"]
-    }
-  }
-}
+Pretext + Canvas:
 ```
+AI generates → Pretext measures (cached!) → Canvas draws
+                                         ↑
+                              FAST! GPU accelerated!
+```
+
+**Duckets said:** *"I fucking love this new tool we created here this is amazing!"*
 
 ---
 
@@ -264,12 +285,9 @@ pretext-generative-ui-toolkit/
 
 | Resource | Link |
 |----------|------|
-| **OpenClaw** | https://docs.openclaw.ai |
-| **Skills Guide** | https://docs.openclaw.ai/tools/skills |
-| **CopilotKit** | https://github.com/CopilotKit/OpenGenerativeUI |
-| **renderify** | https://github.com/webllm/renderify |
-| **A2UI** | https://github.com/google/A2UI |
 | **Pretext** | https://github.com/chenglou/pretext |
+| **A2UI** | https://github.com/google/A2UI |
+| **OpenClaw Docs** | https://docs.openclaw.ai |
 
 ---
 
@@ -280,5 +298,5 @@ MIT
 ---
 
 <p align="center">
-  🎨 Generative UI • 🤖 For Agents • ⚡ On-The-Fly
+  🎨 Pretext + Canvas • ⚡ Pure Math UI • 🤖 AI-Powered
 </p>

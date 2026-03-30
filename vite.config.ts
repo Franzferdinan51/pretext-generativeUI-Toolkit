@@ -48,7 +48,7 @@ export default defineConfig({
   },
   // Development server for webui
   server: {
-    port: 5173,
+    port: 3456,
     open: false,
     proxy: {
       '/api/lm-studio': {
