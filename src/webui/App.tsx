@@ -1,55 +1,111 @@
 // ============================================================
-// A2UI + PRETEXT AI UI - DEEP INTEGRATION
-// Google's A2UI Standard • Zero-Reflow Text • 45 Councilors
+// A2UI + PRETEXT - CSS-REPLACING LAYOUT ENGINE
+// Pretext does: Masonry, Float, Shrinkwrap, Virtualization
 // ============================================================
 import React, { useState, useEffect, useRef, Component, ReactNode } from 'react'
-import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
 
 const MINIMAX_API_KEY = 'sk-cp-f6PbhZS6uNSD1L-mByhEw3RzISEgKDmaQ-kkQGUx79uBrnAZDVWVnDwmLwHC19V1jT07oW7CcU2Dn_3Zr8c90a5xYqk9J1BBNXd0C9bVRbyr-PLbfd31kUE'
 
 // ============================================
-// A2UI SPEC INTERFACE (Google's Standard)
+// PRETEXT LAYOUT ENGINE (Replaces CSS)
 // ============================================
-interface A2UIElement {
-  type: string
-  props: Record<string, any>
-  children?: string[]
-}
-
-interface A2UISpec {
-  version: string
-  root: string
-  elements: Record<string, A2UIElement>
-}
-
-// ============================================
-// PRETEXT ENGINE - Zero Reflow
-// ============================================
-class PretextEngine {
-  private cache = new Map<string, any>()
-  
-  measure(text: string, fontSize: number, maxWidth: number) {
-    const key = `${text}:${fontSize}:${maxWidth}`
-    if (!this.cache.has(key)) {
-      const prepared = prepare(text, `${fontSize}px Inter`)
-      const result = layout(prepared, maxWidth, fontSize * 1.4)
-      this.cache.set(key, result)
+class PretextLayout {
+  // 1. MASONRY LAYOUT - CSS grid can't do this easily
+  static masonry(items: Array<{ text: string; width: number }>, columnCount: number, gap: number) {
+    const columns: Array<{ text: string; height: number; width: number }[]> = Array.from({ length: columnCount }, () => [])
+    const columnHeights = new Array(columnCount).fill(0)
+    
+    for (const item of items) {
+      const prepared = prepare(item.text, '16px Inter')
+      const { height } = layout(prepared, item.width, 24)
+      
+      // Find shortest column
+      let minCol = 0
+      let minHeight = columnHeights[0]
+      for (let i = 1; i < columnCount; i++) {
+        if (columnHeights[i] < minHeight) {
+          minCol = i
+          minHeight = columnHeights[i]
+        }
+      }
+      
+      columns[minCol].push({ text: item.text, height, width: item.width })
+      columnHeights[minCol] += height + gap
     }
-    return this.cache.get(key)
+    
+    return columns
   }
   
-  getLines(text: string, fontSize: number, maxWidth: number) {
-    const key = `lines:${text}:${fontSize}:${maxWidth}`
-    if (!this.cache.has(key)) {
-      const prepared = prepareWithSegments(text, `${fontSize}px Inter`)
-      const result = layoutWithLines(prepared, maxWidth, fontSize * 1.4)
-      this.cache.set(key, result)
+  // 2. FLOAT AROUND - Like CSS float: left
+  static floatAround(text: string, obstacle: { x: number; y: number; width: number; height: number }, columnWidth: number, fontSize: number = 16, lineHeight: number = 24) {
+    const prepared = prepareWithSegments(text, `${fontSize}px Inter`)
+    const lines: Array<{ text: string; x: number; y: number; width: number }> = []
+    let cursor = { segmentIndex: 0, graphemeIndex: 0 }
+    let y = 0
+    
+    while (true) {
+      const inObstacle = y >= obstacle.y && y < obstacle.y + obstacle.height
+      const width = inObstacle ? columnWidth - obstacle.width - 10 : columnWidth
+      const line = layoutNextLine(prepared, cursor, width)
+      if (!line) break
+      lines.push({ text: line.text, x: inObstacle ? obstacle.width + 10 : 0, y, width: line.width })
+      cursor = line.end
+      y += lineHeight
     }
-    return this.cache.get(key)
+    
+    return lines
+  }
+  
+  // 3. SHRINKWRAP - Find tightest width
+  static shrinkwrap(text: string, fontSize: number = 16) {
+    const prepared = prepareWithSegments(text, `${fontSize}px Inter`)
+    let maxWidth = 0
+    walkLineRanges(prepared, 10000, (line) => {
+      if (line.width > maxWidth) maxWidth = line.width
+    })
+    return maxWidth
+  }
+  
+  // 4. BALANCED TEXT - Equal line widths
+  static balanced(text: string, targetWidth: number, fontSize: number = 16) {
+    const prepared = prepareWithSegments(text, `${fontSize}px Inter`)
+    // Binary search for optimal width
+    let low = 50, high = targetWidth
+    while (high - low > 10) {
+      const mid = (low + high) / 2
+      let lineCount = 0
+      walkLineRanges(prepared, mid, () => lineCount++)
+      if (lineCount > 5) low = mid
+      else high = mid
+    }
+    
+    const { lines } = layoutWithLines(prepared, high, fontSize * 1.4)
+    return lines
+  }
+  
+  // 5. VIRTUALIZATION - Measure without DOM
+  static virtualList(items: string[], itemHeight: number) {
+    // Pre-calculate positions without rendering
+    return items.map((text, i) => {
+      const prepared = prepare(text, '16px Inter')
+      const { height } = layout(prepared, 300, 24)
+      return { text, y: i * itemHeight, height }
+    })
+  }
+  
+  // 6. TEXT OVERFLOW - Detect if text overflows
+  static overflows(text: string, maxWidth: number, fontSize: number = 16) {
+    const shrinkwrapWidth = this.shrinkwrap(text, fontSize)
+    return shrinkwrapWidth > maxWidth
   }
 }
 
-const pretextEngine = new PretextEngine()
+// ============================================
+// A2UI INTERFACE
+// ============================================
+interface A2UIElement { type: string; props: Record<string, any>; children?: string[] }
+interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
 
 // ============================================
 // ERROR BOUNDARY
@@ -58,18 +114,127 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   constructor(props: { children: ReactNode }) { super(props); this.state = { hasError: false, error: '' } }
   static getDerivedStateFromError(error: Error) { return { hasError: true, error: error.message } }
   render() {
-    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] text-white flex items-center justify-center"><h1 className="text-2xl font-bold text-red-400">Error</h1></div>
+    if (this.state.hasError) return <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center text-white"><h1 className="text-2xl text-red-400">Error</h1></div>
     return this.props.children
   }
 }
 
 // ============================================
-// A2UI COMPONENTS (Google's Standard)
-// A2UI separates generation from rendering
-// Agents send JSON, client renders from catalog
+// PRETEXT-POWERED COMPONENTS (CSS replaced)
 // ============================================
 
-// Navigation Bar
+// Masonry Grid - Pretext calculates heights
+const PretextMasonry = ({ items, columns = 3 }: { items: Array<{ text: string; emoji?: string }>; columns?: number }) => {
+  const cols = PretextLayout.masonry(items.map(i => ({ text: i.text, width: 300 })), columns, 16)
+  
+  return (
+    <div className="flex gap-8" style={{ alignItems: 'flex-start' }}>
+      {cols.map((col, colIdx) => (
+        <div key={colIdx} className="flex-1 flex flex-col gap-4">
+          {col.map((item, i) => (
+            <div key={i} className="p-6 rounded-2xl bg-white/5 border border-white/10">
+              {item.text}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Float Text - Pretext flows around obstacle
+const PretextFloat = ({ text, obstacle }: { text: string; obstacle?: { width: number; height: number } }) => {
+  const obstacleData = obstacle || { x: 10, y: 20, width: 120, height: 120 }
+  const lines = PretextLayout.floatAround(text, obstacleData, 600, 16, 24)
+  
+  return (
+    <div className="relative p-4 bg-white/5 rounded-2xl">
+      {/* Floating obstacle */}
+      <div 
+        className="absolute bg-purple-500/30 border border-purple-500/50 rounded-lg flex items-center justify-center text-4xl"
+        style={{ 
+          left: obstacleData.x, 
+          top: obstacleData.y, 
+          width: obstacleData.width, 
+          height: obstacleData.height 
+        }}
+      >
+        🖼️
+      </div>
+      {/* Flowing text */}
+      <div className="relative z-10">
+        {lines.map((line, i) => (
+          <div key={i} style={{ position: 'absolute', left: line.x, top: line.y, width: line.width }}>
+            {line.text}
+          </div>
+        ))}
+        <div style={{ height: lines.length * 24 + 20 }} /> {/* Spacer */}
+      </div>
+    </div>
+  )
+}
+
+// Shrinkwrap Text - Pretext calculates tightest width
+const PretextShrinkwrap = ({ text }: { text: string }) => {
+  const width = PretextLayout.shrinkwrap(text, 16)
+  
+  return (
+    <div className="inline-block px-4 py-2 bg-purple-500/20 rounded-lg">
+      <span className="text-purple-300 text-sm">Width: {Math.round(width)}px</span>
+      <div 
+        className="mt-2 px-2 py-1 bg-white/10 rounded text-white"
+        style={{ width: Math.min(width + 16, 400) }}
+      >
+        {text}
+      </div>
+    </div>
+  )
+}
+
+// Balanced Text - Equal line widths
+const PretextBalanced = ({ text, width = 400 }: { text: string; width?: number }) => {
+  const lines = PretextLayout.balanced(text, width, 18)
+  
+  return (
+    <div className="p-6 bg-white/5 rounded-2xl">
+      <span className="text-xs text-gray-500 block mb-4">Balanced Text ({lines.length} lines)</span>
+      <div className="space-y-1" style={{ maxWidth: width }}>
+        {lines.map((line, i) => (
+          <div key={i} className="text-white">{line.text}</div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Virtual List - Pretext measures without DOM
+const PretextVirtual = ({ items }: { items: string[] }) => {
+  const virtualized = PretextLayout.virtualList(items, 60)
+  
+  const totalHeight = virtualized.reduce((sum, item) => sum + item.height + 16, 0)
+  
+  return (
+    <div className="relative bg-white/5 rounded-2xl overflow-hidden" style={{ height: Math.min(totalHeight, 400), overflow: 'auto' }}>
+      <div className="p-4 space-y-4">
+        {virtualized.slice(0, 10).map((item, i) => (
+          <div key={i} className="p-4 bg-white/5 rounded-xl">
+            <span className="text-xs text-gray-500 mr-2">#{i + 1}</span>
+            {item.text.slice(0, 50)}...
+          </div>
+        ))}
+        {virtualized.length > 10 && (
+          <div className="text-center text-gray-500 py-2">
+            + {virtualized.length - 10} more items (virtualized)
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// A2UI COMPONENTS
+// ============================================
 const A2Nav = ({ logo, links }: { logo: string; links?: string[] }) => (
   <nav className="w-full h-[70px] flex items-center justify-between px-8 bg-black/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
     <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{logo}</span>
@@ -80,26 +245,21 @@ const A2Nav = ({ logo, links }: { logo: string; links?: string[] }) => (
   </nav>
 )
 
-// Hero Section
-const A2Hero = ({ badge, title, subtitle, description, primaryBtn, secondaryBtn }: { badge?: string; title: string; subtitle?: string; description?: string; primaryBtn?: string; secondaryBtn?: string }) => {
-  const { lines } = pretextEngine.getLines(description || '', 18, 800)
-  return (
-    <section className="py-32 px-8 text-center bg-gradient-to-b from-purple-900/30 via-black to-[#0a0a0f]">
-      {badge && <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 mb-8">{badge}</span>}
-      <h1 className="text-6xl md:text-7xl font-black mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">{title}</h1>
-      {subtitle && <p className="text-2xl text-gray-300 mb-4">{subtitle}</p>}
-      {description && <p className="text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed">{description}</p>}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        {primaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30 transition">{primaryBtn}</button>}
-        {secondaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-white/10 hover:bg-white/20 border border-white/20 transition">{secondaryBtn}</button>}
-      </div>
-    </section>
-  )
-}
+const A2Hero = ({ badge, title, subtitle, description, primaryBtn, secondaryBtn }: any) => (
+  <section className="py-32 px-8 text-center bg-gradient-to-b from-purple-900/30 via-black to-[#0a0a0f]">
+    {badge && <span className="inline-block px-4 py-2 rounded-full text-sm font-bold bg-purple-500/20 text-purple-300 mb-8">{badge}</span>}
+    <h1 className="text-6xl md:text-7xl font-black mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">{title}</h1>
+    {subtitle && <p className="text-2xl text-gray-300 mb-4">{subtitle}</p>}
+    {description && <p className="text-gray-400 max-w-2xl mx-auto mb-12">{description}</p>}
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      {primaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30">{primaryBtn}</button>}
+      {secondaryBtn && <button className="px-10 py-5 rounded-2xl font-bold text-lg bg-white/10 hover:bg-white/20 border border-white/20">{secondaryBtn}</button>}
+    </div>
+  </section>
+)
 
-// Section Container
 const A2Section = ({ title, subtitle, children }: { title?: string; subtitle?: string; children: ReactNode }) => (
-  <section className="py-24 px-8 bg-[#0a0a0f]">
+  <section className="py-24 px-8">
     <div className="max-w-6xl mx-auto">
       {title && <h2 className="text-4xl md:text-5xl font-black text-center mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>}
       {subtitle && <p className="text-gray-400 text-center mb-16 max-w-2xl mx-auto">{subtitle}</p>}
@@ -108,22 +268,19 @@ const A2Section = ({ title, subtitle, children }: { title?: string; subtitle?: s
   </section>
 )
 
-// Grid Layout
 const A2Grid = ({ cols = 3, children }: { cols?: number; children: ReactNode }) => (
   <div className="grid gap-8" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>{children}</div>
 )
 
-// Feature Card
-const A2Card = ({ emoji, title, description, featured }: { emoji?: string; title: string; description?: string; featured?: boolean }) => (
-  <div className={`group p-8 rounded-3xl transition-all duration-300 ${featured ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 hover:border-purple-500/50' : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20'}`}>
+const A2Card = ({ emoji, title, description, featured }: any) => (
+  <div className={`group p-8 rounded-3xl transition-all duration-300 ${featured ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
     {emoji && <div className="text-5xl mb-6">{emoji}</div>}
     <h3 className="text-xl font-bold mb-3">{title}</h3>
     <p className="text-gray-400 leading-relaxed">{description}</p>
   </div>
 )
 
-// Metric Display
-const A2Metric = ({ value, label, trend, icon }: { value: string; label: string; trend?: string; icon?: string }) => (
+const A2Metric = ({ value, label, trend, icon }: any) => (
   <div className="text-center p-8 rounded-3xl bg-white/5 border border-white/10">
     {icon && <div className="text-3xl mb-4">{icon}</div>}
     <div className="text-5xl md:text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">{value}</div>
@@ -132,95 +289,130 @@ const A2Metric = ({ value, label, trend, icon }: { value: string; label: string;
   </div>
 )
 
-// Testimonial
-const A2Testimonial = ({ quote, author, role, avatar }: { quote: string; author: string; role?: string; avatar?: string }) => (
-  <div className="p-8 rounded-3xl bg-white/5 border border-white/10">
-    <p className="text-lg text-gray-300 mb-6 italic leading-relaxed">"{quote}"</p>
-    <div className="flex items-center gap-4">
-      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">{avatar || author[0]}</div>
-      <div>
-        <div className="font-bold">{author}</div>
-        {role && <div className="text-gray-500 text-sm">{role}</div>}
-      </div>
-    </div>
-  </div>
-)
-
-// Pricing Card
-const A2Pricing = ({ tier, price, period, description, features, highlighted, buttonText }: { tier: string; price: string; period?: string; description?: string; features?: string[]; highlighted?: boolean; buttonText?: string }) => (
+const A2Pricing = ({ tier, price, period, features, highlighted, buttonText }: any) => (
   <div className={`p-8 rounded-3xl ${highlighted ? 'bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500/50' : 'bg-white/5 border border-white/10'}`}>
     <div className="text-sm font-bold text-purple-400 mb-2">{tier}</div>
     <div className="flex items-baseline gap-1 mb-4">
       <span className="text-5xl font-black">{price}</span>
       {period && <span className="text-gray-500">/{period}</span>}
     </div>
-    {description && <p className="text-gray-400 mb-6">{description}</p>}
     <ul className="space-y-3 mb-8">
-      {features?.map((f, i) => <li key={i} className="flex items-center gap-3 text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}
+      {features?.map((f: string, i: number) => <li key={i} className="flex items-center gap-3 text-gray-300"><span className="text-green-400">✓</span> {f}</li>)}
     </ul>
-    <button className={`w-full py-4 rounded-2xl font-bold transition ${highlighted ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90' : 'bg-white/10 hover:bg-white/20'}`}>{buttonText || 'Get Started'}</button>
+    <button className={`w-full py-4 rounded-2xl font-bold ${highlighted ? 'bg-gradient-to-r from-purple-600 to-pink-600' : 'bg-white/10'}`}>{buttonText || 'Get Started'}</button>
   </div>
 )
 
-// FAQ Item
-const A2FAQ = ({ question, answer }: { question: string; answer?: string }) => (
+const A2FAQ = ({ question, answer }: any) => (
   <div className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition">
     <h4 className="text-lg font-bold mb-2">{question}</h4>
     {answer && <p className="text-gray-400">{answer}</p>}
   </div>
 )
 
-// CTA Section
-const A2CTA = ({ title, subtitle, buttonText }: { title: string; subtitle?: string; buttonText?: string }) => (
+const A2CTA = ({ title, subtitle, buttonText }: any) => (
   <section className="py-32 px-8 text-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
     <h2 className="text-5xl md:text-6xl font-black mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{title}</h2>
     {subtitle && <p className="text-gray-400 mb-12 max-w-2xl mx-auto">{subtitle}</p>}
-    <button className="px-14 py-5 rounded-2xl font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30 transition">{buttonText || 'Start Free Trial'}</button>
+    <button className="px-14 py-5 rounded-2xl font-bold text-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/30">{buttonText || 'Start Free Trial'}</button>
   </section>
 )
 
-// Footer
-const A2Footer = ({ links, copyright }: { links?: Record<string, string[]>; copyright?: string }) => (
+const A2Footer = ({ links, copyright }: any) => (
   <footer className="py-16 px-8 border-t border-white/10 bg-black/50">
     <div className="max-w-6xl mx-auto">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-        {links && Object.entries(links).map(([category, items]) => (
+        {links && Object.entries(links).map(([category, items]: [string, any]) => (
           <div key={category}>
             <h4 className="font-bold mb-4 text-purple-400">{category}</h4>
             <ul className="space-y-2">
-              {items.map((item, i) => <li key={i}><a href="#" className="text-gray-500 hover:text-white transition text-sm">{item}</a></li>)}
+              {items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white transition text-sm">{item}</a></li>)}
             </ul>
           </div>
         ))}
       </div>
       <div className="text-center text-gray-500 text-sm border-t border-white/5 pt-8">
-        {copyright || '© 2026 A2UI Pretext UI. Powered by AI Council.'}
+        {copyright || '© 2026 Pretext + A2UI'}
       </div>
     </div>
   </footer>
 )
 
+// Pretext Demo Section
+const PretextDemo = () => {
+  const items = [
+    'Short text',
+    'This is a much longer piece of text that will take more vertical space',
+    'Medium length here',
+    'Another longer text that demonstrates how Pretext calculates heights for masonry layout automatically'
+  ]
+  
+  return (
+    <section className="py-16 px-8 bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+      <div className="max-w-6xl mx-auto space-y-12">
+        <h2 className="text-3xl font-black text-center bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📐 Pretext Layout Engine</h2>
+        
+        {/* Masonry Demo */}
+        <div className="p-6 rounded-3xl bg-black/40">
+          <h3 className="text-lg font-bold mb-4 text-purple-400">� masonry()</h3>
+          <p className="text-gray-400 text-sm mb-4">Pretext calculates item heights for optimal column distribution</p>
+          <PretextMasonry items={items.map(t => ({ text: t }))} columns={3} />
+        </div>
+        
+        {/* Float Demo */}
+        <div className="p-6 rounded-3xl bg-black/40">
+          <h3 className="text-lg font-bold mb-4 text-purple-400">🌊 floatAround()</h3>
+          <p className="text-gray-400 text-sm mb-4">Text flows around floating obstacle</p>
+          <PretextFloat text="Pretext can flow text around obstacles just like CSS float. This is incredibly useful for rendering to Canvas, SVG, or anywhere CSS isn't available. The text automatically wraps around the floating element." />
+        </div>
+        
+        {/* Balanced Text */}
+        <div className="p-6 rounded-3xl bg-black/40">
+          <h3 className="text-lg font-bold mb-4 text-purple-400">⚖️ balanced()</h3>
+          <p className="text-gray-400 text-sm mb-4">Equal line widths for beautiful text blocks</p>
+          <PretextBalanced text="This text will be automatically balanced across multiple lines with equal widths." />
+        </div>
+        
+        {/* Shrinkwrap */}
+        <div className="p-6 rounded-3xl bg-black/40">
+          <h3 className="text-lg font-bold mb-4 text-purple-400">📦 shrinkwrap()</h3>
+          <p className="text-gray-400 text-sm mb-4">Find the tightest container width</p>
+          <div className="flex gap-4 flex-wrap">
+            <PretextShrinkwrap text="Tight" />
+            <PretextShrinkwrap text="Medium text here" />
+            <PretextShrinkwrap text="This is a longer piece of text" />
+          </div>
+        </div>
+        
+        {/* Virtual List */}
+        <div className="p-6 rounded-3xl bg-black/40">
+          <h3 className="text-lg font-bold mb-4 text-purple-400">📜 virtualList()</h3>
+          <p className="text-gray-400 text-sm mb-4">Pre-calculate positions without DOM</p>
+          <PretextVirtual items={Array.from({ length: 100 }, (_, i) => `Virtual item ${i + 1} with some text content`)} />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ============================================
-// A2UI RENDERER (Maps JSON to Components)
-// Core of A2UI: Agent sends JSON, client renders
+// A2UI RENDERER
 // ============================================
 function renderA2UI(spec: A2UISpec): ReactNode {
   if (!spec?.elements) return null
   
-  function renderElement(id: string): ReactNode {
+  function render(id: string): ReactNode {
     const elem = spec.elements[id]
     if (!elem) return null
-    
     const { type, props, children } = elem
     
     switch (type) {
       case 'Nav': return <A2Nav key={id} {...props} />
       case 'Hero': return <A2Hero key={id} {...props} />
-      case 'Section': return <A2Section key={id} {...props}>{children?.map(c => renderElement(c))}</A2Section>
-      case 'Grid': return <A2Grid key={id} {...props}>{children?.map(c => renderElement(c))}</A2Grid>
+      case 'Section': return <A2Section key={id} {...props}>{children?.map(c => render(c))}</A2Section>
+      case 'Grid': return <A2Grid key={id} {...props}>{children?.map(c => render(c))}</A2Grid>
       case 'Card': return <A2Card key={id} {...props} />
       case 'Metric': return <A2Metric key={id} {...props} />
-      case 'Testimonial': return <A2Testimonial key={id} {...props} />
       case 'Pricing': return <A2Pricing key={id} {...props} />
       case 'FAQ': return <A2FAQ key={id} {...props} />
       case 'CTA': return <A2CTA key={id} {...props} />
@@ -229,115 +421,22 @@ function renderA2UI(spec: A2UISpec): ReactNode {
     }
   }
   
-  return spec.root ? renderElement(spec.root) : null
+  return spec.root ? render(spec.root) : null
 }
 
 // ============================================
-// A2UI AGENTS (45 Councilor Swarm)
-// Each agent generates A2UI JSON format
+// AGENTS
 // ============================================
-const A2UI_AGENTS = {
-  // Foundation Agents
-  speaker: {
-    councilor: 'Speaker',
-    system: `You are SPEAKER - the A2UI facilitator. Generate A2UI JSON spec.
-    
-A2UI FORMAT:
-{"version":"0.8","root":"nav","elements":{"nav":{"type":"Nav","props":{"logo":"🚀 A2UI Brand","links":["Features","Pricing","Docs","Community"]}}}}
-
-Generate valid A2UI JSON. Return ONLY JSON.`
-  },
-  
-  technocrat: {
-    councilor: 'Technocrat',
-    system: `You are TECHNOCRAT - A2UI efficiency expert. Generate HERO section.
-
-A2UI FORMAT:
-{"root":"hero","elements":{"hero":{"type":"Hero","props":{"badge":"🔧 Powered by AI","title":"Build UI with A2UI","subtitle":"Security-first, LLM-friendly, Framework-agnostic","description":"Create stunning user interfaces that are safe, fast, and beautiful. A2UI lets agents generate UI that your users will love.","primaryBtn":"Start Building","secondaryBtn":"See Examples"}}}}
-
-Return ONLY JSON.`
-  },
-  
-  ethicist: {
-    councilor: 'Ethicist',
-    system: `You are ETHICIST - A2UI ethics expert. Generate TRUST section.
-
-A2UI FORMAT:
-{"root":"trust","elements":{"trust":{"type":"Section","props":{"title":"Built on Trust","subtitle":"Security-first by design"}}}}
-
-Create 4 trust metrics.
-Return ONLY JSON.`
-  },
-  
-  // Design Agents  
-  designer: {
-    councilor: 'Designer',
-    system: `You are DESIGNER - A2UI visual expert. Generate FEATURES section.
-
-A2UI FORMAT:
-{"root":"features","elements":{"features":{"type":"Section","props":{"title":"Powerful Features","subtitle":"Everything you need"}},"grid":{"type":"Grid","props":{"cols":3}},"f1":{"type":"Card","props":{"emoji":"🛡️","title":"Security First","description":"Declarative JSON only. No executable code. Your app stays safe."}},"f2":{"type":"Card","props":{"emoji":"🤖","title":"AI-Powered","description":"Any LLM can generate A2UI. Gemini, GPT, Claude, MiniMax all work."}},"f3":{"type":"Card","props":{"emoji":"🌐","title":"Framework Agnostic","description":"Same JSON renders on React, Flutter, SwiftUI, Angular, and more."}},"f4":{"type":"Card","props":{"emoji":"⚡","title":"Zero Reflow","description":"Pretext measures text at ~0.09ms without DOM access."}},"f5":{"type":"Card","props":{"emoji":"🔄","title":"Incrementally Updatable","description":"Agent updates UI progressively as conversation evolves."}},"f6":{"type":"Card","props":{"emoji":"📦","title":"Open Standard","description":"Google-led open source. Apache 2.0 licensed."}}}}
-
-Return ONLY JSON.`
-  },
-  
-  economist: {
-    councilor: 'Economist',
-    system: `You are ECONOMIST - A2UI metrics expert. Generate STATS section.
-
-A2UI FORMAT:
-{"root":"stats","elements":{"stats":{"type":"Section","props":{"title":"Trusted Worldwide"}},"grid":{"type":"Grid","props":{"cols":4}},"m1":{"type":"Metric","props":{"value":"100K+","label":"Active Users","trend":"+15%","icon":"👥"}},"m2":{"type":"Metric","props":{"value":"99.99%","label":"Uptime","trend":"Guaranteed","icon":"⚡"}},"m3":{"type":"Metric","props":{"value":"10M+","label":"UIs Generated","trend":"+1M/week","icon":"🎨"}},"m4":{"type":"Metric","props":{"value":"4.9/5","label":"Satisfaction","trend":"Excellent","icon":"⭐"}}}}
-
-Return ONLY JSON.`
-  },
-  
-  product: {
-    councilor: 'Product Manager',
-    system: `You are PRODUCT MANAGER - A2UI strategy expert. Generate PRICING section.
-
-A2UI FORMAT:
-{"root":"pricing","elements":{"pricing":{"type":"Section","props":{"title":"Simple Pricing","subtitle":"Start free, scale as you grow"}},"grid":{"type":"Grid","props":{"cols":3}},"p1":{"type":"Pricing","props":{"tier":"Starter","price":"Free","description":"Perfect for individuals and small projects","features":["5 projects","Basic analytics","Community support","1GB storage"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$29","period":"month","description":"For growing teams","features":["Unlimited projects","Advanced analytics","Priority support","100GB storage","Team collaboration"],"highlighted":true,"buttonText":"Start Free Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","description":"For large organizations","features":["Everything in Pro","Dedicated support","Custom contracts","Unlimited storage","SLA guarantee"]}}}
-
-Return ONLY JSON.`
-  },
-  
-  visionary: {
-    councilor: 'Visionary',
-    system: `You are VISIONARY - A2UI innovation expert. Generate TESTIMONIALS.
-
-A2UI FORMAT:
-{"root":"testimonials","elements":{"testimonials":{"type":"Section","props":{"title":"Loved by Developers"}},"grid":{"type":"Grid","props":{"cols":3}},"t1":{"type":"Testimonial","props":{"quote":"A2UI completely changed how we think about AI-generated interfaces. Safe, fast, and beautiful.","author":"Sarah Chen","role":"CTO at TechCorp","avatar":"👩‍💼"}},"t2":{"type":"Testimonial","props":{"quote":"The framework-agnostic approach is genius. Same code works everywhere.","author":"Marcus Johnson","role":"Lead Engineer","avatar":"👨‍💻"}},"t3":{"type":"Testimonial","props":{"quote":"Finally, a standard that puts security first. Our enterprise clients love it.","author":"Emily Rodriguez","role":"VP Engineering","avatar":"👩‍🔬"}}}}
-
-Return ONLY JSON.`
-  },
-  
-  security: {
-    councilor: 'Security Expert',
-    system: `You are SECURITY EXPERT - A2UI safety auditor. Generate FAQ section.
-
-A2UI FORMAT:
-{"root":"faq","elements":{"faq":{"type":"Section","props":{"title":"Common Questions"}},"q1":{"type":"FAQ","props":{"question":"How does A2UI ensure security?","answer":"A2UI uses declarative JSON only. No executable code ever runs from the agent."}},"q2":{"type":"FAQ","props":{"question":"What LLMs support A2UI?","answer":"Any LLM that can output JSON - Gemini, GPT-4, Claude, MiniMax, and more."}},"q3":{"type":"FAQ","props":{"question":"Can I use my own components?","answer":"Yes! A2UI has an open registry pattern for custom components."}},"q4":{"type":"FAQ","props":{"question":"Is A2UI officially from Google?","answer":"Yes, A2UI is Google's open standard under Apache 2.0 license."}},"q5":{"type":"FAQ","props":{"question":"What frameworks are supported?","answer":"React, Flutter, Lit, Angular, SwiftUI, and more via community renderers."}}}
-
-Return ONLY JSON.`
-  },
-  
-  devops: {
-    councilor: 'DevOps Engineer',
-    system: `You are DEVOPS - A2UI deployment expert. Generate final CTA.
-
-A2UI FORMAT:
-{"root":"cta","elements":{"cta":{"type":"CTA","props":{"title":"Ready to Build?","subtitle":"Join thousands of developers building the future of AI UI. Start free today.","buttonText":"Start Building Now"}}}}
-Return ONLY JSON.`
-  },
-  
-  sentinel: {
-    councilor: 'Sentinel',
-    system: `You are SENTINEL - A2UI guardian. Generate FOOTER.
-
-A2UI FORMAT:
-{"root":"footer","elements":{"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing","Documentation","Changelog"],"Developers":["API Reference","SDKs","GitHub","Community"],"Company":["About","Blog","Careers","Press"],"Legal":["Privacy","Terms","Security","Cookies"]},"copyright":"© 2026 A2UI Pretext UI. Powered by Google A2UI + AI Council Swarm."}}}}
-
-Return ONLY JSON.`
-  }
+const AGENTS = {
+  nav: { system: `A2UI JSON: {"nav":{"type":"Nav","props":{"logo":"📐 Pretext+UI","links":["Features","Pricing","Docs","Community"]}}}` },
+  hero: { system: `A2UI JSON: {"hero":{"type":"Hero","props":{"badge":"🚀 Zero Reflow","title":"Build UI with Pretext","subtitle":"Replace CSS with pure math","description":"Pretext measures text at ~0.09ms without DOM access. Masonry, float, shrinkwrap, virtual lists - all without layout reflow.","primaryBtn":"Start Building","secondaryBtn":"See Demos"}}}` },
+  pretext: { system: `Return PRETEXT DEMO: {"pretext-demo":{"type":"Section","props":{"title":"📐 Pretext Layout Engine"}}}}` },
+  features: { system: `A2UI JSON: {"features":{"type":"Section","props":{"title":"Powerful Features","subtitle":"Everything CSS can do, but faster"}},"grid":{"type":"Grid","props":{"cols":3}},"f1":{"type":"Card","props":{"emoji":"🏔️","title":"Masonry","description":"Auto-calculated column heights. No DOM measurement."}},"f2":{"type":"Card","props":{"emoji":"🌊","title":"Float Around","description":"Text flows around obstacles. Canvas/SVG ready."}},"f3":{"type":"Card","props":{"emoji":"📦","title":"Shrinkwrap","description":"Find tightest width without touching DOM."}},"f4":{"type":"Card","props":{"emoji":"⚖️","title":"Balanced Text","description":"Equal line widths for beautiful typography."}},"f5":{"type":"Card","props":{"emoji":"📜","title":"Virtual List","description":"Pre-calculate positions. Zero DOM access."}},"f6":{"type":"Card","props":{"emoji":"⚡","title":"0.09ms","description":"Cached measurement. No layout reflow ever."}}}}` },
+  stats: { system: `A2UI JSON: {"stats":{"type":"Section","props":{"title":"By The Numbers"}},"grid":{"type":"Grid","props":{"cols":4}},"m1":{"type":"Metric","props":{"value":"0.09ms","label":"Per Call","icon":"⚡"}},"m2":{"type":"Metric","props":{"value":"0","label":"DOM Reflow","icon":"🚫"}},"m3":{"type":"Metric","props":{"value":"100%","label":"Cached","icon":"💾"}},"m4":{"type":"Metric","props":{"value":"∞","label":"Languages","icon":"🌍"}}}` },
+  pricing: { system: `A2UI JSON: {"pricing":{"type":"Section","props":{"title":"Pricing","subtitle":"Start free"}},"grid":{"type":"Grid","props":{"cols":3}},"p1":{"type":"Pricing","props":{"tier":"Free","price":"$0","features":["Masonry layout","Float around","Shrinkwrap"]}},"p2":{"type":"Pricing","props":{"tier":"Pro","price":"$19","period":"month","features":["All layouts","Priority support","Unlimited usage"],"highlighted":true,"buttonText":"Start Trial"}},"p3":{"type":"Pricing","props":{"tier":"Enterprise","price":"Custom","features":["Everything","Dedicated support","Custom integrations"]}}}` },
+  faq: { system: `A2UI JSON: {"faq":{"type":"Section","props":{"title":"FAQ"}},"q1":{"type":"FAQ","props":{"question":"What is Pretext?","answer":"Pure JS text measurement without DOM access."}},"q2":{"type":"FAQ","props":{"question":"How fast?","answer":"~0.09ms per call (cached)."}},"q3":{"type":"FAQ","props":{"question":"What can it replace?","answer":"getBoundingClientRect, offsetHeight, masonry layouts, CSS float."}}}` },
+  cta: { system: `A2UI JSON: {"cta":{"type":"CTA","props":{"title":"Ready?","subtitle":"Build layout that CSS can't.","buttonText":"Get Started"}}}` },
+  footer: { system: `A2UI JSON: {"footer":{"type":"Footer","props":{"links":{"Product":["Features","Pricing"],"Resources":["Docs","GitHub"]},"copyright":"© 2026 Pretext Layout Engine"}}}` },
 }
 
 // ============================================
@@ -347,75 +446,49 @@ export default function App() {
   const [spec, setSpec] = useState<A2UISpec | null>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(true)
-  const [phase, setPhase] = useState('A2UI Council Assembling...')
+  const [phase, setPhase] = useState('Generating...')
   const [progress, setProgress] = useState(0)
-  const [genTime, setGenTime] = useState(0)
-  
-  const startRef = useRef(0)
   
   async function callAPI(system: string) {
     const res = await fetch('https://api.minimax.io/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MINIMAX_API_KEY}` },
-      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'system', content: system }, { role: 'user', content: 'Return A2UI JSON only.' }], max_tokens: 2048 })
+      body: JSON.stringify({ model: 'MiniMax-M2.7', messages: [{ role: 'system', content: system }, { role: 'user', content: 'Return JSON only.' }], max_tokens: 2048 })
     })
-    const data = await res.json()
-    return data.choices?.[0]?.message?.content || ''
+    return (await res.json()).choices?.[0]?.message?.content || ''
   }
   
-  function parseA2UI(text: string): A2UISpec | null {
+  function parseJSON(text: string): any {
     const match = text.match(/\{[\s\S]*\}/)
     if (!match) return null
-    try {
-      const parsed = JSON.parse(match[0])
-      if (parsed.elements && !parsed.version) {
-        // Add version if missing
-        parsed.version = "0.8"
-      }
-      return parsed
-    } catch { return null }
+    try { return JSON.parse(match[0]) } catch { return null }
   }
   
   async function runSwarm() {
     setIsGenerating(true)
     setLogs([])
-    setPhase('A2UI Council Assembling...')
-    startRef.current = Date.now()
-    
     const allElements: Record<string, A2UIElement> = {}
+    const keys = Object.keys(AGENTS)
     
-    const agentKeys = Object.keys(A2UI_AGENTS)
-    
-    for (let i = 0; i < agentKeys.length; i++) {
-      const key = agentKeys[i]
-      const agent = A2UI_AGENTS[key as keyof typeof A2UI_AGENTS]
-      
-      setPhase(`${agent.councilor} deliberating...`)
-      setProgress(Math.round(((i + 1) / agentKeys.length) * 100))
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      setPhase(`${key}...`)
+      setProgress(Math.round(((i + 1) / keys.length) * 100))
       
       try {
-        const text = await callAPI(agent.system)
-        const parsed = parseA2UI(text)
-        
+        const text = await callAPI(AGENTS[key as keyof typeof AGENTS].system)
+        const parsed = parseJSON(text)
         if (parsed?.elements) {
           Object.assign(allElements, parsed.elements)
-          setLogs(prev => [...prev.slice(-8), `✅ [${agent.councilor}] Added ${Object.keys(parsed.elements).length} elements`])
-        } else {
-          setLogs(prev => [...prev.slice(-8), `⚠️ [${agent.councilor}] No valid A2UI`])
+          setLogs(prev => [...prev.slice(-6), `✅ ${key}: ${Object.keys(parsed.elements).length}`])
         }
       } catch (err) {
-        setLogs(prev => [...prev.slice(-8), `❌ [${agent.councilor}] ${err}`])
+        setLogs(prev => [...prev.slice(-6), `❌ ${key}`])
       }
     }
     
-    const finalSpec: A2UISpec = { version: "0.8", root: "app", elements: allElements }
-    setSpec(finalSpec)
-    
-    const elapsed = ((Date.now() - startRef.current) / 1000).toFixed(1)
-    setGenTime(parseFloat(elapsed))
-    setPhase('A2UI Complete!')
+    setSpec({ version: '0.8', root: 'app', elements: allElements })
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-8), `✅ Generated in ${elapsed}s with A2UI Standard`])
   }
   
   useEffect(() => { runSwarm() }, [])
@@ -423,58 +496,28 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#0a0a0f] text-white">
-        {/* A2UI Header */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-purple-500/20 px-6 py-4">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🤖</span>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">A2UI + Pretext</h1>
-              <span className="text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-400">v0.8</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-500 hidden sm:block">Powered by AI Council Swarm</span>
-              {!isGenerating && <span className="text-sm text-green-400">⚡ {genTime}s</span>}
-              <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-sm font-bold disabled:opacity-50">
-                {isGenerating ? '⏳' : '🔄'}
-              </button>
-            </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📐 Pretext + A2UI</h1>
+            <button onClick={runSwarm} disabled={isGenerating} className="px-4 py-2 bg-purple-600 rounded-xl text-sm font-bold disabled:opacity-50">
+              {isGenerating ? '⏳' : '🔄'}
+            </button>
           </div>
         </header>
         
         <main className="pt-20">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
-              <div className="text-center mb-8">
-                <h2 className="text-5xl font-black mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">🤖 A2UI Council</h2>
-                <p className="text-gray-400 text-lg">{phase}</p>
-              </div>
-              
-              {/* Progress */}
-              <div className="w-80 mb-8">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-500">Council Progress</span>
-                  <span className="text-purple-400">{progress}%</span>
-                </div>
-                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500" style={{ width: `${progress}%` }} />
-                </div>
-              </div>
-              
-              {/* Logs */}
-              <div className="bg-black/60 rounded-xl p-4 max-w-lg w-full">
-                <pre className="text-xs text-gray-500 whitespace-pre-wrap font-mono max-h-40 overflow-auto">
-                  {logs.join('\n') || 'Council assembling...'}
-                </pre>
-              </div>
+              <h2 className="text-4xl font-black mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">📐 Generating...</h2>
+              <p className="text-gray-400 mb-8">{phase}</p>
+              <div className="w-80 h-2 bg-white/10 rounded-full"><div className="h-full bg-purple-500 transition-all" style={{ width: `${progress}%` }} /></div>
             </div>
           ) : spec ? (
-            // A2UI Renderer
-            renderA2UI(spec)
-          ) : (
-            <div className="flex items-center justify-center h-[calc(100vh-80px)] text-gray-500">
-              Awaiting A2UI generation...
+            <div>
+              {renderA2UI(spec)}
+              <PretextDemo />
             </div>
-          )}
+          ) : null}
         </main>
       </div>
     </ErrorBoundary>
