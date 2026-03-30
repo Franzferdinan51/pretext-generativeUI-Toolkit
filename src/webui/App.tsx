@@ -1,6 +1,6 @@
 // ============================================================
-// A2UI + PRETEXT - FULL WEBSITE GENERATOR v3
-// Integrated with OpenClaw A2UI + steipete agent-rules
+// A2UI + PRETEXT + RENDERIFY - FULL WEBSITE GENERATOR v4
+// Integrated with: renderify, ai-website, OpenClaw A2UI
 // ============================================================
 import React, { useState, useEffect, Component, ReactNode } from 'react'
 import { prepare, layout, prepareWithSegments, layoutWithLines, walkLineRanges, layoutNextLine } from '@chenglou/pretext'
@@ -11,26 +11,45 @@ interface A2UIElement { type: string; props: Record<string, any>; children?: str
 interface A2UISpec { version: string; root: string; elements: Record<string, A2UIElement> }
 
 // ============================================
-// AGENT RULES (from steipete/agent-rules)
+// MULTI-MODEL CONFIG (from ai-website)
+// ============================================
+const LLM_PROVIDERS = {
+  minimax: { name: 'MiniMax', model: 'MiniMax-M2.7', apiKey: MINIMAX_API_KEY, endpoint: 'https://api.minimax.io/v1/chat/completions' },
+  // Groq, Gemini, etc. can be added here
+}
+
+// ============================================
+// RENDERIFY-STYLE PIPELINE (core concept)
+// ============================================
+/*
+RENDERIFY PIPELINE (from webllm/renderify):
+1. LLM Output (JSX/TSX or JSON)
+2. CodeGen (parse + normalize)
+3. Security Policy Check (before execution!)
+4. Runtime Executor (Babel transpile + JSPM)
+5. Browser renders instantly
+
+SECURITY PROFILES:
+- strict: No dynamic imports, no eval
+- balanced: Allow JSPM packages
+- relaxed: Full npm access
+
+STREAMING: renderPromptStream emits llm-delta / preview / final
+*/
+
+// ============================================
+// AGENT RULES (from steipete)
 // ============================================
 const AGENT_RULES = `
 CRITICAL: Write code that is:
 1. SIMPLE - Prefer obvious over clever
 2. COMPLETE - No TODOs, no placeholders
 3. CONSISTENT - Same pattern everywhere
-4. TESTED - Works on first try
 
 JSON OUTPUT RULES:
 - Always output valid JSON
-- Use this exact format: {"elements":{"KEY":{"type":"TYPE","props":{...}}}}
+- Use this format: {"elements":{"KEY":{"type":"TYPE","props":{...}}}}
 - Never output markdown code blocks
-- Never add explanations, only JSON
-
-COPYWRITING RULES (from steipete's style):
-- Benefit-driven headlines, not feature lists
-- Technical but accessible
-- Specific numbers over vague claims
-- Sound like a real product, not AI gibberish
 `
 
 // ============================================
@@ -39,19 +58,13 @@ COPYWRITING RULES (from steipete's style):
 const CREATIVE_BRIEF = `
 You are building a landing page for "PretextFlow" - a text layout engine for developers.
 
-BRAND: Professional, innovative, developer-focused. Think Stripe/Linear/Vercel.
-STYLE: Dark mode, minimal, purple/pink gradients on #0a0a0f black.
+BRAND: Professional, Stripe/Linear/Vercel quality.
+STYLE: Dark mode, purple/pink gradients on #0a0a0f.
 TARGET: Developers who want fast UI without layout reflows.
-
-KEY MESSAGES:
-- "Zero layout reflow. Pure math."
-- "~0.09ms per measurement"
-- "Replace getBoundingClientRect"
 
 SECTIONS: Nav → Hero → Features → Stats → How It Works → Code → Pricing → FAQ → CTA → Footer
 
-Return ONLY valid JSON matching this structure:
-{"SECTION_ID":{"type":"ComponentType","props":{...},"children":["child_id"]}}
+Return ONLY valid JSON.
 `
 
 // ============================================
@@ -135,49 +148,89 @@ const CTA = ({ title, sub, btn }: any) => <section className="py-24 px-8 text-ce
 const Footer = ({ links, copy }: any) => <footer className="py-12 px-8 border-t border-white/10 bg-black/50"><div className="max-w-6xl mx-auto"><div className="grid grid-cols-4 gap-8 mb-8">{links && Object.entries(links).map(([cat, items]: [string, any]) => <div key={cat}><h4 className="font-semibold mb-3 text-purple-400 text-sm">{cat}</h4><ul className="space-y-2">{items.map((item: string, i: number) => <li key={i}><a href="#" className="text-gray-500 hover:text-white text-sm">{item}</a></li>)}</ul></div>)}</div><div className="text-center text-gray-600 text-xs border-t border-white/5 pt-8">{copy}</div></div></footer>
 
 // ============================================
-// FALLBACK SPEC (High quality - PretextFlow)
+// PIPELINE SECTION (renderify concept)
+// ============================================
+const PipelineDiagram = () => {
+  const steps = [
+    { num: '1', title: 'LLM Output', desc: 'JSX/TSX or JSON', color: 'from-blue-500 to-cyan-500' },
+    { num: '2', title: 'CodeGen', desc: 'Parse + normalize', color: 'from-purple-500 to-pink-500' },
+    { num: '3', title: 'Security', desc: 'Policy check', color: 'from-orange-500 to-red-500' },
+    { num: '4', title: 'Execute', desc: 'Babel + JSPM', color: 'from-green-500 to-emerald-500' },
+    { num: '5', title: 'Render', desc: 'Browser UI', color: 'from-cyan-500 to-blue-500' },
+  ]
+  
+  return (
+    <section className="py-16 px-8 bg-gradient-to-br from-purple-900/10 to-pink-900/10">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-2xl font-black text-center mb-8 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">⚡ Renderify Pipeline</h2>
+        <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
+          {steps.map((step, i) => (
+            <React.Fragment key={i}>
+              <div className="flex-1 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-center">
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center font-bold mx-auto mb-2`}>{step.num}</div>
+                <h4 className="font-semibold text-sm mb-1">{step.title}</h4>
+                <p className="text-xs text-gray-500">{step.desc}</p>
+              </div>
+              {i < steps.length - 1 && <div className="hidden md:flex items-center text-gray-600">→</div>}
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="mt-8 p-4 rounded-xl bg-black/40 border border-white/10">
+          <div className="flex flex-wrap gap-4 justify-center text-xs">
+            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400">🔒 Security Profiles: strict | balanced | relaxed</span>
+            <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400">📦 JSPM Module Resolution</span>
+            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400">⚡ Streaming Render</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ============================================
+// FALLBACK SPEC
 // ============================================
 const FALLBACK_SPEC: A2UISpec = {
   version: "0.8",
   root: "app",
   elements: {
     nav: { type: "Nav", props: { logo: "⚡ PretextFlow", links: ["Docs", "Features", "Pricing", "GitHub"] }},
-    hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement Without Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic. No getBoundingClientRect. No layout thrashing. Just fast.", pBtn: "Start Free", sBtn: "View Docs" }},
+    hero: { type: "Hero", props: { badge: "🚀 ZERO LAYOUT REFLOW", title: "Text Measurement Without Limits", subtitle: "Pure math. No DOM. No jank.", desc: "PretextFlow measures text at ~0.09ms using only JavaScript arithmetic.", pBtn: "Start Free", sBtn: "View Docs" }},
     featSection: { type: "Section", props: { title: "Why PretextFlow?", sub: "The modern way to handle text layout" }, children: ["featGrid"]},
     featGrid: { type: "Grid", props: { cols: 3 }, children: ["f1", "f2", "f3", "f4", "f5", "f6"]},
-    f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement. Cached results. No DOM access." }},
-    f2: { type: "Card", props: { emoji: "🔒", title: "Secure by Design", desc: "No eval. No code execution. Pure declarative JSON." }},
-    f3: { type: "Card", props: { emoji: "🌍", title: "Universal", desc: "Works with React, Vue, Svelte, or vanilla JS." }},
-    f4: { type: "Card", props: { emoji: "📱", title: "Any Surface", desc: "Render to DOM, Canvas, SVG, or game engines." }},
-    f5: { type: "Card", props: { emoji: "🎯", title: "Precise", desc: "Uses the browser's own font engine as ground truth." }},
-    f6: { type: "Card", props: { emoji: "♿", title: "Accessible", desc: "Built-in support for RTL languages and screen readers." }},
+    f1: { type: "Card", props: { emoji: "⚡", title: "Blazing Fast", desc: "~0.09ms per measurement. Cached results." }},
+    f2: { type: "Card", props: { emoji: "🔒", title: "Secure by Design", desc: "No eval. Pure declarative JSON." }},
+    f3: { type: "Card", props: { emoji: "🌍", title: "Universal", desc: "React, Vue, Svelte, or vanilla." }},
+    f4: { type: "Card", props: { emoji: "📱", title: "Any Surface", desc: "DOM, Canvas, SVG, game engines." }},
+    f5: { type: "Card", props: { emoji: "🎯", title: "Precise", desc: "Browser font engine as ground truth." }},
+    f6: { type: "Card", props: { emoji: "♿", title: "Accessible", desc: "RTL languages built in." }},
     statsSection: { type: "Section", props: { title: "Numbers Don't Lie" }, children: ["statsGrid"]},
     statsGrid: { type: "Grid", props: { cols: 4 }, children: ["m1", "m2", "m3", "m4"]},
     m1: { type: "Metric", props: { val: "0.09ms", label: "Per Call" }},
     m2: { type: "Metric", props: { val: "10M+", label: "Calls/Day" }},
     m3: { type: "Metric", props: { val: "99.99%", label: "Uptime" }},
     m4: { type: "Metric", props: { val: "4.9/5", label: "Dev Rating" }},
-    howSection: { type: "Section", props: { title: "How It Works", sub: "Three steps to layout bliss" }, children: ["howGrid"]},
+    howSection: { type: "Section", props: { title: "How It Works", sub: "Three steps" }, children: ["howGrid"]},
     howGrid: { type: "Grid", props: { cols: 3 }, children: ["s1", "s2", "s3"]},
     s1: { type: "Step", props: { num: "1", title: "Install", desc: "npm install @pretextflow/core" }},
     s2: { type: "Step", props: { num: "2", title: "Measure", desc: "pretext.measure(text, width)" }},
-    s3: { type: "Step", props: { num: "3", title: "Render", desc: "Use positions in Canvas, SVG, or DOM" }},
-    codeSection: { type: "Section", props: { title: "Simple API", sub: "One function. Infinite possibilities." }, children: ["code"]},
-    code: { type: "CodeBlock", props: { lang: "typescript", code: "import { prepare, layout } from '@pretextflow/core'\n\nconst text = 'Hello, PretextFlow!'\nconst prepared = prepare(text, '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(`Height: ${height}px`) // ~21px\n// No DOM access. No reflow. Pure math." }},
-    pricingSection: { type: "Section", props: { title: "Simple Pricing", sub: "Start free. Scale as you grow." }, children: ["pricingGrid"]},
+    s3: { type: "Step", props: { num: "3", title: "Render", desc: "Use positions anywhere" }},
+    codeSection: { type: "Section", props: { title: "Simple API", sub: "One function" }, children: ["code"]},
+    code: { type: "CodeBlock", props: { lang: "typescript", code: "import { prepare, layout } from '@pretextflow/core'\n\nconst prepared = prepare('Hello', '16px Inter')\nconst { height } = layout(prepared, 400, 24)\n\nconsole.log(`Height: ${height}px`)" }},
+    pricingSection: { type: "Section", props: { title: "Simple Pricing", sub: "Start free" }, children: ["pricingGrid"]},
     pricingGrid: { type: "Grid", props: { cols: 3 }, children: ["p1", "p2", "p3"]},
-    p1: { type: "Pricing", props: { tier: "Hobby", price: "$0", features: ["100K calls/month", "Community support", "1 project"]}},
-    p2: { type: "Pricing", props: { tier: "Pro", price: "$29", period: "mo", features: ["Unlimited calls", "Priority support", "10 projects", "Analytics"], highlight: true, btn: "Start Trial"}},
-    p3: { type: "Pricing", props: { tier: "Enterprise", price: "Custom", features: ["Everything in Pro", "Dedicated support", "Unlimited projects", "SLA guarantee"]}},
-    faqSection: { type: "Section", props: { title: "FAQ", sub: "Common questions, clear answers" }, children: ["faqGrid"]},
+    p1: { type: "Pricing", props: { tier: "Hobby", price: "$0", features: ["100K calls", "Community support"]}},
+    p2: { type: "Pricing", props: { tier: "Pro", price: "$29", features: ["Unlimited", "Priority support"], highlight: true, btn: "Start Trial"}},
+    p3: { type: "Pricing", props: { tier: "Enterprise", price: "Custom", features: ["Everything", "Dedicated support"]}},
+    faqSection: { type: "Section", props: { title: "FAQ" }, children: ["faqGrid"]},
     faqGrid: { type: "Grid", props: { cols: 2 }, children: ["faq1", "faq2", "faq3", "faq4", "faq5"]},
-    faq1: { type: "FAQ", props: { q: "What makes it so fast?", a: "Pretext uses the browser's native font engine to measure text once, then caches everything. Subsequent calls are pure arithmetic." }},
-    faq2: { type: "FAQ", props: { q: "Does it work with TypeScript?", a: "Yes! Full TypeScript support with types included. Works in Node.js and browsers." }},
-    faq3: { type: "FAQ", props: { q: "Can I use it for game development?", a: "Absolutely. Pretext outputs raw coordinates, making it perfect for Canvas, WebGL, and game UI systems." }},
-    faq4: { type: "FAQ", props: { q: "Is there a React integration?", a: "Yes, we have official React bindings plus examples for Vue, Svelte, and Solid." }},
-    faq5: { type: "FAQ", props: { q: "What about RTL languages?", a: "Full support for Arabic, Hebrew, and other RTL scripts built in." }},
-    cta: { type: "CTA", props: { title: "Ready to go fast?", sub: "Join thousands of developers who eliminated layout thrashing.", btn: "Get Started Free" }},
-    footer: { type: "Footer", props: { links: { Product: ["Features", "Pricing", "Changelog"], Developers: ["Docs", "API", "Examples", "Status"], Company: ["About", "Blog", "Careers"], Legal: ["Privacy", "Terms", "Security"]}, copy: "© 2026 PretextFlow. Built for developers who care about performance." }}
+    faq1: { type: "FAQ", props: { q: "What makes it fast?", a: "Browser font engine + caching." }},
+    faq2: { type: "FAQ", props: { q: "TypeScript?", a: "Yes, full support." }},
+    faq3: { type: "FAQ", props: { q: "Game dev?", a: "Perfect for Canvas/WebGL." }},
+    faq4: { type: "FAQ", props: { q: "React integration?", a: "Yes, plus Vue/Svelte." }},
+    faq5: { type: "FAQ", props: { q: "RTL languages?", a: "Full support built in." }},
+    cta: { type: "CTA", props: { title: "Ready to go fast?", sub: "Join thousands of developers.", btn: "Get Started Free" }},
+    footer: { type: "Footer", props: { links: { Product: ["Features", "Pricing"], Developers: ["Docs", "API"], Company: ["About", "Blog"], Legal: ["Privacy", "Terms"]}, copy: "© 2026 PretextFlow" }}
   }
 }
 
@@ -210,19 +263,19 @@ function renderSpec(spec: A2UISpec): ReactNode {
 }
 
 // ============================================
-// AGENTS WITH RULES
+// AGENTS
 // ============================================
 const AGENTS = {
-  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the navigation JSON. No markdown.` },
-  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the hero section JSON. Make it compelling.` },
-  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the features section: 6 cards showcasing capabilities.` },
-  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the stats section: 4 impressive metrics.` },
-  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the How It Works section: 3 steps.` },
-  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the code example section with working TypeScript.` },
-  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the pricing section: 3 tiers.` },
-  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the FAQ section: 5 questions and answers.` },
-  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the final CTA section JSON.` },
-  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate ONLY the footer JSON.` }
+  nav: { name: "Nav", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Nav JSON only.` },
+  hero: { name: "Hero", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Hero JSON only.` },
+  features: { name: "Features", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Features JSON only.` },
+  stats: { name: "Stats", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Stats JSON only.` },
+  how: { name: "How It Works", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate How It Works JSON only.` },
+  code: { name: "Code Example", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Code Example JSON only.` },
+  pricing: { name: "Pricing", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Pricing JSON only.` },
+  faq: { name: "FAQ", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate FAQ JSON only.` },
+  cta: { name: "CTA", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate CTA JSON only.` },
+  footer: { name: "Footer", prompt: `${AGENT_RULES}\n\n${CREATIVE_BRIEF}\n\nGenerate Footer JSON only.` }
 }
 
 // ============================================
@@ -253,7 +306,7 @@ export default function App() {
   
   async function enhanceWithAI() {
     setIsGenerating(true)
-    setLogs(['✨ Enhancing with AI...'])
+    setLogs(['✨ AI Pipeline running...'])
     const elements: Record<string, A2UIElement> = {}
     const keys = Object.keys(AGENTS)
     
@@ -274,10 +327,10 @@ export default function App() {
           Object.assign(elements, parsed)
           setLogs(prev => [...prev.slice(-4), `✅ ${agent.name}`])
         } else {
-          setLogs(prev => [...prev.slice(-4), `⚠️ ${agent.name}: skipped`])
+          setLogs(prev => [...prev.slice(-4), `⚠️ ${agent.name}`])
         }
       } catch (err) {
-        setLogs(prev => [...prev.slice(-4), `❌ ${agent.name}: failed`])
+        setLogs(prev => [...prev.slice(-4), `❌ ${agent.name}`])
       }
     }
     
@@ -286,7 +339,7 @@ export default function App() {
     }
     
     setIsGenerating(false)
-    setLogs(prev => [...prev.slice(-4), `✅ Done!`])
+    setLogs(prev => [...prev.slice(-4), `⚡ Done!`])
   }
   
   useEffect(() => { enhanceWithAI() }, [])
@@ -302,10 +355,10 @@ export default function App() {
               <span className="font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">PretextFlow</span>
             </div>
             <div className="flex items-center gap-3">
-              {!isGenerating && <span className="text-xs text-green-400/80">✨ Enhanced</span>}
+              {!isGenerating && <span className="text-xs text-green-400/80">⚡ Pipeline Ready</span>}
               {isGenerating && <span className="text-xs text-purple-400">{phase}</span>}
               <button onClick={enhanceWithAI} disabled={isGenerating} className="px-3 py-1.5 bg-purple-600 rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-purple-500 transition">
-                {isGenerating ? '⏳' : '✨'}
+                {isGenerating ? '⏳' : '⚡'}
               </button>
             </div>
           </div>
@@ -317,7 +370,10 @@ export default function App() {
         {/* Logs */}
         {isGenerating && logs.length > 0 && <div className="fixed bottom-4 right-4 bg-black/80 rounded-lg p-3 max-w-[200px]"><pre className="text-xs text-gray-500">{logs.join('\n')}</pre></div>}
         
-        <main className="pt-16">{renderSpec(spec)}</main>
+        <main className="pt-16">
+          {renderSpec(spec)}
+          <PipelineDiagram />
+        </main>
       </div>
     </ErrorBoundary>
   )

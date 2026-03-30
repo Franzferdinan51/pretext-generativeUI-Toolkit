@@ -1,8 +1,7 @@
-# Pretext + A2UI Toolkit v2
+# Pretext + A2UI Toolkit v3
 
 <p align="center">
-  <strong>📐 Pretext Layout Engine + 🤖 A2UI Standard</strong><br>
-  Zero-reflow text measurement • CSS-replacing layouts • AI-generated UIs
+  <strong>📐 Pretext Layout + 🤖 AI Generation + ⚡ Runtime Rendering</strong>
 </p>
 
 ---
@@ -13,105 +12,94 @@
 
 ---
 
-## 📐 Pretext - CSS Replacing Layout Engine
+## 🏗️ Architecture (Inspired by 5 Powerful Projects)
 
-**Pretext** measures text without DOM access. Zero reflow. ~0.09ms cached.
+### 1. jadouse5/ai-website - On-the-fly Generation
+- **URL → Prompt → HTML** pipeline
+- Multiple LLM providers (Gemini, Groq, Mercury, Qwen)
+- Infinite scalability - pages don't exist as files
+- Real-time personalization
 
-### Layout Methods
+### 2. dennismeissel/WebSite-Generator - Natural Language Editing
+- Describe → Generate → Update in real-time
+- macOS native experience
+
+### 3. webllm/renderify - Runtime JSX/TSX (CRITICAL!)
+- **LLM generates JSX → Browser renders directly**
+- **No backend build step!**
+- Security policy checker before execution
+- Streaming-first rendering
+- JSPM module resolution at runtime
+- Zero-build rendering
+
+### 4. openclaw/openclaw - A2UI Standard
+- Declarative JSON UI format
+- Live Canvas implementation
+- Multi-agent routing
+
+### 5. steipete - Agent Rules
+- SIMPLE, COMPLETE, CONSISTENT code
+- No TODOs or placeholders
+
+---
+
+## 📐 Pretext - CSS Replacing Layout
 
 | Method | What It Does |
 |--------|-------------|
 | `masonry()` | Auto-calculated column heights |
 | `floatAround()` | Text flows around obstacles |
 | `shrinkwrap()` | Find tightest width |
-| `balanced()` | Equal line widths |
-| `virtualList()` | Pre-calculate without DOM |
 
-### API
+---
 
-```javascript
-import { prepare, layout, prepareWithSegments, layoutWithLines } from '@chenglou/pretext'
+## ⚡ Renderify Pipeline (NEW!)
 
-const prepared = prepare('Hello world', '16px Inter')
-const { height } = layout(prepared, 400, 24) // ~0.09ms
+```
+LLM Output (JSX/TSX)
+  ↓
+CodeGen (parse + normalize)
+  ↓
+Security Policy Check
+  ↓
+Runtime Executor (Babel transpile + JSPM)
+  ↓
+Browser renders instantly!
 ```
 
----
-
-## 🤖 A2UI - Agent User Interface
-
-Declarative JSON standard for AI-generated UIs. Security-first, framework-agnostic.
-
-```javascript
-const spec = {
-  version: "0.8",
-  root: "element-id",
-  elements: {
-    "card": { type: "Card", props: { title: "Hello" }}
-  }
-}
-```
-
-### Based On
-
-- **OpenClaw Live Canvas** - A2UI implementation in production
-- **Google A2UI** - Google's agent UI standard
-- **steipete's tools** - Production-grade agent tooling
+### Key Features:
+- **Zero-build** - No backend compiler
+- **Security-first** - Policy checker before execution
+- **Streaming** - Progressive UI updates
+- **Pluggable** - 10 hook points
 
 ---
 
-## 🛠️ Integrated Technologies
-
-### From OpenClaw
-- **A2UI Standard** - Live Canvas declarative UI
-- **Multi-agent routing** - Route to specialized agents
-- **Skills system** - Composable tool chains
-
-### From steipete
-- **Peekaboo** - macOS GUI automation
-- **CodexBar** - Token usage monitoring
-- **agent-rules** - Shared coding rules for agents
-- **Claude Code MCP** - Agent inside agent pattern
-
-### From Google
-- **A2UI Spec** - Declarative UI for agents
-
----
-
-## 🎨 Built With
+## 🎯 Tech Stack
 
 | Tech | Purpose |
 |------|---------|
 | **Pretext** | Text measurement + layouts |
-| **A2UI** | Agent UI standard |
+| **A2UI** | Declarative UI spec |
+| **Renderify** | Runtime JSX rendering |
 | **React** | UI framework |
 | **MiniMax** | AI generation |
 
 ---
 
-## 📦 Components
-
-10 A2UI Components ready:
-- Nav, Hero, Section, Grid, Card
-- Metric, Step, CodeBlock
-- Pricing, FAQ, CTA, Footer
-
----
-
 ## 🌐 Resources
 
-| Resource | Link |
-|----------|------|
-| **Pretext** | [github.com/chenglou/pretext](https://github.com/chenglou/pretext) |
-| **Pretext Demos** | [somnai-dreams.github.io/pretext-demos](https://somnai-dreams.github.io/pretext-demos/) |
-| **OpenClaw** | [github.com/openclaw/openclaw](https://github.com/openclaw/openclaw) |
-| **A2UI (Google)** | [github.com/google/A2UI](https://github.com/google/A2UI) |
-| **steipete tools** | [github.com/steipete](https://github.com/steipete) |
-| **agent-rules** | [github.com/steipete/agent-rules](https://github.com/steipete/agent-rules) |
-| **Peekaboo** | [github.com/steipete/Peekaboo](https://github.com/steipete/Peekaboo) |
+| Project | Link |
+|---------|------|
+| **Pretext** | [chenglou/pretext](https://github.com/chenglou/pretext) |
+| **ai-website** | [jadouse5/ai-website](https://github.com/jadouse5/ai-website) |
+| **WebSite-Generator** | [dennismeissel/WebSite-Generator](https://github.com/dennismeissel/WebSite-Generator) |
+| **renderify** | [webllm/renderify](https://github.com/webllm/renderify) |
+| **OpenClaw** | [openclaw/openclaw](https://github.com/openclaw/openclaw) |
+| **A2UI** | [google/A2UI](https://github.com/google/A2UI) |
 
 ---
 
 <p align="center">
-  📐 Pretext • 🤖 A2UI • ⚡ 0.09ms
+  📐 Pretext • 🤖 A2UI • ⚡ Renderify • 🔒 Security-First
 </p>
