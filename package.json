@@ -1,28 +1,33 @@
 {
   "name": "pretext-generative-ui-toolkit",
   "version": "1.0.0",
-  "description": "AI-powered generative UI toolkit with pretext, streaming, and beautiful components",
+  "description": "AI-powered generative UI toolkit - Generate real websites on-the-fly for OpenClaw agents",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "type": "module",
+  "bin": {
+    "generative-ui": "./backend/cli.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src --ext .ts,.tsx",
+    "cli": "node backend/cli.js",
+    "mcp": "node backend/mcp-server.js"
   },
   "keywords": [
     "ai",
     "generative-ui",
+    "openclaw",
+    "skill",
+    "agent",
+    "mcp",
     "pretext",
-    "streaming",
-    "react",
-    "canvas",
-    "text-measurement",
-    "chatbot",
-    "ui-components"
+    "a2ui",
+    "website-generator"
   ],
   "author": "",
   "license": "MIT",
@@ -32,9 +37,6 @@
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.3",
-    "@json-render/core": "^0.16.0",
-    "@json-render/react": "^0.16.0",
-    "mathjs": "^12.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
@@ -51,6 +53,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "backend",
+    ".agents"
   ]
 }
