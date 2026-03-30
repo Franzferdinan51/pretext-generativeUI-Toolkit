@@ -3,257 +3,343 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weather Widget</title>
+  <title>Weather — Huber Heights</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       background: #0d1117;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
+      padding: 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #f0f6fc;
     }
-    canvas { display: block; }
+
+    .widget {
+      width: 380px;
+      background: #161b22;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    /* Sky header */
+    .sky {
+      background: linear-gradient(180deg, #1a3a6a 0%, #2a5a9a 100%);
+      padding: 24px 24px 32px;
+      text-align: center;
+      position: relative;
+    }
+
+    .location {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8b949e;
+      margin-bottom: 2px;
+    }
+
+    .updated {
+      font-size: 10px;
+      color: #484f58;
+      margin-bottom: 8px;
+    }
+
+    .temp-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .temp {
+      font-size: 80px;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .condition {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-top: 4px;
+    }
+
+    .feels {
+      font-size: 12px;
+      color: #6e7681;
+      margin-top: 2px;
+    }
+
+    .hl-row {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .hl-row .high { color: #f85149; }
+    .hl-row .low { color: #58a6ff; }
+    .hl-row .sunrise { color: #d29922; margin-left: 16px; }
+    .hl-row .sunset { color: #f97316; }
+
+    /* Sections */
+    .section {
+      padding: 14px 20px;
+      border-top: 1px solid #21262d;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #484f58;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat {
+      background: #0d1117;
+      border-radius: 10px;
+      padding: 10px 10px 10px 12px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #484f58;
+      margin-bottom: 3px;
+    }
+
+    .stat-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+
+    .stat-sub {
+      font-size: 9px;
+      color: #6e7681;
+    }
+
+    /* Hourly */
+    .hourly-grid {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .hourly-grid::-webkit-scrollbar { display: none; }
+
+    .hour {
+      background: #0d1117;
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+
+    .hour-icon { font-size: 18px; }
+    .hour-time { font-size: 9px; color: #6e7681; margin-top: 2px; }
+    .hour-temp { font-size: 13px; font-weight: 700; color: #f0f6fc; margin-top: 2px; }
+    .hour-precip { font-size: 9px; color: #3d444d; margin-top: 2px; }
+
+    /* 3-day */
+    .day-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .day-card {
+      background: #0d1117;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      flex: 1;
+    }
+
+    .day-name { font-size: 10px; font-weight: 600; color: #8b949e; }
+    .day-icon { font-size: 22px; margin: 4px 0; }
+    .day-hilo { font-size: 12px; font-weight: 700; color: #f0f6fc; margin-top: 2px; }
+    .day-precip { font-size: 9px; color: #58a6ff; margin-top: 2px; }
+
+    /* Outlook row */
+    .outlook-row {
+      display: flex;
+      gap: 8px;
+    }
+    .outlook-item {
+      background: #0d1117;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      flex: 1;
+    }
+    .outlook-item .day-name { font-size: 10px; font-weight: 600; color: #8b949e; }
+    .outlook-item .day-icon { font-size: 20px; margin: 4px 0; }
+    .outlook-item .day-hilo { font-size: 12px; font-weight: 700; color: #f0f6fc; }
+    .outlook-item .day-precip { font-size: 9px; margin-top: 2px; }
+
+    .bottom {
+      padding: 12px 20px;
+      border-top: 1px solid #21262d;
+      font-size: 9px;
+      color: #21262d;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script>
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const W = 380;
-canvas.width = W;
+  <div class="widget">
 
-const weather = {
-  location: 'Huber Heights, OH',
-  updated: '2:26 PM EDT · Mar 30',
+    <!-- Sky -->
+    <div class="sky">
+      <div class="location">Huber Heights, OH</div>
+      <div class="updated">2:32 PM EDT · Mar 30</div>
+      <div class="temp-row">
+        <span class="temp">73°</span>
+      </div>
+      <div class="condition">Clear ☀️</div>
+      <div class="feels">Feels like 69°</div>
+      <div class="hl-row">
+        <span class="high">74°</span>
+        <span class="low">59°</span>
+        <span class="sunrise">7:22 AM</span>
+        <span class="sunset">7:58 PM</span>
+      </div>
+    </div>
 
-  current: { temp_f: 73, feels_f: 69, humidity: 52, cloud: 10, condition: 'Clear', icon: '☀️' },
-  wind: { mph: 16, direction: 'SW' },
-  pressure: { hpa: 1018, inHg: 30.05 },
-  uv: 3,
-  dewpoint_f: 55,
-  visibility: '10 mi',
+    <!-- Current conditions -->
+    <div class="section">
+      <div class="section-title">CURRENT CONDITIONS</div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">HUMIDITY</div>
+          <div class="stat-value">51%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">WIND</div>
+          <div class="stat-value">16 mph SW</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">PRESSURE</div>
+          <div class="stat-value">1017 hPa</div>
+          <div class="stat-sub">30.04 inHg</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">UV INDEX</div>
+          <div class="stat-value">2</div>
+          <div class="stat-sub">Low</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">DEW POINT</div>
+          <div class="stat-value">55°F</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">CLOUDS</div>
+          <div class="stat-value">15%</div>
+        </div>
+      </div>
+    </div>
 
-  today: { high_f: 74, low_f: 59 },
-  sunrise: '7:22 AM',
-  sunset: '7:58 PM',
+    <!-- Hourly -->
+    <div class="section">
+      <div class="section-title">HOURLY FORECAST</div>
+      <div class="hourly-grid">
+        <div class="hour">
+          <div class="hour-icon">⛅</div>
+          <div class="hour-time">1 PM</div>
+          <div class="hour-temp">74°</div>
+          <div class="hour-precip">3%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">2 PM</div>
+          <div class="hour-temp">73°</div>
+          <div class="hour-precip">3%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">3 PM</div>
+          <div class="hour-temp">72°</div>
+          <div class="hour-precip">3%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">4 PM</div>
+          <div class="hour-temp">69°</div>
+          <div class="hour-precip">3%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">5 PM</div>
+          <div class="hour-temp">67°</div>
+          <div class="hour-precip">2%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">6 PM</div>
+          <div class="hour-temp">66°</div>
+          <div class="hour-precip">2%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">7 PM</div>
+          <div class="hour-temp">66°</div>
+          <div class="hour-precip">1%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☀️</div>
+          <div class="hour-time">8 PM</div>
+          <div class="hour-temp">65°</div>
+          <div class="hour-precip">1%</div>
+        </div>
+        <div class="hour">
+          <div class="hour-icon">☁️</div>
+          <div class="hour-time">9 PM</div>
+          <div class="hour-temp">65°</div>
+          <div class="hour-precip">1%</div>
+        </div>
+      </div>
+    </div>
 
-  hourly: [
-    { hour: '2PM', temp: 73, icon: '☀️',  precip: '3%' },
-    { hour: '3PM', temp: 72, icon: '☀️',  precip: '3%' },
-    { hour: '4PM', temp: 69, icon: '☀️',  precip: '3%' },
-    { hour: '5PM', temp: 67, icon: '☀️',  precip: '2%' },
-    { hour: '6PM', temp: 66, icon: '☀️',  precip: '2%' },
-    { hour: '7PM', temp: 66, icon: '☀️',  precip: '1%' },
-    { hour: '8PM', temp: 65, icon: '🌙',  precip: '1%' },
-    { hour: '9PM', temp: 65, icon: '🌙',  precip: '1%' },
-  ],
+    <!-- 3-Day -->
+    <div class="section">
+      <div class="section-title">3-DAY FORECAST</div>
+      <div class="outlook-row">
+        <div class="outlook-item">
+          <div class="day-name">Today</div>
+          <div class="day-icon">☀️</div>
+          <div class="day-hilo">74° / 59°</div>
+          <div class="day-precip">0% rain</div>
+        </div>
+        <div class="outlook-item">
+          <div class="day-name">Tomorrow</div>
+          <div class="day-icon">☀️</div>
+          <div class="day-hilo">81° / 61°</div>
+          <div class="day-precip">0% rain</div>
+        </div>
+        <div class="outlook-item">
+          <div class="day-name">Wed Apr 1</div>
+          <div class="day-icon">🌧️</div>
+          <div class="day-hilo">76° / 61°</div>
+          <div class="day-precip" style="color:#58a6ff">60% rain</div>
+        </div>
+      </div>
+    </div>
 
-  outlook: [
-    { day: 'Today',     icon: '☀️',  high: 74, low: 59, condition: 'Clear',        precip: '0%'  },
-    { day: 'Tomorrow',   icon: '☀️',  high: 81, low: 61, condition: 'Mostly Sunny', precip: '0%'  },
-    { day: 'Wed Apr 1',  icon: '🌧️', high: 76, low: 61, condition: 'Rain',          precip: '60%' },
-  ],
-};
+    <div class="bottom">Open-Meteo · Huber Heights, OH</div>
 
-function dt(text, size, x, y, color, align, weight) {
-  if (align === undefined) align = 'center';
-  if (weight === undefined) weight = 'normal';
-  ctx.font = weight + ' ' + size + 'px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillStyle = color;
-  ctx.textAlign = align;
-  ctx.fillText(text, x, y);
-  ctx.textAlign = 'left';
-}
-
-function fr(x, y, w, h, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, w, h);
-}
-
-function divider(x1, x2, yy) {
-  const w = x2 - x1;
-  if (w > 0) fr(x1, yy, w, 1, '#21262d');
-}
-
-const WX = 16;
-const WW = W - WX * 2;
-const COL3 = WW / 3;
-
-let t = 0;
-
-function row(y, h) {
-  fr(WX, y, WW, h, '#161b22');
-}
-
-function render() {
-  t += 0.016;
-
-  canvas.height = 680;
-  canvas.style.height = '680px';
-  fr(0, 0, W, 680, '#0d1117');
-
-  let y = 0;
-
-  // ── SKY ─────────────────────────────────────────
-  const skyH = 140;
-  const sky = ctx.createLinearGradient(0, 0, 0, skyH);
-  sky.addColorStop(0, '#0f2557');
-  sky.addColorStop(1, '#2a5a9a');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, skyH);
-
-  const sx = W * 0.75, sy = 48;
-  const sp = 1 + Math.sin(t * 1.2) * 0.04;
-  for (let i = 3; i >= 1; i--) {
-    ctx.save(); ctx.filter = `blur(${i * 10}px)`;
-    ctx.fillStyle = `rgba(255,210,80,${0.06 / i})`;
-    ctx.beginPath(); ctx.arc(sx, sy, 30 * i * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-  }
-  ctx.save(); ctx.filter = 'blur(6px)';
-  ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(sx, sy, 26 * sp, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-
-  y = skyH;
-
-  // ── MAIN ──────────────────────────────────────────
-  dt(weather.location, 13, W / 2, y + 8, '#8b949e', 'center', 'bold');
-  dt(weather.updated, 9, W / 2, y + 24, '#484f58');
-
-  const pulse = Math.sin(t * 1.2) * 1;
-  dt(weather.current.temp_f + '°', 76, W / 2, y + 48 + pulse, '#ffffff', 'center', 'bold');
-  dt(weather.current.condition, 20, W / 2, y + 96, '#f0f6fc', 'center', 'bold');
-  dt('Feels like ' + weather.current.feels_f + '°', 11, W / 2, y + 116, '#6e7681');
-
-  y += 132;
-
-  // ── HIGH / LOW ──────────────────────────────────
-  row(y, 40);
-  const hlY = y;
-  y += 40;
-
-  const mid = W / 2;
-  dt('HIGH', 9, WX + 44, hlY + 10, '#f85149', 'center', 'bold');
-  dt(weather.today.high_f + '°', 18, WX + 44, hlY + 26, '#f85149', 'center', 'bold');
-  divider(mid - 24, mid + 24, hlY + 10);
-  dt('LOW', 9, mid, hlY + 10, '#58a6ff', 'center', 'bold');
-  dt(weather.today.low_f + '°', 18, mid, hlY + 26, '#58a6ff', 'center', 'bold');
-  divider(mid + 52, mid + 110, hlY + 10);
-  dt('SUNRISE ' + weather.sunrise, 9, mid + 81, hlY + 10, '#d29922', 'center', 'bold');
-  divider(mid + 160, mid + 220, hlY + 10);
-  dt('SUNSET ' + weather.sunset, 9, W - WX, hlY + 10, '#f97316', 'right', 'bold');
-
-  y += 12;
-
-  // ── ROW: Humidity / Wind / Pressure ─────────────
-  row(y, 54);
-  y += 54;
-
-  // Humidity
-  dt('💧', 14, WX + 12, y - 46, '#8b949e');
-  dt('HUMIDITY', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.current.humidity + '%', 14, WX + 32, y - 32, '#c9d1d9', 'left');
-
-  // Wind
-  dt('💨', 14, WX + COL3 + 12, y - 46, '#8b949e');
-  dt('WIND', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.wind.mph + ' mph ' + weather.wind.direction, 12, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
-
-  // Pressure
-  dt('🌡️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
-  dt('PRESSURE', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.pressure.hpa + ' hPa / ' + weather.pressure.inHg + ' in', 11, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
-
-  y += 8;
-
-  // ── ROW: UV / Dew Point / Visibility ─────────────
-  row(y, 54);
-  y += 54;
-
-  dt('☀️', 14, WX + 12, y - 46, '#8b949e');
-  dt('UV INDEX', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(String(weather.uv), 14, WX + 32, y - 32, '#c9d1d9', 'left');
-
-  dt('💧', 14, WX + COL3 + 12, y - 46, '#8b949e');
-  dt('DEW POINT', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.dewpoint_f + '°F', 14, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
-
-  dt('👁️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
-  dt('VISIBILITY', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.visibility, 14, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
-
-  y += 8;
-
-  // ── ROW: Sunrise / Sunset / Clouds ──────────────
-  row(y, 54);
-  y += 54;
-
-  dt('🌅', 14, WX + 12, y - 46, '#8b949e');
-  dt('SUNRISE', 8, WX + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.sunrise, 14, WX + 32, y - 32, '#c9d1d9', 'left');
-
-  dt('🌇', 14, WX + COL3 + 12, y - 46, '#8b949e');
-  dt('SUNSET', 8, WX + COL3 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.sunset, 14, WX + COL3 + 32, y - 32, '#c9d1d9', 'left');
-
-  dt('☁️', 14, WX + COL3 * 2 + 12, y - 46, '#8b949e');
-  dt('CLOUDS', 8, WX + COL3 * 2 + 32, y - 48, '#484f58', 'left', 'bold');
-  dt(weather.current.cloud + '%', 14, WX + COL3 * 2 + 32, y - 32, '#c9d1d9', 'left');
-
-  y += 14;
-
-  // ── HOURLY ───────────────────────────────────────
-  row(y, 108);
-  const hfTitleY = y;
-  y += 24;
-  dt('HOURLY FORECAST', 10, W / 2, hfTitleY + 8, '#484f58', 'center', 'bold');
-  y += 10;
-
-  const n = weather.hourly.length;
-  const hourItemW = (WW - 4) / n;
-  for (let i = 0; i < n; i++) {
-    const h = weather.hourly[i];
-    const ix = WX + 2 + i * hourItemW + hourItemW / 2;
-    const iy = y;
-    const bob = Math.sin(t * 2 + i * 0.5) * 1;
-
-    dt(h.icon, 16, ix, iy + bob, '#f0f6fc');
-    dt(h.hour, 8, ix, iy + 22, '#6e7681');
-    dt(h.temp + '°', 13, ix, iy + 38, '#f0f6fc', 'center', 'bold');
-    dt('💧' + h.precip, 8, ix, iy + 54, parseInt(h.precip) > 20 ? '#58a6ff' : '#3d444d');
-  }
-
-  y += 74;
-  y += 14;
-
-  // ── 3-DAY OUTLOOK ───────────────────────────────
-  row(y, 110);
-  const outTitleY = y;
-  y += 22;
-  dt('3-DAY OUTLOOK', 10, W / 2, outTitleY + 8, '#484f58', 'center', 'bold');
-  y += 10;
-
-  const od = WW / 3;
-  for (let i = 0; i < weather.outlook.length; i++) {
-    const o = weather.outlook[i];
-    const ox = WX + od * i + od / 2;
-    const iy = y;
-
-    dt(o.day, 9, ox, iy, '#8b949e', 'center', 'bold');
-    dt(o.icon, 22, ox, iy + 18, '#f0f6fc');
-    dt(o.condition, 9, ox, iy + 42, '#6e7681');
-    dt(o.high + '°', 13, ox, iy + 58, '#f0f6fc', 'center', 'bold');
-    dt(o.low + '°', 11, ox, iy + 74, '#6e7681', 'center');
-    dt('💧 ' + o.precip, 9, ox, iy + 88, parseInt(o.precip) > 30 ? '#58a6ff' : '#6e7681', 'center');
-  }
-
-  y += 100;
-  dt('Open-Meteo · Huber Heights, OH', 9, W / 2, y + 6, '#21262d');
-
-  requestAnimationFrame(render);
-}
-
-render();
-</script>
+  </div>
 </body>
 </html>
